@@ -61,6 +61,9 @@ export function makeDb(tables, log) {
       then(res, rej) { return api.run().then(res, rej); },
 
       async run() {
+        // ล้มตามสั่ง — tables.__fail['insert inbox_items'] = true · ใช้จำลองรอบที่ล้มกลางทางจริง ๆ
+        // (ไม่ใช่แก้ตารางหลังรอบที่สำเร็จ ซึ่งไม่เหมือนสภาพที่รอบที่ล้มทิ้งไว้)
+        if (tables.__fail?.[`${st.op || 'select'} ${name}`]) return { data: null, error: { message: 'injected ' + name } };
         let out = rows().filter(r => st.filters.every(f => f(r)));
 
         if (st.op === 'insert') {
@@ -103,6 +106,8 @@ export function makeDb(tables, log) {
           out = [...out].sort((a, b) => (String(a[c]).localeCompare(String(b[c]))) * (asc ? 1 : -1));
         }
         if (st.limit) out = out.slice(0, st.limit);
+        // จดการอ่านด้วย — เทสต์ "ไม่มีอะไรเปลี่ยน = ไม่แตะฐานข้อมูล" ต้องเห็นว่ารอบนั้นอ่านตารางไหนบ้าง
+        log.push(`select ${name}`);
         const mapped = out.map(r => pick(r, st.sel));
         if (st.single) return { data: mapped[0] ?? null, error: null };
         return { data: mapped, error: null };

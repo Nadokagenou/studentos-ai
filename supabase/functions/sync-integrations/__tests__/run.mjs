@@ -547,10 +547,15 @@ const ledgerOf = (t, wid) => t.integration_items.find(x => x.source_id === 'c-p:
   GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
     work: { 'c-p': [pWork('w9', 3)] }, subs: { 'c-p': [] } } };
   const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
-  await rerun(t);
-  // จำลองรอบที่ล้มกลางทาง: ทะเบียนจดแล้ว แต่กล่องเข้า · หมุดกันซ้ำ · sent_fingerprint ไม่ถูกเขียน
-  t.inbox_items.length = 0; t.push_sent.length = 0;
-  for (const x of t.integration_items) { x.sent_fingerprint = null; x.sent_at = null; }
+  // 29 ต.ค. 69 · ล้มจริงแทนการแก้ตารางหลังรอบที่สำเร็จ — รอบที่สำเร็จจำลายนิ้วมือของรายการไว้แล้ว
+  // (ดูหัวข้อ 25) การแก้ทะเบียนทีหลังจึงไม่ใช่สภาพที่รอบที่ล้มทิ้งไว้จริง
+  // ทะเบียนจดแล้ว แต่เขียนกล่องเข้าไม่ได้ → รอบนั้น throw · หมุดกันซ้ำและ sent_fingerprint ไม่ถูกเขียน
+  t.__fail = { 'insert inbox_items': true };
+  const r0 = await rerun(t);
+  delete t.__fail;
+  check('ล้มกลางทาง → รอบนั้นจบด้วย error และทะเบียนยังไม่ถูกปักว่าส่งแล้ว',
+    r0.body.results?.[0]?.status === 'error' && ledgerOf(t, 'w9') && !ledgerOf(t, 'w9').sent_fingerprint && t.inbox_items.length === 0,
+    JSON.stringify([r0.body, ledgerOf(t, 'w9')]));
   const r = await rerun(t);
   check('ล้มกลางทาง → รอบหน้าส่งเป็นของใหม่', inboxFor(t, 'w9')[0]?.meta.op === 'new', JSON.stringify(inboxFor(t, 'w9').map(x => x.meta.op)));
   check('ล้มกลางทาง → รอบหน้าได้แจ้งเตือน', r.sent.length === 1 && /งาน w9/.test(r.sent[0].body), JSON.stringify(r.sent));
@@ -689,6 +694,118 @@ const ledgerOf = (t, wid) => t.integration_items.find(x => x.source_id === 'c-p:
   GOOGLE_DELAY = {};
   check('หลายบัญชี → ซิงก์ขนานกัน (คำขอ Google ค้างพร้อมกัน > 1)', maxInFlight > 1, 'maxInFlight=' + maxInFlight);
   check('หลายบัญชี → ทุกบัญชีได้งานของตัวเอง', ['a', 'b', 'c'].every(k => t.inbox_items.some(x => x.user_id === 'u' + k && x.meta.sourceId === 'c-' + k + ':w' + k)), JSON.stringify(t.inbox_items.map(x => [x.user_id, x.meta.sourceId])));
+}
+// ---- 25) 29 ต.ค. 69 · ไม่มีงานใหม่ = ไม่แตะฐานข้อมูล ----
+// ข้อมูลจริง (log 24 ชม.): cron ทุกนาที × 4 บัญชี ลากทะเบียนทั้งบัญชีออกมาเทียบ ~5,600 ครั้ง/วัน
+// และกวาด inbox_items หาของค้างอีก ~3,700 ครั้ง/วัน ทั้งที่เกือบทุกรอบไม่มีอะไรเปลี่ยน
+// Egress ของ Supabase ทั้งองค์กรเกินแผนฟรี 363% · ถาม Google ทุกนาทีเหมือนเดิม (ข้อมูลขาเข้า)
+// แต่ถ้ารายการที่ได้มาเหมือนรอบก่อนเป๊ะ จบรอบเลย — ไม่อ่านทะเบียน ไม่เขียน ไม่กวาด
+const reads = (name) => sb.__log.filter(x => x === 'select ' + name).length;
+const writes = () => sb.__log.filter(x => /^(insert|upsert|delete) /.test(x));
+{
+  freezeThaiHour(8);
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wa', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  const r1 = await rerun(t);
+  check('ไม่เปลี่ยน · รอบแรก → ส่งงานเข้ากล่องตามปกติ', inboxFor(t, 'wa').length === 1 && r1.sent.length === 1, JSON.stringify(r1.body));
+
+  // 08:01 · Google ตอบเหมือนเดิมทุกอย่าง (ยังอยู่ในช่วงกวาดของค้าง 12 ชม. หลังมีงานใหม่)
+  sb.__log.length = 0;
+  const r2 = await rerun(t);
+  check('ไม่เปลี่ยน → รอบจบด้วย unchanged', r2.body.results?.[0]?.status === 'unchanged', JSON.stringify(r2.body));
+  check('ไม่เปลี่ยน → ไม่อ่านทะเบียน integration_items', reads('integration_items') === 0, JSON.stringify(sb.__log));
+  check('ไม่เปลี่ยน → ไม่เขียนทะเบียน · ไม่เขียนกล่องเข้า', writes().length === 0, JSON.stringify(writes()));
+  check('ไม่เปลี่ยน → ไม่ push ซ้ำ', r2.sent.length === 0, JSON.stringify(r2.sent));
+  check('ไม่เปลี่ยน → ยังนัดรอบถัดไป + บันทึกผลรอบ',
+    t.integrations[0].next_sync_at > iso(Date.now()) && t.integrations[0].meta?.last_run?.status === 'unchanged',
+    JSON.stringify([t.integrations[0].next_sync_at, t.integrations[0].meta?.last_run]));
+
+  // 21:00 · 13 ชม. หลังงานใหม่ล่าสุด — พ้นช่วงที่ heldTasks ย้อนดูได้ · ไม่ต้องกวาดกล่องเข้าเลย
+  freezeThaiHour(21);
+  sb.__log.length = 0;
+  await rerun(t);
+  check('ไม่เปลี่ยน + พ้นช่วงของค้าง → ไม่อ่าน inbox_items · ไม่อ่าน user_state',
+    reads('inbox_items') === 0 && reads('user_state') === 0 && reads('integration_items') === 0, JSON.stringify(sb.__log));
+
+  // ครูสั่งงานใหม่ → ต้องเห็นภายในรอบเดียว
+  freezeThaiHour(14);
+  GOOGLE['rt-p'].work['c-p'] = [pWork('wa', 3), pWork('wb', 5)];
+  const r3 = await rerun(t);
+  check('ครูสั่งงานใหม่ → เข้ากล่องในรอบนั้นเลย', inboxFor(t, 'wb')[0]?.meta.op === 'new', JSON.stringify(t.inbox_items.map(x => [x.meta.sourceId, x.meta.op])));
+  check('ครูสั่งงานใหม่ → แจ้งเตือนดอกเดียว', r3.sent.length === 1 && /งาน wb/.test(r3.sent[0].body), JSON.stringify(r3.sent));
+
+  // ครูเลื่อนกำหนดส่ง → เป็นการเปลี่ยนแปลง ต้องส่ง update
+  GOOGLE['rt-p'].work['c-p'] = [pWork('wa', 3), pWork('wb', 6)];
+  await rerun(t);
+  check('ครูเลื่อนกำหนดส่ง → ส่ง update', inboxFor(t, 'wb').at(-1)?.meta.op === 'update', JSON.stringify(inboxFor(t, 'wb').map(x => x.meta.op)));
+
+  // นักเรียนกดส่งใน Classroom → รายการเปลี่ยน (งานหาย + doneIds) ต้องปิดทะเบียนเป็น done
+  GOOGLE['rt-p'].subs['c-p'] = [{ courseWorkId: 'wa', state: 'TURNED_IN' }];
+  await rerun(t);
+  check('กดส่งใน Classroom → ยังจับได้ · ทะเบียน done', ledgerOf(t, 'wa')?.state === 'done', ledgerOf(t, 'wa')?.state);
+
+  // บัญชี Google เปลี่ยนอีเมลที่แสดง → ต้องเขียน account ใหม่ (ทางลัดห้ามกลืน)
+  GOOGLE['rt-p'].email = 'p2@gmail.com';
+  await rerun(t);
+  check('อีเมลบัญชีเปลี่ยน → อัปเดต account', t.integrations[0].account === 'p2@gmail.com', t.integrations[0].account);
+
+  // "ซิงก์เดี๋ยวนี้" = คนกดเพราะสงสัยว่ามีอะไรผิด → เทียบทะเบียนเต็มเสมอ
+  sb.__log.length = 0;
+  const r4 = await runBody(t, { integration_id: 'ip' });
+  check('ซิงก์เดี๋ยวนี้ → เทียบทะเบียนเต็มแม้รายการไม่เปลี่ยน', reads('integration_items') > 0 && r4.body.results?.[0]?.status === 'ok', JSON.stringify([r4.body, sb.__log]));
+}
+{
+  // ของที่เข้ามากลางดึก (Classroom) → รอบเช้าที่รายการไม่เปลี่ยนเลย ยังต้องแจ้ง
+  freezeThaiHour(22);
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wn', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  const r1 = await rerun(t);
+  check('Classroom 22:00 → เข้ากล่องเงียบ ๆ', r1.sent.length === 0 && inboxFor(t, 'wn').length === 1, JSON.stringify(r1.sent));
+  const d = new Date(REAL()); d.setUTCHours(0, 0, 0, 0);   // 07:00 ไทยของวันรุ่งขึ้น
+  Date.now = () => d.getTime() + DAY;
+  inboxFor(t, 'wn')[0].created_at = iso(d.getTime() + DAY - 9 * 3.6e6);
+  const r2 = await rerun(t);
+  check('Classroom 07:00 รายการเดิม → unchanged แต่แจ้งของค้าง', r2.body.results?.[0]?.status === 'unchanged' && r2.sent.length === 1 && /งาน wn/.test(r2.sent[0].body),
+    JSON.stringify([r2.body, r2.sent]));
+  const r3 = await rerun(t);
+  check('Classroom รอบถัดไป → ไม่แจ้งซ้ำ', r3.sent.length === 0, JSON.stringify(r3.sent));
+  freezeThaiHour(14);
+}
+{
+  // deploy ตอนกลางดึก: ของค้างแจ้งเข้ามาก่อนมีโค้ดนี้ (ยังไม่มี held_until) · รอบแรกหลัง deploy เทียบเต็มแต่ไม่มีของใหม่
+  // → รอบเช้าที่รายการเหมือนเดิมยังต้องกวาดของค้างไปแจ้ง ไม่ใช่ข้ามเงียบ
+  freezeThaiHour(22);
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [pWork('wd', 3)] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  await rerun(t);
+  delete t.integrations[0].meta.list_fp; delete t.integrations[0].meta.held_until;   // สภาพแถวก่อน deploy
+  freezeThaiHour(23);
+  await rerun(t);
+  const d = new Date(REAL()); d.setUTCHours(0, 0, 0, 0);
+  Date.now = () => d.getTime() + DAY;
+  inboxFor(t, 'wd')[0].created_at = iso(d.getTime() + DAY - 9 * 3.6e6);
+  const r = await rerun(t);
+  check('deploy กลางดึก → เช้าแจ้งของค้างที่มาก่อน deploy', r.sent.length === 1 && /งาน wd/.test(r.sent[0].body), JSON.stringify([r.body, r.sent]));
+  freezeThaiHour(14);
+}
+{
+  // รอบที่ล้ม → ลืมลายนิ้วมือ · รอบหน้าเทียบทะเบียนเต็ม แม้รายการจะกลับไปเหมือนก่อนล้ม
+  GOOGLE = { 'rt-p': { email: 'p@gmail.com', courses: [{ id: 'c-p', name: 'คณิต' }],
+    work: { 'c-p': [] }, subs: { 'c-p': [] } } };
+  const t = await gTables([await gRow('ip', 'up', 'rt-p')]);
+  await rerun(t);
+  GOOGLE['rt-p'].work['c-p'] = [pWork('wx', 3)];
+  t.__fail = { 'insert inbox_items': true };
+  await rerun(t);
+  delete t.__fail;
+  GOOGLE['rt-p'].work['c-p'] = [];   // ครูลบงานทิ้งก่อนรอบหน้า → รายการกลับไปเหมือนรอบที่สำเร็จล่าสุด
+  sb.__log.length = 0;
+  await rerun(t);
+  check('หลังรอบที่ล้ม → เทียบทะเบียนเต็ม และปิดแถวที่ค้าง', reads('integration_items') > 0 && ledgerOf(t, 'wx')?.state === 'cancelled',
+    JSON.stringify([sb.__log, ledgerOf(t, 'wx')?.state]));
 }
 GOOGLE = null;
 
