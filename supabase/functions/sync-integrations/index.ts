@@ -48,6 +48,15 @@ const NORMAL_GAP_MIN = 30;
 //   2. บัญชีใหญ่ถ่วงบัญชีอื่น → ซิงก์ขนานกันทีละ SYNC_PARALLEL บัญชี
 //   3. รอบถัดไปต้องไม่หลุดรอบ cron → นัดเทียบกับนาทีที่รอบนี้ "เริ่ม" ลบ 1 วิ ไม่ใช่เทียบกับตอนเสร็จ
 // ============================================================
+// ---------- ความด่วนของ push ----------
+// 16 ต.ค. 69 · ข้อมูลจริง: เซิร์ฟเวอร์ส่งถึงสามบัญชีห่างกันไม่เกิน 3 วิ แต่เจ้าของเห็นแจ้งเตือนมาไม่พร้อมกันได้ถึง ~5 นาที
+// เดิมไม่ได้ใส่ความด่วน = ค่าปริยายของ web-push (normal · TTL 4 สัปดาห์) → Android ที่ประหยัดแบตกับ iPhone ที่จอดับ
+// พักไว้จนเครื่อง "ตื่น" ทีละเครื่อง · บทเรียนเดียวกับ pushOpts ใน send-reminders (เตือนงานใกล้กำหนด · แชทเพื่อน)
+// high ใช้ได้ เพราะส่งอย่างมากดอกเดียวต่อรอบต่อบัญชี (ดูข้อ 1 ของ notifyNewItems)
+// TTL: งานใหม่ยังมีประโยชน์ถ้ามาถึงภายในครึ่งวัน (เครื่องปิดทั้งคืน) · ให้เชื่อมใหม่ยังจริงทั้งวัน
+const PUSH_OPTS_NEW = { urgency: 'high' as const, TTL: 12 * 3600 };
+const PUSH_OPTS_REAUTH = { urgency: 'high' as const, TTL: 24 * 3600 };
+
 const GAP_MIN: Record<string, number> = { google_classroom: 1 };
 const gapFor = (provider: string) => GAP_MIN[provider] ?? NORMAL_GAP_MIN;
 const LEASE_MS = 3 * 60_000;   // รอบที่ตายกลางทางคืนแถวเองหลังนี้ · ยาวกว่ารอบที่ช้าที่สุดที่วัดได้ (~25 วิ) หลายเท่า
@@ -255,7 +264,7 @@ async function notifyReauth(row: Row): Promise<number> {
     title: `${name} หยุดส่งงานเข้ามาแล้ว`,
     body: `${row.account ? row.account + ' · ' : ''}เปิดแอปแล้วกด "เชื่อมใหม่" งานจากครูจะกลับมาเอง`,
     tag: 'integ-reauth',
-  });
+  }, PUSH_OPTS_REAUTH);
   await markSent(db, row.user_id, [key]);
   return ok;
 }
@@ -593,7 +602,7 @@ async function notifyNewItems(
   const left = new Set(todo);
   const pending = all.filter(d => left.has(keyOf(d)));
 
-  const res = await pushToUserDetailed(db, row.user_id, newItemsCopy(pending, row.account));
+  const res = await pushToUserDetailed(db, row.user_id, newItemsCopy(pending, row.account), PUSH_OPTS_NEW);
   // ปักหมุดเมื่อถึงอย่างน้อยหนึ่งเครื่อง หรือไม่มีเครื่องให้ส่งจริง ๆ (ไม่มีเลย/ตายถาวรหมด)
   // ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรก
   // จะโดนของเก่าทั้งเทอมรวดเดียว
