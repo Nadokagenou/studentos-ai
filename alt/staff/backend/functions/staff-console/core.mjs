@@ -1,6 +1,8 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports", "push_status"]);
+const INSIGHT_DAYS = [1, 7, 30, 90];
+const PEOPLE_FILTERS = ["all", "today", "gone", "new", "stuck", "nopush", "old", "banned"];
 const WRITE = new Set(["grant", "deduct", "ban", "unban", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
 const REPORT_WRITE = new Set(["triage", "bug_triage", "report_trash", "report_restore"]);
 const offset = value => Math.max(0, Math.min(100000, Math.floor(Number(value) || 0)));
@@ -35,6 +37,17 @@ export function validate(input) {
     const status=input.status??'all';
     if (!['all','pending','sending','accepted','failed','cancelled'].includes(status)) throw new HttpError(400,'ไม่พบหมวดแจ้งเตือน');
     return {action,payload:{status,offset:offset(input.offset)}};
+  }
+  if (action === "insights")
+    return { action, payload: { days: INSIGHT_DAYS.includes(input.days) ? input.days : 7 } };
+  if (action === "people") {
+    const filter = input.filter ?? "all";
+    if (!PEOPLE_FILTERS.includes(filter)) throw new HttpError(400, "ไม่พบกลุ่มผู้ใช้");
+    return { action, payload: { filter, query: String(input.query || "").slice(0, 100), offset: offset(input.offset) } };
+  }
+  if (action === "person") {
+    if (!UUID.test(input.id || "")) throw new HttpError(400, "รหัสผู้ใช้ไม่ถูกต้อง");
+    return { action, payload: { id: input.id.toLowerCase() } };
   }
   if (!READ.has(action) && !WRITE.has(action))
     throw new HttpError(400, "ไม่พบคำสั่ง");
