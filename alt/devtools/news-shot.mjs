@@ -5,7 +5,8 @@
 //                                    [--open=<CSS>]  เปิด <details> นั้น (ส่วนที่พับอยู่)
 //                                    [--scroll=<CSS>]  เลื่อนให้ของชิ้นนั้นอยู่กลางจอ
 //                                    [--call=<ฟังก์ชัน>:<ค่า>]  เรียกฟังก์ชันของแอป เช่น openDaySheet:break
-//                                    [--clip=<CSS>]  ถ่ายเฉพาะกรอบของชิ้นนั้น (+ขอบ 12px) แทนทั้งจอ
+//                                    [--tap=<CSS>]  แตะของชิ้นนั้นแบบผู้ใช้จริง (หลัง --call)
+//                                    [--clip=<CSS>]  ถ่ายเฉพาะกรอบของชิ้นนั้น (+ขอบ 12px) แทนทั้งจอ · หลายชิ้นคั่นด้วย ,
 // นาฬิกาของข้อมูลจำลองตั้งไว้ 20 ต.ค. 69 19:00 — ป้ายที่ขึ้นกับวัน (อีเวนต์ · นับถอยหลัง) จะเป็นของวันนั้น
 // ใช้ --clip ตัดส่วนนั้นออกถ้าไม่เกี่ยวกับข่าว
 //   node alt/devtools/news-shot.mjs 1c57-notif scr-notif
@@ -52,7 +53,9 @@ await new Promise((ok, fail) => { server.stdout.once('data', ok); server.once('e
 const out = join(ALT, 'news', 'img', name + '.png');
 const browser = await chromium.launch();
 try {
-  const page = await browser.newPage({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  const page = await browser.newPage({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    // เวลาไทยเสมอ — เครื่องคลาวด์เป็น UTC แล้วแผนออกมาเป็น 12:40 ทั้งที่ข้อมูลจำลองคือ 19:00 น.
+    timezoneId: 'Asia/Bangkok', locale: 'th-TH' });
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.goto(`http://127.0.0.1:${PORT}/alt/`, { waitUntil: 'load' });
@@ -68,14 +71,24 @@ try {
     const ok = await page.evaluate(([f, a]) => { if (typeof window[f] !== 'function') return false; a == null ? window[f]() : window[f](a); return true; }, [fn, rest.length ? rest.join(':') : null]);
     if (!ok) console.warn(`เตือน · ไม่มีฟังก์ชัน ${fn} ในแอป`);
   }
-  if (opt('open') || opt('scroll') || call) await page.waitForTimeout(900);
+  if (opt('tap')) {
+    try { await page.locator(opt('tap')).first().tap({ timeout: 5000 }); }
+    catch { console.warn(`เตือน · แตะ ${opt('tap')} ไม่ได้`); }
+  }
+  if (opt('open') || opt('scroll') || call || opt('tap')) await page.waitForTimeout(900);
   // ป้าย "ข้อมูลจำลอง" ของพรีวิวเป็นของคนพัฒนา ไม่ใช่ของแอป
   await page.evaluate(() => [...document.body.children].filter(el => el.tagName === 'SPAN' && /ข้อมูลจำลอง/.test(el.textContent)).forEach(el => el.remove()));
   const active = await page.evaluate(() => typeof curScreen === 'string' ? curScreen : '');
   mkdirSync(dirname(out), { recursive: true });
   let clip;
   if (opt('clip')) {
-    const r = await page.evaluate(sel => { const el = document.querySelector(sel); if (!el) return null; const b = el.getBoundingClientRect(); return { x: b.x, y: b.y, width: b.width, height: b.height }; }, opt('clip'));
+    // หลายชิ้นคั่นด้วยจุลภาค = กรอบที่ครอบทุกชิ้น (เลือกเฉพาะส่วนที่ใช้ได้จริง ตัดปุ่มที่ยังไม่พร้อมออก)
+    const r = await page.evaluate(sel => {
+      const bs = [...document.querySelectorAll(sel)].map(el => el.getBoundingClientRect()).filter(b => b.width && b.height);
+      if (!bs.length) return null;
+      const x = Math.min(...bs.map(b => b.x)), y = Math.min(...bs.map(b => b.y));
+      return { x, y, width: Math.max(...bs.map(b => b.right)) - x, height: Math.max(...bs.map(b => b.bottom)) - y };
+    }, opt('clip'));
     if (!r) console.warn(`เตือน · ไม่เจอ ${opt('clip')} — ถ่ายทั้งจอแทน`);
     else {
       const x = Math.max(0, r.x - 12), y = Math.max(0, r.y - 12);

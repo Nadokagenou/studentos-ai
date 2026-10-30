@@ -60,7 +60,7 @@ push ขึ้น main แล้ว `announcements.json` เปลี่ยน �
   → `alt/news/img/1c60-news.png` (375×812 คมชัด 2 เท่า) · ไม่ใส่จอ = หน้าแรก · ธีม: light dark galaxy magic halloween
   ตัวเลือก: `--open=<CSS>` เปิดส่วนที่พับ · `--scroll=<CSS>` เลื่อนไปหา · `--call=openDaySheet` เปิดแผ่น · `--clip=<CSS>` ตัดเฉพาะชิ้นนั้น
   นาฬิกาข้อมูลจำลองคือ 20 ต.ค. 69 — ป้ายอีเวนต์/นับถอยหลังบนหน้าแรกจะผิดวัน ใช้ `--clip` ตัดออก
-  ตัวอย่างจริง (ร่าง 1C60): `news-shot.mjs 1c60-school-break scr-context --open='.cx2-sec[data-k=brk]' --scroll='.cx2-sec[data-k=brk]' --clip=.cx2-list`
+  ตัวอย่างจริง (1C60): `news-shot.mjs 1c60-school-break scr-context --open='.cx2-sec[data-k=brk]' --scroll='.cx2-sec[data-k=brk]' --clip=.cx2-list` · `news-shot.mjs 1c60-today-line --call=openDaySheet --tap='#daySheet .dc-chips button:nth-child(2)' --clip='#scr-menu .td-railwrap'`
   ข้อมูลจำลองมีแค่งาน 4 ชิ้น — จอที่ต้องมีข้อมูลอื่น (แจ้งเตือน · แชท · เพื่อน) จะออกมาว่าง **เปิดดูภาพก่อนใช้ทุกครั้ง**
 - ข้อความนำทุกครั้ง: ชวนเปิดแอป + ชวนแจ้งบั๊กในห้อง (ไม่อ้างอะไรเกินข่าวที่ตรวจแล้ว)
 
