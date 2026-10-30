@@ -15463,6 +15463,10 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 :root[data-theme="thai-ghost"] :is(.page-title,.big-title,.sh-title,.th-greet,.set-hd,.td-sec,.sec-h,.tg-l){color:var(--ink);text-shadow:0 1px 10px #04110CE6,0 0 2px #04110C}
 :root[data-theme="thai-ghost"] :is(input,textarea,select){background:#0A1F18A6;color:var(--ink);border-color:#D8E8C933}
 :root[data-theme="thai-ghost"] #scr-tasks :is(.wk-card,.wk-d,.tb-focus){background:var(--tg-glass)!important;color:var(--ink)!important;border-color:var(--tg-edge)!important}
+/* 31 ต.ค. 69 · เจ้าของ (ภาพการ์ด "ควรทำก่อน" จองาน): "ตรงปุ่มเริ่มทำปรับให้ชัดหน่อย" — ธีมอื่นการ์ดเป็นสีเน้น ปุ่มเป็น --card สีตรงข้าม เด่นออกมา
+   แต่กฎบนเปลี่ยนการ์ดเป็นกระจกเขียวเข้ม ปุ่ม --card (#0E271E) เลยสีเดียวกับการ์ด เหลือแค่ตัวหนังสือลอย ๆ
+   → ปุ่มสูตรเดียวกับ "เริ่มทำ" หน้าแรกของธีมนี้ (.tn-cta): พื้นจันทร์ ตัวหนังสือเขียวป่าเข้ม */
+:root[data-theme="thai-ghost"] #scr-tasks .tb-focus .tb-fc-go{background:var(--tg-moon);color:var(--on-fill);font-weight:700;box-shadow:0 4px 16px #00000040,inset 0 1px 0 #FFFFFF80}
 /* 26 ต.ค. 69 · เจ้าของ (ภาพช่อง "26 ต.ค." จอสัปดาห์): "ทำให้เป็นสีที่มองเห็นได้" — ช่องวันนี้ใช้ตัวหนังสือ --on-fill (เขียวเข้ม ทำไว้วางบนพื้นจันทร์)
    แต่กฎบนเปลี่ยนพื้นทุกช่องเป็นกระจกเขียวเข้ม (และ --grad-brand ของธีมนี้ก็เขียวเข้ม) = เข้มบนเข้ม มองไม่เห็น
    → ช่องวันนี้เป็นพื้นจันทร์หยก สัญญาณ "ตอนนี้/ที่เลือก" ชุดเดียวกับแท็บที่เลือกและปุ่มเริ่ม · ตัวหนังสือเข้มบนจันทร์ ≈ 9:1 */
