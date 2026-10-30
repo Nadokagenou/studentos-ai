@@ -13960,8 +13960,109 @@ function fillDoForm(iso) {
 }
 
 function fillSubjectSelect() {
-  document.getElementById('fSubject').innerHTML =
-    SUBJECTS.map(s => `<option>${s.name}</option>`).join('');
+  // ช่องเก็บค่าจริง (ซ่อน) ต้องมีทุกชื่อที่งานเคยใช้ด้วย ไม่ใช่แค่รายชื่อปัจจุบัน — ลบวิชาที่เพิ่มเองไปแล้ว
+  // แต่งานเก่ายังใช้ชื่อนั้นอยู่ เปิดแก้แล้วค่าต้องไม่หายกลายเป็นว่าง (แถวให้เลือกยังใช้ allSubjects เท่านั้น)
+  const names = allSubjects().map(s => s.name);
+  for (const t of (state.tasks || [])) {
+    const s = t && !t.deleted && typeof t.subject === 'string' ? t.subject.trim() : '';
+    if (s && !names.includes(s)) names.push(s);
+  }
+  document.getElementById('fSubject').innerHTML = names.map(n => `<option>${esc(n)}</option>`).join('');
+}
+
+// ---------- วิชาที่เพิ่มเอง · 31 ต.ค. 69 · เทสเตอร์ขอ "อยากเพิ่มวิชาได้เอง" ----------
+// เดิมมีแค่ 16 วิชาตายตัว (SUBJECTS ใน engine.js) นอกนั้นตกเป็น "อื่น ๆ" หมด — ชุมนุม วิชาเลือก ติว ไม่มีที่ไป
+// เก็บใน state.settings.subjects → ซิงก์ทุกเครื่องทางเดิม · ตัวแกะใน engine.js ถามรายชื่อผ่าน customSubjects()
+// เทสต์: node alt/devtools/subjects-check.cjs (ALT) · node alt/devtools/subjects-check.cjs . (แอปหลัก)
+const CUSTOM_SUBJECT_MAX = 30;
+function customSubjects() {
+  const list = typeof state !== 'undefined' && state && state.settings && Array.isArray(state.settings.subjects)
+    ? state.settings.subjects : [];
+  const out = [];
+  for (const n of list) {
+    const s = typeof n === 'string' ? n.trim() : '';
+    if (s && !out.includes(s)) out.push(s);
+  }
+  return out;
+}
+// วิชาในตัว → วิชาที่เพิ่มเอง → "อื่น ๆ" ปิดท้ายเสมอ
+function allSubjects() {
+  const base = SUBJECTS.filter(s => s.name !== 'อื่น ๆ');
+  const mine = customSubjects().filter(n => !base.some(s => s.name === n))
+    .map(n => ({ name: n, keys: [n], custom: true }));
+  return base.concat(mine, SUBJECTS.filter(s => s.name === 'อื่น ๆ'));
+}
+// คืน { name } เมื่อเพิ่มแล้ว · { error } เป็นประโยคที่โชว์ผู้ใช้ได้เลย
+function addCustomSubject(raw) {
+  const name = String(raw ?? '').replace(/\s+/g, ' ').trim();
+  if (!name) return { error: 'พิมพ์ชื่อวิชาก่อน' };
+  if (name.length > CUSTOM_SUBJECT_MAX) return { error: 'ชื่อยาวเกิน ' + CUSTOM_SUBJECT_MAX + ' ตัวอักษร' };
+  if (name.replace(/\s/g, '') === 'อื่นๆ') return { error: '"อื่น ๆ" มีอยู่แล้ว' };
+  const low = name.toLowerCase();
+  if (allSubjects().some(s => s.name.toLowerCase() === low)) return { error: 'มีวิชา "' + name + '" อยู่แล้ว' };
+  state.settings = state.settings || {};
+  state.settings.subjects = customSubjects().concat(name);
+  save();
+  return { name };
+}
+// ลบแค่ชื่อออกจากรายชื่อ — งานที่ใช้ชื่อนี้อยู่ไม่ถูกแตะ (ดู fillSubjectSelect)
+function removeCustomSubject(name) {
+  if (!state.settings) return;
+  state.settings.subjects = customSubjects().filter(n => n !== name);
+  save();
+}
+
+// แผ่นเพิ่ม/ลบวิชา ใต้แถววิชาของฟอร์ม · เปิดจากแถว "+ วิชาใหม่"
+function toggleSubjAdd(force) {
+  const box = document.getElementById('subjAdd');
+  if (!box) return;
+  const open = typeof force === 'boolean' ? force : box.hidden;
+  box.hidden = !open;
+  const row = document.querySelector('#subjRows .pk-add');
+  if (row) row.setAttribute('aria-expanded', String(open));
+  if (!open) return;
+  renderSubjAdd();
+  const inp = document.getElementById('subjAddIn');
+  if (inp) inp.focus();
+}
+function renderSubjAdd() {
+  const box = document.getElementById('subjAdd');
+  if (!box) return;
+  const mine = customSubjects();
+  box.innerHTML = `<div class="sa-row">
+      <input id="subjAddIn" type="text" maxlength="${CUSTOM_SUBJECT_MAX}" autocomplete="off" enterkeyhint="done"
+        placeholder="ชื่อวิชา เช่น ชุมนุมหุ่นยนต์" aria-label="ชื่อวิชาใหม่"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();subjAddSubmit();}">
+      <button type="button" class="sa-go" onclick="subjAddSubmit()">เพิ่ม</button></div>
+    <p class="sa-err" id="subjAddErr" role="status"></p>`
+    + (mine.length ? `<div class="sa-mine"><small>วิชาที่เพิ่มเอง · แตะ × เพื่อลบ (งานเก่าไม่เปลี่ยน)</small><div>`
+      + mine.map(n => `<span class="sa-chip">${esc(n)}<button type="button" data-rm="${esc(n)}"
+          aria-label="ลบวิชา ${esc(n)}" onclick="subjAddRemove(this.dataset.rm)">×</button></span>`).join('')
+      + `</div></div>` : '');
+}
+function subjAddSubmit() {
+  const inp = document.getElementById('subjAddIn');
+  const r = addCustomSubject(inp ? inp.value : '');
+  if (r.error) {
+    const err = document.getElementById('subjAddErr');
+    if (err) err.textContent = r.error;
+    if (inp) inp.focus();
+    return;
+  }
+  haptic('tap');
+  fillSubjectSelect();
+  toggleSubjAdd(false);
+  pickSubject(r.name);
+  hselFlash(document.querySelector('#subjRows .pk.on'));
+}
+function subjAddRemove(name) {
+  const sel = document.getElementById('fSubject');
+  const cur = sel ? sel.value : '';
+  removeCustomSubject(name);
+  fillSubjectSelect();
+  if (sel) sel.value = cur;      // ใบที่เปิดอยู่ใช้ชื่อนี้ = ยังเก็บไว้ (fillSubjectSelect มีชื่อจากงานเก่าให้)
+  renderSubjRows();
+  renderSubjAdd();
 }
 
 // ---------- ALT 1A7V2: ช่องข้อความที่ยืดตามเนื้อหา ----------
@@ -14309,11 +14410,14 @@ function recentSubjects() {
   }
   const used = Object.keys(count).sort((a, b) => count[b] - count[a]);
   const fallback = ['คณิตศาสตร์', 'ภาษาอังกฤษ', 'วิทยาศาสตร์', 'ภาษาไทย', 'สังคมศึกษา'];
+  const known = allSubjects().map(s => s.name);
   const sel = document.getElementById('fSubject');
   const cur = sel && sel.value;
   const out = [];
   for (const name of [cur, ...used, ...fallback]) {
-    if (name && !out.includes(name) && SUBJECTS.some(s => s.name === name)) out.push(name);
+    // ค่าของใบที่เปิดอยู่ขึ้นแถวเสมอ แม้ชื่อนั้นถูกลบออกจากรายชื่อไปแล้ว (วิชาที่เพิ่มเองแล้วลบทิ้ง) — ไม่งั้นไม่มีแถวไหนติ๊ก
+    // ทั้งที่งานยังเป็นวิชานั้นอยู่ คนจะคิดว่าวิชาหาย
+    if (name && !out.includes(name) && (name === cur || known.includes(name))) out.push(name);
   }
   return out.slice(0, 5);
 }
@@ -14325,16 +14429,19 @@ function renderSubjRows() {
   if (!box || !sel) return;
   const cur = sel.value || 'อื่น ๆ';
   const names = subjShowAll
-    ? SUBJECTS.map(s => s.name)
+    ? allSubjects().map(s => s.name)
     : recentSubjects().concat(['อื่น ๆ']).filter((n, i, a) => a.indexOf(n) === i);
   box.innerHTML = names.map(n =>
     `<button type="button" class="pk${n === cur ? ' on' : ''}" data-k="${esc(n)}" onclick="pickSubject('${esc(n).replace(/'/g, "\\'")}')">`
-    + `<span class="pk-dot"></span>${esc(n)}</button>`).join('');
+    + `<span class="pk-dot"></span>${esc(n)}</button>`).join('')
+    // แถวสุดท้าย: เพิ่มวิชาของตัวเอง (31 ต.ค. 69) · เปิดแผ่น #subjAdd ใต้แถว ไม่ออกจากฟอร์ม
+    + `<button type="button" class="pk pk-add" aria-controls="subjAdd" aria-expanded="false" onclick="toggleSubjAdd()">`
+    + `<span class="pk-plus" aria-hidden="true">+</span>วิชาใหม่</button>`;
   if (more) {
     more.hidden = false;
     // วิชาที่เลือกจากเมนูแต่ไม่อยู่ในห้าแถวลัด ขึ้นมาเป็นแถวบนสุดเองอยู่แล้ว (recentSubjects ใส่ค่าปัจจุบันก่อน)
     const v = more.querySelector('.hsel-val');
-    if (v) v.textContent = 'ดูวิชาทั้งหมด · ' + SUBJECTS.length + ' วิชา';
+    if (v) v.textContent = 'ดูวิชาทั้งหมด · ' + allSubjects().length + ' วิชา';
   }
 }
 
@@ -14471,7 +14578,7 @@ function toggleSubjSelect(force) {
   if (!open) { if (isOpen) hselClose(); return; }
   if (isOpen) return;
   const cur = (document.getElementById('fSubject') || {}).value || 'อื่น ๆ';
-  hselOpen(trig, SUBJECTS.map(s => ({ value: s.name, label: s.name })), cur, name => {
+  hselOpen(trig, allSubjects().map(s => ({ value: s.name, label: s.name })), cur, name => {
     pickSubject(name);
     hselFlash(document.querySelector('#subjRows .pk.on'));   // แถวที่ค่าไปลง — ถ้าไม่อยู่ในห้าแถว มันขึ้นมาบนสุดเอง
   });
@@ -16994,7 +17101,7 @@ function aiTaskParsed(task, text) {
     if (morning > now) due = morning;
   }
 
-  const subject = (task.subject && task.subject !== 'อื่น ๆ' && SUBJECTS.some(s => s.name === task.subject))
+  const subject = (task.subject && task.subject !== 'อื่น ๆ' && allSubjects().some(s => s.name === task.subject))
     ? task.subject : base.subject;
   const teacher = String(task.teacher || base.teacher || '').slice(0, 40);
   const scorePct = task.score || base.scorePct || null;

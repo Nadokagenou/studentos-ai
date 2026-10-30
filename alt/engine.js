@@ -31,6 +31,15 @@ const SUBJECTS = [
   { name: 'อื่น ๆ',          keys: [] },
 ];
 
+// วิชาที่ผู้ใช้เพิ่มเอง (31 ต.ค. 69 · เทสเตอร์ขอ "อยากเพิ่มวิชาได้เอง") — รายชื่ออยู่ใน app.js (customSubjects)
+// มาก่อนวิชาในตัว เพราะชื่อที่ตั้งเองเจาะจงกว่าเสมอ: "ฟิสิกส์ประยุกต์" ต้องไม่โดน "ฟิสิกส์" กินก่อน
+// ไม่มีแอป (เทสต์ใน vm) หรือยังไม่ได้เพิ่ม = รายชื่อเดิมทุกตัว
+function subjectsForParse() {
+  const mine = typeof customSubjects === 'function' ? customSubjects() : [];
+  const extra = mine.filter(n => !SUBJECTS.some(s => s.name === n)).map(n => ({ name: n, keys: [n] }));
+  return extra.length ? extra.concat(SUBJECTS) : SUBJECTS;
+}
+
 const THAI_MONTHS = {
   'ม.ค.': 0, 'มกราคม': 0, 'ก.พ.': 1, 'กุมภาพันธ์': 1, 'มี.ค.': 2, 'มีนาคม': 2,
   'เม.ย.': 3, 'เมษายน': 3, 'พ.ค.': 4, 'พฤษภาคม': 4, 'มิ.ย.': 5, 'มิถุนายน': 5,
@@ -364,7 +373,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   const tSubj = t.replace(SUBJECT_TRAPS, ' ');
   const low = tSubj.toLowerCase();
   outer:
-  for (const s of SUBJECTS) {
+  for (const s of subjectsForParse()) {
     for (const k of s.keys) {
       if (low.includes(k.toLowerCase())) {
         subject = s.name; subjKey = k; detected.subject = true; break outer;
@@ -375,6 +384,7 @@ function parseAssignment(text, now = new Date(), opts = {}) {
   // เลือกวิชาที่ "ใกล้ที่สุด" ทั้งกระดาน ไม่ใช่ตัวแรกที่ผ่านเกณฑ์ — กันคำสั้นแย่งไปก่อน
   if (subject === 'อื่น ๆ' && fuzzy) {
     let best = null;
+    // เดาแบบเพี้ยนใช้แค่วิชาในตัว — ชื่อที่ผู้ใช้ตั้งเองสั้นแค่ไหนก็ได้ ("ติว") เดาเพี้ยนแล้วจะดูดข้อความมั่ว ๆ เข้าวิชานั้น
     for (const s of SUBJECTS) {
       for (const k of s.keys) {
         const d = fuzzyDistance(tSubj, k);
