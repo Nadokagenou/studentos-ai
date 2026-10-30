@@ -5,6 +5,7 @@
 //                                    [--open=<CSS>]  เปิด <details> นั้น (ส่วนที่พับอยู่)
 //                                    [--scroll=<CSS>]  เลื่อนให้ของชิ้นนั้นอยู่กลางจอ
 //                                    [--call=<ฟังก์ชัน>:<ค่า>]  เรียกฟังก์ชันของแอป เช่น openDaySheet:break
+//                                    [--fill=<CSS>::<ข้อความ>]  พิมพ์ลงช่องนั้นแบบผู้ใช้จริง
 //                                    [--tap=<CSS>]  แตะของชิ้นนั้นแบบผู้ใช้จริง (หลัง --call)
 //                                    [--clip=<CSS>]  ถ่ายเฉพาะกรอบของชิ้นนั้น (+ขอบ 12px) แทนทั้งจอ · หลายชิ้นคั่นด้วย ,
 // นาฬิกาของข้อมูลจำลองตั้งไว้ 20 ต.ค. 69 19:00 — ป้ายที่ขึ้นกับวัน (อีเวนต์ · นับถอยหลัง) จะเป็นของวันนั้น
@@ -71,11 +72,16 @@ try {
     const ok = await page.evaluate(([f, a]) => { if (typeof window[f] !== 'function') return false; a == null ? window[f]() : window[f](a); return true; }, [fn, rest.length ? rest.join(':') : null]);
     if (!ok) console.warn(`เตือน · ไม่มีฟังก์ชัน ${fn} ในแอป`);
   }
+  if (opt('fill')) {
+    const [sel, ...txt] = opt('fill').split('::');
+    try { await page.locator(sel).first().fill(txt.join('::'), { timeout: 5000 }); }
+    catch { console.warn(`เตือน · พิมพ์ลง ${sel} ไม่ได้`); }
+  }
   if (opt('tap')) {
     try { await page.locator(opt('tap')).first().tap({ timeout: 5000 }); }
     catch { console.warn(`เตือน · แตะ ${opt('tap')} ไม่ได้`); }
   }
-  if (opt('open') || opt('scroll') || call || opt('tap')) await page.waitForTimeout(900);
+  if (opt('open') || opt('scroll') || call || opt('fill') || opt('tap')) await page.waitForTimeout(900);
   // ป้าย "ข้อมูลจำลอง" ของพรีวิวเป็นของคนพัฒนา ไม่ใช่ของแอป
   await page.evaluate(() => [...document.body.children].filter(el => el.tagName === 'SPAN' && /ข้อมูลจำลอง/.test(el.textContent)).forEach(el => el.remove()));
   const active = await page.evaluate(() => typeof curScreen === 'string' ? curScreen : '');
