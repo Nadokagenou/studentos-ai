@@ -1236,6 +1236,8 @@ function go(id) {
   // จอเหรียญตราเข้าได้สามทาง (หน้าแรก · แท็บฉัน · ผลของฉัน) — ปุ่มกลับต้องกลับไปที่เดิม
   if (id === 'scr-badges' && ['scr-menu', 'scr-profile', 'scr-stats'].includes(curScreen)) badgesReturn = curScreen;
   rememberBackFrom(id);
+  // เข้าจอน้องฮูกใหม่ = จอว่างเริ่มบนสุดเสมอ (ดู renderAi) · วาดซ้ำระหว่างอยู่ในจอยังจำที่ที่คนเลื่อนไว้
+  if (id === 'scr-ai' && curScreen !== 'scr-ai' && window.aiScroll) aiScroll.user = false;
   curScreen = id;
   // เข้าจอที่ลึกกว่าหน้าแรก = ปุ่มย้อนของเครื่องต้องพากลับในแอป ไม่ใช่ปิดแอป (ดู armBackTrap)
   if (id !== 'scr-menu' && id !== 'scr-login' && id !== 'scr-onboard') armBackTrap();
@@ -6747,20 +6749,26 @@ function renderAi() {
       aiScroll.stick = t.scrollHeight - t.scrollTop - t.clientHeight < 80;
       aiScroll.top = t.scrollTop;
     }, { capture: true, passive: true });
+    // เลื่อนด้วยมือจริงเท่านั้นที่นับ — scroll ที่เกิดเพราะจอเปลี่ยนขนาด/เนื้อหายืดไม่ใช่ความตั้งใจของคน
+    const mark = e => { if (e.target.closest && e.target.closest('.ai-thread')) aiScroll.user = true; };
+    for (const ev of ['wheel', 'touchmove', 'keydown']) el.addEventListener(ev, mark, { capture: true, passive: true });
   }
   const th = el.querySelector('.ai-thread');
   // 28 ต.ค. 69 · เจ้าของ (ภาพหน้าน้องฮูกตอนยังไม่คุย หน้าน้องฮูกโดนตัดครึ่ง หัวข้อหาย): "ลองปรับดู"
   // จอว่างสูงกว่าจอ (ทัก + การ์ดวันนี้ + คำถามสำเร็จรูป) แล้วโดนเลื่อนลงล่างสุดเหมือนห้องแชท → หน้าน้องฮูกกับหัวข้อไปอยู่ใต้หัวจอ
-  // จอว่าง = เปิดที่บนสุด · ถ้าเลื่อนเองในจอว่างแล้วจำตำแหน่งไว้ (วาดซ้ำไม่กระโดด) · มีข้อความแล้ว = ตามล่างสุดเหมือนเดิม
+  // จอว่าง = เปิดที่บนสุด · จำตำแหน่งเฉพาะเมื่อ "คนเลื่อนเอง" (นิ้ว/ล้อเมาส์/ปุ่ม — aiScroll.user) · มีข้อความแล้ว = ตามล่างสุดเหมือนเดิม
+  // 30 ต.ค. 69 · รอบแรกจำทุกเหตุการณ์ scroll → ย่อ/ขยายจอหรือของโหลดช้าดันตำแหน่งไปที่ 75px เอง
+  //   เปิดจอครั้งถัดไปหน้าน้องฮูกเหลือแค่ขอบล่างโผล่ใต้หัวจอ (เจ้าของส่งภาพเสี้ยวนั้นมา) · go() ล้าง user ทุกครั้งที่เข้าจอนี้
   if (th) requestAnimationFrame(() => {
     if (!th.isConnected) return;
-    th.scrollTop = fresh ? (aiScroll.fresh ? oldTop : 0) : (stick ? th.scrollHeight : oldTop);
+    if (fresh && !aiScroll.fresh) aiScroll.user = false;   // เพิ่งกลายเป็นจอว่าง (ล้างแชท) = เริ่มบนสุดใหม่
+    th.scrollTop = fresh ? (aiScroll.user ? oldTop : 0) : (stick ? th.scrollHeight : oldTop);
     aiScroll.fresh = fresh;
   });
   sgaMount();
 }
 
-var aiScroll = { stick: true, top: 0 };
+var aiScroll = { stick: true, top: 0, user: false, fresh: false };
 // ---------- 1C40 · จัดรูปคำตอบของน้องไซ ----------
 // คำตอบมาเป็นตัวหนังสือล้วนที่มีขึ้นบรรทัด "- " "1. " และ **ตัวหนา** แบบ markdown ย่อ
 // แปลงเฉพาะเท่านี้ — escape ก่อนทุกครั้ง จึงไม่มี HTML จากเซิร์ฟเวอร์หลุดมาวาดบนจอ
@@ -6820,7 +6828,11 @@ function aiInputState(el) {
 // เลื่อนลงล่างสุดหลังส่งคำถาม — บทสนทนาที่ตอบแล้วแต่ต้องเลื่อนหาเอง อ่านเหมือนไม่ได้ตอบ
 function aiScrollDown() {
   const th = document.querySelector('#aiBody .ai-thread');
-  if (th) th.scrollTop = th.scrollHeight;
+  if (!th) return;
+  // 30 ต.ค. 69 · จอว่าง (ยังไม่เคยคุย) ไม่มี "ข้อความล่าสุด" ให้เลื่อนไปหา — go() เรียกตัวนี้ทุกครั้งที่เข้าจอ
+  // เลื่อนลงล่างสุดของจอว่าง = หน้าน้องฮูกกับหัวข้อไปอยู่ใต้หัวจอ (เจ้าของส่งภาพเสี้ยวหน้าน้องฮูก) → จอว่างอยู่บนสุด เว้นแต่คนเลื่อนเอง
+  if (th.querySelector('.at-hello')) { if (!aiScroll.user) th.scrollTop = 0; return; }
+  th.scrollTop = th.scrollHeight;
 }
 
 // ---------- พูดแทนพิมพ์ในช่องแชท ----------
