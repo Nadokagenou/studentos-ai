@@ -270,7 +270,7 @@
     }
   }
   function worldToolbar() {
-    return '<div class="scene-hud"><div class="hud-top"><button class="hud-exit" data-exit-app aria-label="ออกไปหน้าแอป StudentOS">'+hudIcon('exit')+'<span>ออก</span></button><span class="hud-wallet" title="Candy">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button class="hud-objective" data-open-objective aria-label="ดูภารกิจตอนนี้"><span aria-hidden="true">✓</span><small>ภารกิจ</small></button><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div>'+(route!=='hub'&&route!=='gate'?'<button class="scene-return" data-route="hub" aria-label="กลับโถงกลาง"><span aria-hidden="true">↶</span><b>โถงกลาง</b></button>':'')+window.HalloweenJournal.cover()+'</div>';
+    return '<div class="scene-hud"><div class="hud-top"><button class="hud-exit" data-exit-app aria-label="'+(new URLSearchParams(location.search).get('from')==='locked'?'ออกจากห้องลอง กลับหน้าอีเวนต์':'ออกไปหน้าแอป StudentOS')+'">'+hudIcon('exit')+'<span>ออก</span></button><span class="hud-wallet" title="Candy">'+hudIcon('candy')+'<b data-scene-wallet>'+read().event.candy.toLocaleString('th-TH')+'</b></span><button class="hud-objective" data-open-objective aria-label="ดูภารกิจตอนนี้"><span aria-hidden="true">✓</span><small>ภารกิจ</small></button><button data-toggle-scene-sound aria-label="'+(prefs.sound?'ปิดเสียง':'เปิดเสียง')+'">'+hudIcon(prefs.sound?'soundOn':'soundOff')+'</button><button class="hud-motion" data-toggle-scene-motion aria-label="'+(reduced()?'เปิดอนิเมชัน':'หยุดอนิเมชัน')+'">'+hudIcon(reduced()?'play':'pause')+'</button><button data-open-preferences aria-label="ตั้งค่า">'+hudIcon('settings')+'</button></div>'+(route!=='hub'&&route!=='gate'?'<button class="scene-return" data-route="hub" aria-label="กลับโถงกลาง"><span aria-hidden="true">↶</span><b>โถงกลาง</b></button>':'')+window.HalloweenJournal.cover()+'</div>';
   }
   function rememberPrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs));}catch{}}
   async function syncSoundUI(){document.querySelectorAll('[data-toggle-scene-sound]').forEach(b=>{b.innerHTML=hudIcon(prefs.sound?'soundOn':'soundOff');b.setAttribute('aria-label',prefs.sound?'ปิดเสียง':'เปิดเสียง');b.setAttribute('aria-pressed',String(prefs.sound));});await audio.setEnabled(prefs.sound);document.documentElement.dataset.sound=audio.state().playing?'on':prefs.sound?'waiting':'off';}
@@ -653,7 +653,17 @@
     if (!playable) {
       const fromMain=new URLSearchParams(location.search).get('entry')==='main',appHref=fromMain?'../../':'../../',signed=account?.ready();
       const heading=phase==='ended'?'คืนฮาโลวีนจบลงแล้ว':phase==='upcoming'?'เรื่องราวรัตติกาล กำลังจะเริ่ม':'เข้าสู่ระบบเพื่อร่วมอีเวนต์';
-      main.innerHTML='<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>'+heading+'</h1><img src="'+image('theme-midnight-academy')+'" alt="Midnight Academy"><p>กิจกรรม 28 ตุลาคม – 30 พฤศจิกายน 2569 ตามเวลาไทย · ความคืบหน้า Candy และรางวัลผูกบัญชี StudentOS</p>'+(signed?'<p>เชื่อมบัญชีแล้ว · '+(phase==='ended'?'เปิดคลังเพื่อดูรางวัลที่ได้รับ':'พบกันเมื่อประตูเปิด')+'</p>':'<a class="primary" href="'+appHref+'?go=login">เข้าสู่ระบบ StudentOS</a>')+'<p><a class="secondary" href="../rewards/vault.html'+(fromMain?'?entry=main':'')+'">คลังรางวัลของฉัน</a> <a class="secondary" href="'+appHref+'">กลับเว็บ'+(fromMain?'หลัก ':' ')+'StudentOS</a></p></section>';return;
+      main.innerHTML='<section class="locked-event"><span class="eyebrow">STUDENTOS · THE HALLOWEEN CHAPTER</span><h1>'+heading+'</h1><img src="'+image('theme-midnight-academy')+'" alt="Midnight Academy"><p class="le-when"><b>28 ต.ค. – 30 พ.ย. 2569</b></p>'
+        // 28 ต.ค. 69 · เจ้าของ: "จัดลำดับและลองแก้หน่อย" — เดิมปุ่มสี่ปุ่มหน้าตาเท่ากัน ตัดบรรทัดตามความยาวข้อความ (1-2-1)
+        // และคำอธิบายห้องลองลอยแยกจากปุ่มของมัน · ตอนนี้เรียงตามสิ่งที่ควรทำ: เข้าสู่ระบบ (หลัก) → ลองก่อน (พร้อมคำอธิบายใต้ปุ่ม)
+        // → คลังรางวัล → ลิงก์กลับเว็บหลักเงียบ ๆ ท้ายสุด (พาออกจากหน้า) · ปุ่มกว้างเท่ากันเป็นคอลัมน์เดียว
+        // เจ้าของวงลบเอง: บรรทัดอธิบายใต้วันที่ ("ตามเวลาไทย · ความคืบหน้า Candy …") กับคำอธิบายใต้ปุ่มห้องลอง
+        // แอปหลักไม่มีปุ่มห้องลอง (ถอดก่อนเปิดตัว) — ลำดับที่เหลือคงเดิม
+        +'<div class="le-actions">'
+        +(signed?'<p class="le-signed">เชื่อมบัญชีแล้ว · '+(phase==='ended'?'เปิดคลังเพื่อดูรางวัลที่ได้รับ':'พบกันเมื่อประตูเปิด')+'</p>':'<a class="primary le-main" href="'+appHref+'?go=login">เข้าสู่ระบบ StudentOS</a>')
+        +'<a class="secondary" href="../rewards/vault.html?from=event'+(fromMain?'&amp;entry=main':'')+'">คลังรางวัลของฉัน</a>'
+        +'</div>'
+        +'<a class="le-back" href="'+appHref+'">← กลับเว็บ'+(fromMain?'หลัก ':' ')+'StudentOS</a></section>';return;
     }
     const biome = currentBiome(), meta = Catalog.biomes[Core.SHORT[biomeIndex(biome)]];
     main.dataset.biome=biome;
@@ -734,7 +744,7 @@
     if(button.hasAttribute('data-toggle-scene-sound')){prefs.sound=!prefs.sound;rememberPrefs();syncSoundUI();return;}
     if(button.hasAttribute('data-start-with-sound')){prefs.sound=true;prefs.motion='full';prefs.motionChosen=true;rememberPrefs();syncSoundUI();syncMotionUI();detail.close();return;}
     // ปุ่มออก (24 ต.ค. 69 · เจ้าของ: "สร้างปุ่มออกไปหน้าแอป") — เดิมทางกลับมีแค่โลโก้ในหัวหน้าที่ world.css ซ่อนไว้ · ปุ่มบ้านพากลับโถงกลาง ไม่ใช่แอป
-    if(button.hasAttribute('data-exit-app')){location.href=new URL(new URLSearchParams(location.search).get('entry')==='main'?'../../':'../../',location.href).href;return;}
+    if(button.hasAttribute('data-exit-app')){const q=new URLSearchParams(location.search),main=q.get('entry')==='main';/* 28 ต.ค. 69 · เจ้าของ: "ปุ่มออกจากแต่ละปุ่มของหน้านี้ให้ออกมาในหน้านี้" — เปิดห้องลองจากจอเข้าสู่ระบบ (from=locked) = ออกแล้วกลับจอนั้น ไม่ใช่เด้งออกแอป */location.href=new URL(q.get('from')==='locked'?'./'+(main?'?entry=main':''):(main?'../../../':'../../'),location.href).href;return;}
     if(button.hasAttribute('data-brain-open')){detail.close();await window.HalloweenBrainUI.open({Core,config,read,perform,now,refresh:()=>account?account.refresh():Promise.resolve(),workHref:'../../?go=tasks'+(preview?'&halloweenStudyPreview=1':''),onClose:()=>showJournal('tasks')});return;}
     if(button.dataset.studyClaim){const P=window.HalloweenStudyPact,uid=preview?Death.owner(localStorage):read().owner,result=await runAction(button,{type:'study-claim',pact:button.dataset.studyClaim});if(result&&preview){const local=P.read(localStorage,uid);if(local.event.studyPacts?.active?.id===result.pact){local.event.studyPacts.active.claimed=true;P.write(localStorage,local);}}if(result){showJournal('tasks');toast('เปิดบันทึกแล้ว'+(result.candy?' · +'+result.candy+' Candy':''));}return;}
     if(button.dataset.deathAction){
@@ -831,7 +841,7 @@
         const mode=await load('config.json');phase=window.HalloweenSeason.state();
         if(mode.claimingEnabled===true){
           account=window.HalloweenAccount.create({client:window.HalloweenAccount.client(),onChange:snapshot=>{if(snapshot===null)location.reload();}});
-          try{const remote=await account.refresh();store=account;phase=remote.phase;playable=phase==='active';}catch(error){toast(error.message,true);}
+          try{const remote=await account.refresh();store=account;phase=remote.phase;playable=phase==='active';}catch(error){if(!error.signedOut)toast(error.message,true);}   // 28 ต.ค. 69 · เจ้าของลบกล่อง "เข้าสู่ระบบ … ก่อนเล่นกิจกรรม": ยังไม่ล็อกอิน = จอนี้บอกพร้อมปุ่มเข้าสู่ระบบอยู่แล้ว · ข้อผิดพลาดอื่นยังแจ้งเหมือนเดิม
         }
       }
       if(playable)biomeDifficulty=Object.fromEntries(Core.BIOMES.map(id=>{const levels=config.quests.filter(q=>q.biome===id).map(q=>Balance.difficulty(config,q).level);return[id,Balance.labels[Math.min(...levels)-1]+' → '+Balance.labels[Math.max(...levels)-1]];}));

@@ -20,3 +20,41 @@
 .world-copy p,.shop-hero p{font-size:12px}.house-panel>p{font-size:11px}.item-info h3{font-size:13px}.item-info p{font-size:10px}.item-info button{font-size:11px}.activity-card p{font-size:11px}.npc-mini p{font-size:12px}.quest-row h3{font-size:13px}.quest-row p{font-size:10px}.material-card b{font-size:11px}
 @media(max-width:500px){.world-copy p,.shop-hero p{font-size:11px}.house-panel>p{font-size:10px}.house-options button{min-height:44px;font-size:9px}.house-time{font-size:8px}.activity-card p{font-size:10px}.activity-card h3{font-size:12px}.item-info h3{font-size:12px}.item-info p{font-size:10px}.item-info button{font-size:10px;min-height:42px}.recipe-cost span{font-size:8px}.npc-mini p{font-size:11px}.quest-row h3{font-size:12px}.quest-row p{font-size:9px}.material-card b{font-size:10px}.material-card small{font-size:8px}.npc-dialogue{font-size:12px}.requirement{font-size:10px}#eventNav button{min-height:42px}.page-head p{font-size:11px}.garden-copy p{font-size:12px}.world-copy{max-width:94%}}
 @media(prefers-reduced-motion:reduce){html:not([data-motion=full]) *,html:not([data-motion=full]) *:before,html:not([data-motion=full]) *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}html[data-motion=still] *,html[data-motion=still] *:before,html[data-motion=still] *:after{animation:none!important;transition:none!important}
+/* 28 ต.ค. 69 · จอเข้าสู่ระบบของอีเวนต์ (.locked-event) — เจ้าของ: "จัดลำดับและลองแก้หน่อย"
+   ปุ่มเป็นคอลัมน์เดียวกว้างเท่ากัน เรียงตามสิ่งที่ควรทำ · กลับเว็บหลักเป็นลิงก์เงียบท้ายสุด
+   ตัวหนังสือปุ่ม 11px → 14px */
+.locked-event .le-when{display:flex;flex-direction:column;gap:4px;margin:18px auto 22px;max-width:460px}
+.locked-event .le-when b{font-size:15px;font-weight:700;color:#e8dcc8;letter-spacing:.2px}
+.locked-event .le-actions{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:min(320px,100%);margin:0 auto}
+.locked-event .le-actions :is(.primary,.secondary){width:100%;min-height:48px;font-size:14px;border-radius:12px}
+/* ปุ่มหลัก "เข้าสู่ระบบ StudentOS" — 28 ต.ค. 69 · เจ้าของ: "ลองปรับให้ปุ่มสำคัญมันดูดึงดูดสายตากว่านี้"
+   สี: เจ้าของลองส้มฟักทอง → ม่วงจันทร์ แล้วสั่ง "ปรับกลับเป็นสีเดิม" → แชมเปญเดิมของหน้า (#e1c49a · ตัวหนังสือเข้ม #201724)
+   ส่วนที่ทำให้เด่น (แสงเรือง · แสงวาบ · ลูกศร) ยังอยู่ แค่เป็นโทนแชมเปญ
+   + แสงเรืองส้ม + ขอบสะท้อนบน + แถบแสงวาบเป็นจังหวะ (แบบปุ่ม shine ของ Uiverse · MIT · transform อย่างเดียว)
+   + ลูกศร › เลื่อนนิดตอนชี้ · ลดการเคลื่อนไหว = กฎรวมของหน้าหยุดแอนิเมชันให้อยู่แล้ว */
+.locked-event .le-main{position:relative;overflow:hidden;isolation:isolate;gap:10px;min-height:52px;font-size:15px;font-weight:800;letter-spacing:.2px;color:#201724;border:0;
+ background:linear-gradient(180deg,#ffffff40,#ffffff00 52%),linear-gradient(135deg,#F1D9B4,#E1C49A 52%,#CDA977);
+ box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #8a6a3f55,0 0 0 1px #f1d6ae88,0 12px 28px -10px #e1c49acc,0 0 34px -8px #e1c49a99;
+ transition:transform .16s cubic-bezier(.23,1,.32,1),box-shadow .2s ease}
+.locked-event .le-main::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:0;width:42%;
+ background:linear-gradient(100deg,transparent,#ffffff8c,transparent);transform:translateX(-130%) skewX(-18deg);
+ animation:le-shine 4.2s cubic-bezier(.45,0,.2,1) 1.2s infinite}
+.locked-event .le-main::after{content:"";width:8px;height:8px;border:solid currentColor;border-width:2.4px 2.4px 0 0;border-radius:1px;transform:rotate(45deg);transition:transform .2s cubic-bezier(.23,1,.32,1)}
+@keyframes le-shine{0%{transform:translateX(-130%) skewX(-18deg)}24%,100%{transform:translateX(360%) skewX(-18deg)}}
+.locked-event .le-main:hover{background:linear-gradient(180deg,#ffffff50,#ffffff00 52%),linear-gradient(135deg,#F6E2C2,#F1D6AE 52%,#D8B486);box-shadow:inset 0 1px 0 #ffffffb3,inset 0 -2px 0 #8a6a3f55,0 0 0 1px #f1d6aeaa,0 14px 32px -10px #e1c49aee,0 0 44px -6px #e1c49ab3}
+.locked-event .le-main:hover::after{transform:translateX(3px) rotate(45deg)}
+.locked-event .le-main:active{transform:scale(.97)}
+.locked-event .le-main:focus-visible{outline:2px solid #F1D6AE;outline-offset:3px}
+.locked-event .le-signed{margin:0;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.7;color:#d6c9e2;background:#ffffff08;border:1px solid #ffffff14}
+.locked-event .le-back{display:inline-block;margin-top:22px;padding:8px 10px;font-size:13px;color:#c7b1d5;text-decoration:none}
+.locked-event .le-back:hover{color:#e6d8f0;text-decoration:underline;text-underline-offset:3px}
+/* จอเตี้ย (กล่องนี้สูงได้แค่ 86dvh ตาม world.css) — ที่ 658×726 ล้นไป 134px "คลังรางวัล/กลับเว็บหลัก" ตกขอบ
+   ระยะแนวตั้งย่อตามความสูงจอแทนเบรกพอยต์: จอสูงหน้าตาเหมือนเดิม จอเตี้ยค่อย ๆ บีบรูป/ช่องว่างลง */
+.locked-event{padding-block:clamp(24px,5dvh,50px)}
+.locked-event h1{margin-block:clamp(8px,2dvh,18px)}
+.locked-event img{width:clamp(96px,calc(40dvh - 145px),190px)}   /* ถอดบรรทัดอธิบายสองบรรทัดแล้วมีที่เพิ่ม: ~130px ที่สูง 687 · 145 ที่ 726 · 180 ที่ 812 · เต็ม 190 ตั้งแต่ 840 */
+.locked-event .le-when{margin-block:clamp(10px,2dvh,18px) clamp(14px,2.6dvh,22px)}
+.locked-event .le-back{margin-top:clamp(10px,2.4dvh,22px)}
+/* มือถือ: world.css วางกล่องห่างขอบ 7% ทุกด้าน → กว้างเหลือ ~265px หัวข้อ/วันที่ตัดเป็นสองบรรทัดแล้วล้นอีก 47px
+   → จอแคบเว้นข้างแค่ 12px และให้กล่องสูงได้ 92dvh (#eventMain เพื่อชนะ world.css ที่โหลดทีหลัง) */
+@media (max-width:520px){#eventMain .locked-event{inset:4dvh 12px;max-height:92dvh;padding-inline:20px}.locked-event h1{font-size:24px}}

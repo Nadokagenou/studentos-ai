@@ -5,7 +5,7 @@
   let snapshot=null,uid=null,offset=0,pending=null,queue=Promise.resolve(),refreshing=null,preferDatabaseRegion=true;
   async function bounded(job){let timer;try{return await Promise.race([job,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('เครือข่ายตอบช้า รายการยังรอยืนยัน กดตรวจเซฟอีกครั้งเมื่อออนไลน์')),timeoutMs);})]);}finally{clearTimeout(timer);}}
   const clear=()=>{snapshot=null;uid=null;pending=null;refreshing=null;onChange(null);};
-  async function identity(){const {data,error}=await bounded(client.auth.getSession());if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true});return data.session;}
+  async function identity(){const {data,error}=await bounded(client.auth.getSession());if(error||!data.session)throw Object.assign(Error('เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'),{definitive:true,signedOut:true});return data.session;}
   async function send(body){
    const session=await identity(),owner=session.user.id;if(uid&&uid!==owner)clear();uid=owner;
    const regional=preferDatabaseRegion&&body.action?.type!=='read',route=regional?endpoint+(endpoint.includes('?')?'&':'?')+'forceFunctionRegion=ap-southeast-2':endpoint;
