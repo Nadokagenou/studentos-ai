@@ -631,6 +631,24 @@ function doAtCopy(t: any): { title: string; body: string } {
   };
 }
 
+// 29 ต.ค. 69 · คัดนัดในฐานข้อมูล แทนการลาก tasks ทั้งก้อน (migration 20261029120000_do_at_due.sql)
+// ข้อมูลจริง: รอบละ ~271 KB (7 คน) ทั้งที่งานที่มีนัดรวมกันแค่ ~1 KB · ~300 รอบ/วัน ≈ 80 MB/วันส่งออกมาแล้วทิ้ง
+// Egress ทั้งองค์กรเกินแผนฟรี 363% · do_at_due คืนเฉพาะงานที่ doAt อยู่ในช่วง + notifOff
+// ช่วงที่ขอกว้างกว่าที่ใช้จริงหนึ่งชั่วโมงทั้งสองฝั่ง — ฐานข้อมูลเป็นแค่ตะแกรงหยาบ ตัวตัดสินจริงยังเป็นตัวกรองข้างล่าง
+// (Date.parse ของ JS กับ timestamptz ของ Postgres อ่านค่าขอบ ๆ ไม่ตรงกันได้ · เผื่อไว้ดีกว่านัดหาย)
+// ยังไม่ได้รัน migration / rpc ล้ม → ถอยไปลากทั้งก้อนแบบเดิม · นัดต้องดังเสมอ แพงขึ้นยังดีกว่าเงียบ
+const DO_SCAN_PAD_MS = 60 * 60_000;
+async function doAtRows(ids: string[], now: number, errors: string[]): Promise<{ data: any[] | null; error: any }> {
+  const { data, error } = await db.rpc('do_at_due', {
+    p_ids: ids,
+    p_from: new Date(now - DO_LATE_MS - DO_SCAN_PAD_MS).toISOString(),
+    p_to: new Date(now + DO_EARLY_MS + DO_SCAN_PAD_MS).toISOString(),
+  });
+  if (!error) return { data: (data as any[]) ?? [], error: null };
+  errors.push('doAt do_at_due: ' + error.message + ' (ถอยไปอ่านทั้งก้อน)');
+  return await db.from('user_state').select('id, tasks:data->tasks, settings:data->settings').in('id', ids);
+}
+
 async function runDoAt(now: number, errors: string[]): Promise<{ sent: number; due: number }> {
   let sent = 0, due = 0;
   for (let page = 0; ; page++) {
@@ -649,8 +667,7 @@ async function runDoAt(now: number, errors: string[]): Promise<{ sent: number; d
     // งานที่ถึงนัดในรอบนี้ ต่อคน
     const dueByUser = new Map<string, any[]>();
     for (const ids of chunk(userIds, ID_CHUNK)) {
-      const { data: rows, error } = await db
-        .from('user_state').select('id, tasks:data->tasks, settings:data->settings').in('id', ids);
+      const { data: rows, error } = await doAtRows(ids, now, errors);
       if (error) { errors.push('doAt user_state: ' + error.message); continue; }
       for (const r of rows ?? []) {
         if ((r as any).settings?.notifOff === true) continue;

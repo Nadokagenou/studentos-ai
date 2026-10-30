@@ -35,6 +35,11 @@ const BATCH = 10;
 // ต้นทางล่มแล้วเรายิงซ้ำทุก 30 นาทีไปเรื่อย ๆ คือการเติมภาระให้ระบบที่กำลังมีปัญหาอยู่แล้ว
 const BACKOFF_MIN = [30, 120, 480, 1440];
 const NORMAL_GAP_MIN = 30;
+// 30 ต.ค. 69 · Classroom ลองเร็วสองครั้งก่อนเข้าขั้นเดิม — ข้อมูลจริง 24 ชม.: 503 ×4 · timeout ×2 ·
+// internal_failure ×1 ทุกครั้งหายเองในรอบถัดไป แต่ขั้นแรก 30 นาทีทำให้งานใหม่หายไปครึ่งชั่วโมงทุกครั้ง
+// ทั้งที่ตั้งใจซิงก์ทุก 1 นาที · ล้มเกินสองครั้งติด = ต้นทางมีปัญหาจริง ถอยห่างเหมือนเดิม
+const BACKOFF_FAST: Record<string, number[]> = { google_classroom: [2, 5] };
+const backoffFor = (provider: string) => [...(BACKOFF_FAST[provider] ?? []), ...BACKOFF_MIN];
 
 // ============================================================
 // 16 ต.ค. 69 · Classroom ซิงก์ทุก 1 นาที (เจ้าของ: "ขอส่งแล้วเข้าเลย")
@@ -48,6 +53,15 @@ const NORMAL_GAP_MIN = 30;
 //   2. บัญชีใหญ่ถ่วงบัญชีอื่น → ซิงก์ขนานกันทีละ SYNC_PARALLEL บัญชี
 //   3. รอบถัดไปต้องไม่หลุดรอบ cron → นัดเทียบกับนาทีที่รอบนี้ "เริ่ม" ลบ 1 วิ ไม่ใช่เทียบกับตอนเสร็จ
 // ============================================================
+// ---------- ความด่วนของ push ----------
+// 16 ต.ค. 69 · ข้อมูลจริง: เซิร์ฟเวอร์ส่งถึงสามบัญชีห่างกันไม่เกิน 3 วิ แต่เจ้าของเห็นแจ้งเตือนมาไม่พร้อมกันได้ถึง ~5 นาที
+// เดิมไม่ได้ใส่ความด่วน = ค่าปริยายของ web-push (normal · TTL 4 สัปดาห์) → Android ที่ประหยัดแบตกับ iPhone ที่จอดับ
+// พักไว้จนเครื่อง "ตื่น" ทีละเครื่อง · บทเรียนเดียวกับ pushOpts ใน send-reminders (เตือนงานใกล้กำหนด · แชทเพื่อน)
+// high ใช้ได้ เพราะส่งอย่างมากดอกเดียวต่อรอบต่อบัญชี (ดูข้อ 1 ของ notifyNewItems)
+// TTL: งานใหม่ยังมีประโยชน์ถ้ามาถึงภายในครึ่งวัน (เครื่องปิดทั้งคืน) · ให้เชื่อมใหม่ยังจริงทั้งวัน
+const PUSH_OPTS_NEW = { urgency: 'high' as const, TTL: 12 * 3600 };
+const PUSH_OPTS_REAUTH = { urgency: 'high' as const, TTL: 24 * 3600 };
+
 const GAP_MIN: Record<string, number> = { google_classroom: 1 };
 const gapFor = (provider: string) => GAP_MIN[provider] ?? NORMAL_GAP_MIN;
 const LEASE_MS = 3 * 60_000;   // รอบที่ตายกลางทางคืนแถวเองหลังนี้ · ยาวกว่ารอบที่ช้าที่สุดที่วัดได้ (~25 วิ) หลายเท่า
@@ -92,6 +106,7 @@ type Row = {
   // จะเขียน last_sync_at ทับ ไม่งั้นทุกอย่างดูเหมือนไม่ใช่ครั้งแรกไปหมด
   first_sync?: boolean;
   run_start?: number;   // เวลาที่รอบนี้เริ่ม — ใช้นัดรอบถัดไปให้ตรงกับรอบ cron (nextTickAt)
+  force?: boolean;      // "ซิงก์เดี๋ยวนี้" — เทียบทะเบียนเต็มเสมอ ไม่ใช้ทางลัดรายการเดิม (ดู listFingerprint)
 };
 
 Deno.serve(async (req) => {
@@ -123,7 +138,7 @@ Deno.serve(async (req) => {
     const ran = await inPool((data || []) as Row[], SYNC_PARALLEL, async row => {
       // อีกรอบกำลังซิงก์บัญชีนี้อยู่ — ปล่อยให้รอบนั้นทำ ไม่ซ้อน (ดูหัวข้อ "ซิงก์ทุก 1 นาที")
       if (!(await claimRow(row.id))) return null;
-      try { return await syncOne({ ...row, first_sync: !row.last_sync_at, run_start: runStart }); }
+      try { return await syncOne({ ...row, first_sync: !row.last_sync_at, run_start: runStart, force: !!only }); }
       finally { await releaseRow(row.id).catch(() => {}); }
     });
     const out = ran.filter(r => r !== null);
@@ -169,14 +184,20 @@ async function syncOne(row: Row) {
     }
 
     const res = await pull(row, secret);
-    if (res.unchanged) {
+    const listFp = res.unchanged ? null : await listFingerprint(res);
+    if (res.unchanged || (!row.force && listFp === row.meta?.list_fp)) {
+      // ของค้างจากกลางดึกยังต้องถูกแจ้งตอนเช้า แม้รายการจะเหมือนเดิม (ดู heldTasks)
+      // กวาดเฉพาะช่วงที่ยังมีของให้กวาด — นอกช่วงนั้น heldTasks คืนว่างแน่นอน การอ่านกล่องเข้าทุกนาทีคือ egress เปล่า ๆ
+      const held = Date.parse(String(row.meta?.held_until ?? '')) > Date.now();
+      const push = held ? await notifyNewItems(row, []).catch(() => null) : null;
       await db.from('integrations').update({
         last_sync_at: new Date().toISOString(),
         next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
         status: 'active', error_msg: null, fail_count: 0,
-        meta: { ...row.meta, last_run: done('unchanged') },
+        // res.meta ยังต้องเก็บ — ICS ที่ etag เปลี่ยนแต่เนื้อเท่าเดิม ต้องจำ etag ใหม่ ไม่งั้นโหลดเต็มทุกรอบ
+        meta: { ...row.meta, ...res.meta, last_run: done('unchanged', push ? { push } : {}) },
       }).eq('id', row.id);
-      return { id: row.id, status: 'unchanged' };
+      return { id: row.id, status: 'unchanged', sent: 0, pushed: push?.ok ?? 0 };
     }
 
     const sent = await reconcile(row, res.tasks, new Set(res.doneIds ?? []));
@@ -186,6 +207,11 @@ async function syncOne(row: Row) {
       next_sync_at: nextTickAt(row.run_start ?? t0, gapFor(row.provider)),
       status: 'active', error_msg: null, fail_count: 0,
       meta: { ...row.meta, ...res.meta,
+        // จำไว้ **หลัง** reconcile สำเร็จเท่านั้น — รอบที่ล้มกลางทางห้ามทิ้งลายนิ้วมือไว้ให้รอบหน้าข้าม
+        list_fp: listFp,
+        // รอบแรกปักหมุดทุกใบไปแล้ว ไม่มีอะไรค้างให้กวาด · แถวที่ยังไม่เคยมีลายนิ้วมือ (เพิ่ง deploy · หลังรอบที่ล้ม)
+        // อาจมีของค้างที่มาก่อนหน้านี้ ให้กวาดต่ออีกหนึ่งช่วงเผื่อไว้
+        ...((sent.fresh || !row.meta?.list_fp) && !row.first_sync ? { held_until: new Date(Date.now() + HELD_HOURS * 3.6e6).toISOString() } : {}),
         last_run: done('ok', { tasks: res.tasks.length, delivered: sent.sent, push: sent.push }) },
       ...(res.account ? { account: res.account } : {}),
     }).eq('id', row.id);
@@ -199,12 +225,16 @@ async function syncOne(row: Row) {
       await markReauth(row, msg, { ...log, status: 'needs_reauth' });
       return { id: row.id, status: 'needs_reauth', error: msg };
     }
-    const n = Math.min(row.fail_count + 1, BACKOFF_MIN.length);
+    const ladder = backoffFor(row.provider);
+    const n = Math.min(row.fail_count + 1, ladder.length);
+    const wait = ladder[n - 1];
     await db.from('integrations').update({
       status: 'error', error_msg: msg.slice(0, 300), fail_count: n,
       last_sync_at: new Date().toISOString(),
-      next_sync_at: minutesFromNow(BACKOFF_MIN[n - 1]),
-      meta: { ...row.meta, last_run: log },   // diag ของรอบที่สำเร็จล่าสุดยังอยู่
+      // ช่วงสั้นนัดตามรอบ cron (เหมือนรอบปกติ) · minutesFromNow หักเผื่อ 2 นาที ซึ่งจะกลืน "รอ 2 นาที" จนเหลือศูนย์
+      next_sync_at: wait < NORMAL_GAP_MIN ? nextTickAt(row.run_start ?? t0, wait) : minutesFromNow(wait),
+      // diag ของรอบที่สำเร็จล่าสุดยังอยู่ · ลืมลายนิ้วมือ — ทะเบียนอาจถูกเขียนไปครึ่งทาง รอบหน้าต้องเทียบเต็ม
+      meta: { ...row.meta, list_fp: null, last_run: log },
     }).eq('id', row.id);
     return { id: row.id, status: 'error', error: msg };
   }
@@ -225,7 +255,7 @@ async function markReauth(row: Row, msg: string, log?: RunLog) {
     // เผื่อกรณีที่ต้นทางหายชั่วคราวแล้วกลับมาเอง จะได้ลองอีกครั้งในวันรุ่งขึ้น
     // ตายตอนกลางดึก = ลองใหม่ตอนเช้าแทน ไม่งั้น +24 ชม. ก็ตกกลางดึกอีก แล้วไม่มีวันได้แจ้ง
     next_sync_at: quiet ? morningAfterQuiet() : minutesFromNow(1440),
-    ...(log ? { meta: { ...row.meta, last_run: log } } : {}),
+    ...(log ? { meta: { ...row.meta, list_fp: null, last_run: log } } : {}),
   }).eq('id', row.id);
   if (!quiet) await notifyReauth(row).catch(() => 0);
 }
@@ -242,7 +272,7 @@ async function notifyReauth(row: Row): Promise<number> {
     title: `${name} หยุดส่งงานเข้ามาแล้ว`,
     body: `${row.account ? row.account + ' · ' : ''}เปิดแอปแล้วกด "เชื่อมใหม่" งานจากครูจะกลับมาเอง`,
     tag: 'integ-reauth',
-  });
+  }, PUSH_OPTS_REAUTH);
   await markSent(db, row.user_id, [key]);
   return ok;
 }
@@ -287,6 +317,38 @@ async function pull(row: Row, secret: string): Promise<{
   }
 
   throw new Error(`ไม่รู้จักตัวเชื่อม "${row.provider}"`);
+}
+
+// ============================================================
+// 29 ต.ค. 69 · ไม่มีงานใหม่ = ไม่แตะฐานข้อมูล
+// ------------------------------------------------------------
+// ข้อมูลจริง: Egress ของ Supabase เกินแผนฟรี 363% · log 24 ชม. มี ~45,000 คำขอ 82% มาจาก cron
+// ตัวนี้ทุกนาทีลากทะเบียนทั้งบัญชีออกมาเทียบ (~5,600 ครั้ง/วัน · บัญชีใหญ่ 212 แถว) และกวาด
+// inbox_items หาของค้าง (~3,700 ครั้ง/วัน) ทั้งที่เกือบทุกรอบ Classroom ตอบเหมือนรอบก่อนเป๊ะ
+// เจ้าของ: "อยากให้มันตรวจดึงตอนที่มีงานเท่านั้น"
+//
+// Google ยังถูกถามทุกนาทีเหมือนเดิม (ขาเข้า ไม่ใช่ egress ของเรา) · งานใหม่ยังเข้าภายในรอบเดียว
+// ที่เปลี่ยนคือ ถ้ารายการที่ได้มาเหมือนรอบที่ reconcile สำเร็จล่าสุด → ข้าม reconcile ทั้งก้อน
+//
+// ทำไมข้ามได้โดยไม่พลาดอะไร: reconcile กับรายการเดิมซ้ำเป็นจุดคงที่ — ใบที่เคยส่ง/จดว่าเก่าแล้ว
+// ถูก continue ก่อนด่านเวลา (STALE_MS) ทุกใบ · ใบที่หายไปถูกตัดสินครั้งเดียวตอนมันหาย
+// สิ่งเดียวที่ขึ้นกับเวลาจริงคือการกวาดของค้างตอนเช้า → แยกไปทำในทางลัดเองตาม held_until
+//
+// ลายนิ้วมือต้องครอบทุกอย่างที่ reconcile ใช้ตัดสิน: ลายนิ้วมือรายใบ · doneIds · account
+// ⚠️ แก้กฎใน reconcile เมื่อไหร่ ให้ขยับ LIST_FP_V — ไม่งั้นบัญชีที่รายการนิ่งจะไม่ได้กฎใหม่
+//    จนกว่าครูจะสั่งงานถัดไป
+// ============================================================
+const LIST_FP_V = 1;
+
+async function listFingerprint(res: { tasks: StandardTask[]; account?: string; doneIds?: string[] }): Promise<string> {
+  const items: string[] = [];
+  for (const t of res.tasks) {
+    // ใบที่ reconcile ข้าม (ไม่มี id/ชื่อ) ไม่นับ — ให้ตรงกับสิ่งที่ reconcile เห็นจริง
+    if (t.sourceId && t.title) items.push(t.sourceId + '=' + await fingerprint(t));
+  }
+  const face = JSON.stringify([LIST_FP_V, res.account ?? '', items.sort(), [...(res.doneIds ?? [])].sort()]);
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(face));
+  return Array.from(new Uint8Array(buf).slice(0, 16)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 // ---------- เทียบกับทะเบียน ----------
@@ -402,7 +464,7 @@ async function reconcile(row: Row, tasks: StandardTask[], doneIds: Set<string> =
   // ถ้าออกตรงนี้ไปเฉย ๆ ของที่เข้ามาตอนสี่ทุ่มจะไม่มีวันถูกแจ้ง (ดู heldTasks)
   if (!deliver.length) {
     const push = await notifyNewItems(row, []).catch(() => null);
-    return { sent: 0, pushed: push?.ok ?? 0, push };
+    return { sent: 0, fresh: 0, pushed: push?.ok ?? 0, push };
   }
 
   // ---------- หย่อนลงท่อเดิม ----------
@@ -449,7 +511,7 @@ async function reconcile(row: Row, tasks: StandardTask[], doneIds: Set<string> =
   // ล้มตรงนี้ไม่ทำให้รอบ sync ล้ม งานยังอยู่ในกล่องเข้าครบ แค่ไม่มีดอกเตือน
   const push = await notifyNewItems(row, deliver).catch(() => null);
 
-  return { sent: deliver.length, pushed: push?.ok ?? 0, push };
+  return { sent: deliver.length, fresh: deliver.filter(d => d.op === 'new').length, pushed: push?.ok ?? 0, push };
 }
 
 // ============================================================
@@ -548,7 +610,7 @@ async function notifyNewItems(
   const left = new Set(todo);
   const pending = all.filter(d => left.has(keyOf(d)));
 
-  const res = await pushToUserDetailed(db, row.user_id, newItemsCopy(pending, row.account));
+  const res = await pushToUserDetailed(db, row.user_id, newItemsCopy(pending, row.account), PUSH_OPTS_NEW);
   // ปักหมุดเมื่อถึงอย่างน้อยหนึ่งเครื่อง หรือไม่มีเครื่องให้ส่งจริง ๆ (ไม่มีเลย/ตายถาวรหมด)
   // ไม่งั้นคนที่ไม่มีเครื่องรับ push เลยจะถูกคิดใหม่ทุกรอบตลอดไป และวันที่เขาเปิด push ครั้งแรก
   // จะโดนของเก่าทั้งเทอมรวดเดียว
