@@ -5139,7 +5139,9 @@ function aiContext(now = new Date()) {
   for (const c of onBreak ? [] : cls) {
     const wd = c.weekday == null ? 'ทุกวัน'
       : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
-    L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (c.subject || 'เรียน'));
+    const si = ctxSubjInfo(c.subject);
+    L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (si.name || 'เรียน')
+      + (si.code ? ' (' + si.code + (si.extra ? ' ' + si.extra : '') + ')' : ''));
   }
 
   const rt = typeof ctxRoutines === 'function' ? ctxRoutines() : [];
@@ -10177,18 +10179,20 @@ function ctxWeekHtml() {
     const to = list.reduce((m, x) => Math.max(m, hm2min(x.end) || 0), 0);
     const body = on
       ? `<div class="ctx-pers">${list.map((x, n) => {
-          const name = x.subject || 'เรียน';
+          const si = ctxSubjInfo(x.subject);
+          const name = si.name || 'เรียน';
           return `<div class="ctx-per ${subjClass(name)}">
             <span class="ctx-per-n">${n + 1}</span>
             <i class="mono">${esc(x.start)}–${esc(x.end)}</i>
-            <b>${esc(name)}</b>
+            <b>${esc(name)}${si.code
+              ? `<small>${esc(si.code)}${si.extra ? ' · ' + esc(si.extra) : ''}</small>` : ''}</b>
             ${ctxDayCount(x) > 1 ? `<u>${esc(ctxDayLabel(x))}</u>` : ''}
             ${x.week ? `<u class="wk">สัปดาห์ ${esc(x.week)}</u>` : ''}
             <button class="ctx-del" onclick="ctxDelete('class','${x.id}')"
               aria-label="ลบ ${esc(name)}">${icon('trash')}</button>
           </div>`;
         }).join('')}</div>`
-      : `<p class="ctx-daysum">${[...new Set(list.map(x => x.subject || 'เรียน'))]
+      : `<p class="ctx-daysum">${[...new Set(list.map(x => ctxSubjName(x.subject) || 'เรียน'))]
           .map(s => `<span class="ctx-chip ${subjClass(s)}">${esc(s)}</span>`).join('')}</p>`;
 
     return `<div class="ctx-dayblk${on ? ' on' : ''}">
@@ -10217,7 +10221,7 @@ function ctxListHtml(kind) {
     ${sorted.map(x => `<div class="ctx-item">
       <span class="ctx-ic">${icon(kind === 'class' ? 'calendar' : (CTX_KINDS[x.kind] || CTX_KINDS.other).icon)}</span>
       <span class="ctx-bd">
-        <b>${esc(kind === 'class' ? (x.subject || 'เรียน') : (x.title || 'กิจวัตร'))}</b>
+        <b>${esc(kind === 'class' ? (ctxSubjName(x.subject) || 'เรียน') : (x.title || 'กิจวัตร'))}</b>
         <i class="mono">${esc(ctxDayLabel(x))} · ${esc(x.start)}–${esc(x.end)}</i>
       </span>
       <button class="ctx-del" onclick="ctxDelete('${kind}','${x.id}')" aria-label="ลบ">${icon('trash')}</button>
@@ -12886,6 +12890,13 @@ function ttSet(i, key, val) {
   if (key !== 'on') r.on = true;    // แก้แถวไหน = ตั้งใจเก็บแถวนั้น
   renderTtScan();
 }
+// ตัวอ่านรูปได้มาแค่รหัส "ค23101" → บอกใต้ช่องว่าแอปจะเรียกวิชานี้ว่าอะไร
+// ไม่เขียนทับช่องให้ — รหัสคือของที่อยู่บนกระดาษจริง เขาจะพิมพ์ชื่ออื่นแทนก็ได้
+function ttSubjHint(raw) {
+  const si = ctxSubjInfo(raw);
+  if (!si.name || si.name === String(raw || '').trim()) return '';
+  return `<span class="tt-subhint">= ${esc(si.name)}${si.extra ? ' ' + esc(si.extra) : ''}</span>`;
+}
 function ttToggle(i) {
   const r = ttState.rows[i];
   if (r) { r.on = !r.on; renderTtScan(); }
@@ -12984,6 +12995,7 @@ function renderTtScan() {
     <div class="tt-fields">
       <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
         oninput="ttSet(${i},'subject',this.value)">
+      ${ttSubjHint(r.subject)}
       <div class="tt-when">
         <select onchange="ttSet(${i},'day',this.value)" aria-label="วัน">
           ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}
