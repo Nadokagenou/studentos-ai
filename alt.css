@@ -15820,6 +15820,7 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 
 /* 30 ต.ค. 69 · หน้าตรวจตารางที่สแกน — ตารางที่มีแค่รหัสวิชา บอกใต้ช่องว่าแอปจะเรียกว่าอะไร
    สีเดียวกับป้ายสัปดาห์ (ข้อมูลที่แอปเติมให้ ไม่ใช่ของที่อ่านจากรูป) */
+.tt-subhint:empty { display: none; }
 .tt-subhint { font-size: 11.5px; font-weight: 600; color: var(--blue); margin-top: -2px; }
 /* จอบริบท · รหัสวิชาเป็นบรรทัดเล็กใต้ชื่อ — เป็นป้ายข้างชื่อแล้วชนชื่อยาว ๆ ที่ 375px */
 .ctx-per b small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); line-height: 1.3; }

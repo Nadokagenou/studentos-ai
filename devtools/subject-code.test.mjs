@@ -43,3 +43,10 @@ test('แผนเห็นชื่อวิชา ไม่ใช่รหั�
   assert.equal(t, 'คณิตศาสตร์');
   assert.equal(vm.runInContext('ctxClasses()[0].subject', ctx), 'ค23101');
 });
+test('วิทย์เพิ่มเติม ม.ปลาย บอกเล่มได้', () => {
+  assert.equal(info('ว30201').name, 'ฟิสิกส์ 1');
+  assert.equal(info('ว30222').name, 'เคมี 2');
+  assert.equal(info('ว30243').name, 'ชีววิทยา 3');
+  assert.deepEqual(info('ว30261'), { name: 'วิทยาศาสตร์', code: 'ว30261', extra: 'เพิ่มเติม' });  // ยังไม่มีหลักฐาน
+  assert.equal(info('ว30201 ฟิสิกส์กับการใช้งาน').name, 'ฟิสิกส์กับการใช้งาน');            // ชื่อในรูปชนะ
+});

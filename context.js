@@ -630,6 +630,11 @@ const CTX_SUBJ_ALIAS = {
   'คอม': 'วิทยาการคำนวณ', 'computer': 'วิทยาการคำนวณ',
   'art': 'ศิลปะ', 'จีน': 'ภาษาจีน', 'chinese': 'ภาษาจีน', 'ญี่ปุ่น': 'ภาษาญี่ปุ่น', 'japanese': 'ภาษาญี่ปุ่น',
 };
+// วิทย์เพิ่มเติม ม.ปลาย — ลำดับนี้ตรงกันหลายโรงเรียน (เลขท้ายคือเล่มที่)
+// ค้นยืนยันแล้ว 30 ต.ค. 69: ว30201 = ฟิสิกส์ 1 · ว30221 = เคมี 1 · ว30222 = เคมี 2 (หลายโรงเรียน)
+// ชีววิทยา ว3024x ใช้ลำดับเดียวกัน · ช่อง 1x 3x 5x ไม่ใส่ เพราะยังไม่เจอหลักฐาน
+// ข้อควรรู้: บางโรงเรียนตั้งชื่อเอง (ว30201 "ฟิสิกส์กับการใช้งาน") — ชื่อที่เขียนในรูปจึงชนะตารางนี้เสมอ
+const CTX_SUBJ_SERIES = { 'ว30': { '0': 'ฟิสิกส์', '2': 'เคมี', '4': 'ชีววิทยา' } };
 const CTX_SUBJ_CODE = /^([ก-ฮ])\s?([1-3])([0-6])([12])(\d{2})(?![0-9])\s*[-–:·.]?\s*/;
 
 // คืน { name, code, extra } — name ใช้แสดงและจับคู่กับงาน · code/extra ใช้เป็นป้ายเล็ก
@@ -644,6 +649,9 @@ function ctxSubjInfo(raw) {
     const code = m[1] + m[2] + m[3] + m[4] + m[5];
     const rest = s.slice(m[0].length).trim();
     if (rest) return { name: CTX_SUBJ_ALIAS[rest.toLowerCase()] || rest, code, extra: '' };
+    const series = m[4] === '2' && CTX_SUBJ_SERIES[m[1] + m[2] + m[3]];
+    const book = series && +m[5][1];
+    if (series && series[m[5][0]] && book) return { name: series[m[5][0]] + ' ' + book, code, extra: '' };
     if (CTX_SUBJ_LETTER[m[1]]) {
       return { name: CTX_SUBJ_LETTER[m[1]], code, extra: m[4] === '2' ? 'เพิ่มเติม' : '' };
     }
