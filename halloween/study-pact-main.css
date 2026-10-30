@@ -1,1 +1,34 @@
-.hw-study-card{display:flex;gap:12px;padding:16px;margin:12px 0;border:1px solid #95806c;border-radius:14px;background:linear-gradient(130deg,#252137,#151a27);color:#eee3cd}.hw-study-card>div{min-width:0;flex:1}.hw-study-card small,.hw-study-card b,.hw-study-focus b,.hw-study-focus small{display:block}.hw-study-card small{font-size:10px;color:#c4b194;letter-spacing:.04em}.hw-study-card b{font-size:15px;overflow-wrap:anywhere;margin:4px 0}.hw-study-card p{font-size:12px;color:#ccc5d3;line-height:1.6;margin:5px 0}.hw-study-moon{font-size:32px;color:#cfb17c}.hw-study-links{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.hw-study-links button,.hw-study-links a{font:inherit;font-size:12px;padding:10px 12px;border-radius:8px;border:1px solid #9a8469;text-decoration:none;background:#393049;color:#f2e4ca;min-height:44px}.hw-study-links a{background:transparent}.hw-study-card progress,.hw-study-focus progress{width:100%;height:8px;accent-color:#b69ace}.hw-study-focus{padding:12px;margin:10px 0;border:1px solid #927fa4;border-radius:12px;background:#211d2c;color:#e2d7ed}.hw-study-focus small{font-size:11px;line-height:1.5;margin-top:6px}
+/* การ์ด "HALLOWEEN · งานจริงของฉัน" บนจองาน · 31 ต.ค. 69 · เจ้าของ (ภาพการ์ด): "ปรับหน่อย"
+   เดิม: ปุ่มสองปุ่มหน้าตาเท่ากัน (กรอบน้ำตาลพื้นม่วง) ไม่รู้ว่าอันไหนคือสิ่งที่ควรกด · พระจันทร์เป็นตัวอักษรลอย ๆ
+   ตอนนี้: ปุ่มหลักเป็นก้อนม่วงจันทร์ทึบ · "สมุด" ลดเป็นลิงก์เงียบมีลูกศร · พระจันทร์อยู่ในวงแสง
+   · ขอบไล่สีบาง ๆ = เทคนิค mask ขอบอย่างเดียวแบบ Border Beam ของ Magic UI · MIT (นิ่ง ไม่วิ่ง — จองานต้องสงบ)
+   · กดยุบ scale(.97) 160ms ease-out (.23,1,.32,1) = คลังการเคลื่อนไหวของ React Bits · MIT
+   · ไม่ใช้สีทอง — ทองเฉพาะของที่ทำสำเร็จแล้ว ปุ่มนี้คือ "ยังไม่ได้ทำ" */
+.hw-study-card{position:relative;isolation:isolate;display:grid;grid-template-columns:44px minmax(0,1fr);column-gap:12px;align-items:start;padding:16px 16px 12px;margin:12px 0;border-radius:18px;background:radial-gradient(120% 90% at 0% 0%,#3d3163aa,transparent 62%),linear-gradient(150deg,#241f38,#14182a 72%);color:#eee3cd;box-shadow:0 12px 28px -16px #000c,inset 0 1px 0 #ffffff14}
+.hw-study-card::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;padding:1px;background:linear-gradient(140deg,#cdbdf2b0,#6d5c9a40 42%,#cdbdf266);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+/* แถวปุ่มกว้างเต็มการ์ด (ไม่เยื้องตามพระจันทร์) — กล่องข้อความหายเป็นชั้นเดียวกับการ์ด ลูก ๆ จึงวางในกริดได้ตรง ๆ ไม่ต้องแก้ JS */
+.hw-study-card>div{display:contents}
+.hw-study-card>div>:not(.hw-study-links){grid-column:2}
+.hw-study-moon{grid-row:1/span 3}
+.hw-study-links{grid-column:1/-1}
+.hw-study-card small,.hw-study-card b,.hw-study-focus b,.hw-study-focus small{display:block}
+.hw-study-card small{font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#cbb9ef}
+.hw-study-card b{font-size:16px;font-weight:700;line-height:1.4;color:#fff6e6;overflow-wrap:anywhere;margin:3px 0 0}
+.hw-study-card p{font-size:12.5px;color:#d3cce0;line-height:1.6;margin:4px 0 0}
+.hw-study-moon{flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:50%;font-size:24px;line-height:1;color:#f3e7c9;background:radial-gradient(circle at 34% 30%,#4b4075,#211b35 72%);box-shadow:0 0 0 1px #cdbdf240,0 0 20px -3px #b69acea0}
+.hw-study-links{display:flex;gap:6px 8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.hw-study-links button,.hw-study-links a{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-height:44px;font:inherit;font-size:13px;text-decoration:none;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .16s cubic-bezier(.23,1,.32,1),filter .16s ease-out}
+/* ปุ่มหลัก = ปุ่มรับคำท้า · ตอนครบเวลาแล้วไม่มีปุ่ม ลิงก์แรก ("รับบันทึกจาก NPC") คือสิ่งที่ต้องกดต่อ จึงได้ทรงเดียวกัน */
+.hw-study-links button,.hw-study-links a:first-child{flex:1 1 auto;padding:10px 14px;border:0;border-radius:12px;background:linear-gradient(180deg,#F3EEFF,#D4C7F7);color:#1E1830;font-weight:700;box-shadow:0 8px 18px -8px #b69acecc,inset 0 1px 0 #fff,inset 0 -1px 0 #9c88d040}
+.hw-study-links a:not(:first-child){padding:10px 6px;border:0;background:none;color:#d9cdf5;font-weight:600}
+.hw-study-links a:not(:first-child)::after{content:"";width:6px;height:6px;margin-left:3px;border:solid currentColor;border-width:1.6px 1.6px 0 0;transform:rotate(45deg)}
+.hw-study-links small{font-weight:500;letter-spacing:0;color:#cfc8dc;font-size:12px}
+@media (hover:hover){.hw-study-links :is(button,a):hover{filter:brightness(1.06)}}
+.hw-study-links :is(button,a):active{transform:scale(.97)}
+.hw-study-links :is(button,a):focus-visible{outline:2px solid #e6dcff;outline-offset:2px}
+.hw-study-card progress,.hw-study-focus progress{width:100%;height:6px;margin-top:8px;border:0;border-radius:99px;overflow:hidden;background:#ffffff1f;accent-color:#b69ace;-webkit-appearance:none;appearance:none}
+.hw-study-card progress::-webkit-progress-bar,.hw-study-focus progress::-webkit-progress-bar{background:#ffffff1f;border-radius:99px}
+.hw-study-card progress::-webkit-progress-value,.hw-study-focus progress::-webkit-progress-value{background:linear-gradient(90deg,#b69ace,#e6dcff);border-radius:99px}
+.hw-study-card progress::-moz-progress-bar,.hw-study-focus progress::-moz-progress-bar{background:linear-gradient(90deg,#b69ace,#e6dcff);border-radius:99px}
+.hw-study-focus{padding:12px;margin:10px 0;border:1px solid #927fa4;border-radius:12px;background:#211d2c;color:#e2d7ed}.hw-study-focus small{font-size:11px;line-height:1.5;margin-top:6px}
+@media (prefers-reduced-motion:reduce){.hw-study-links :is(button,a){transition:filter .16s ease-out}.hw-study-links :is(button,a):active{transform:none;filter:brightness(.94)}}
