@@ -239,6 +239,15 @@ function check(only) {
     });
   }
 
+  // แอปหลัก (ราก) อ่านไฟล์ข่าวของตัวเองที่ news/announcements.json — แยกจาก alt/ ตั้งแต่ 21 ต.ค. 69
+  // ข่าวต้องตรงกันทั้งสองไฟล์ ไม่งั้นผู้ใช้เว็บจริงไม่เห็นข่าวที่ส่งเข้า Discord ไปแล้ว
+  const rootFile = join(ROOT, 'news', 'announcements.json');
+  if (!(only && only.length) && existsSync(rootFile)) {
+    const ids = f => (JSON.parse(readFileSync(f, 'utf8')).items || []).map(it => it.id).join(',');
+    const a = ids(FILES[0]), r = ids(rootFile);
+    if (a !== r) errs.push(`news/announcements.json (แอปหลัก) ไม่ตรงกับ alt/news/announcements.json — ก๊อป items ไปให้ตรงกัน\n    alt : ${a}\n    ราก: ${r}`);
+  }
+
   warns.forEach(w => console.warn('เตือน · ' + w));
   if (errs.length) {
     errs.forEach(e => console.error('ผิด · ' + e));

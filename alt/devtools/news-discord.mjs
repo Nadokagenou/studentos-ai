@@ -17,7 +17,8 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const APP_URL = 'https://nadokagenou.github.io/studentos-ai/alt/';
+// แอปหลัก (ราก) = เว็บจริงที่ tester ใช้ตั้งแต่ 21 ต.ค. 69 — ไม่ใช่ /alt/
+export const APP_URL = 'https://nadokagenou.github.io/studentos-ai/';
 // ชื่อหมวดเดียวกับจอข่าวสาร (NEWS_KINDS ใน news.js) — tester เห็นคำเดียวกับในแอป
 const KIND = {
   feature: ['ฟีเจอร์ใหม่', 0x3b82f6],
