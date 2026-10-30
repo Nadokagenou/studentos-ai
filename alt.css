@@ -9907,6 +9907,10 @@ body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
            แถวในฟอร์มกับตัวปุ่มวาบตามหลังแผ่นปิด ให้ตาตามไปเจอว่าค่าไปลงที่ไหน
    ============================================================ */
 .hsel-trig { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+/* 31 ต.ค. 69 · เจ้าของ (ภาพปุ่ม "ดูวิชาทั้งหมด"): "ปรับพวกปุ่มให้ตรง" — .fs-alt เดิมจัดตัวหนังสือกลาง จึงไม่เคยมี padding
+   (style.css ล้างเป็น 0) · ตัวเลือกนี้ดันชื่อไปซ้าย ลูกศรไปขวา แล้วกฎทรงแคปซูลทำมุมเป็น 999px → ตัวหนังสือชิดขอบโค้ง
+   ล้นออกนอกเส้นขอบ ลูกศรชนขอบขวา · เว้นในให้พ้นส่วนโค้ง (สูง 44 = รัศมี 22) */
+.hsel-trig { padding-inline: 18px 16px; }
 .hsel-trig .hsel-val { flex: 1; min-width: 0; text-align: left; }
 .hsel-trig .hsel-ind { flex: none; transform: rotate(90deg); transition: transform .32s cubic-bezier(.34, 1.56, .64, 1); }
 .hsel-trig.hsel-open .hsel-ind { transform: rotate(-90deg); }
@@ -10018,6 +10022,10 @@ body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
 #scr-form .fm-top.stuck { pointer-events: none; }
 #scr-form .fm-top.stuck .fm-x { pointer-events: auto; }
 #scr-form .fm-top.stuck #formTitle { opacity: 0; transform: translateY(-6px); }
+/* 31 ต.ค. 69 · ป้าย "ขั้น 2/2" (มาทีหลังกติกาข้างบน 16 ต.ค.) ไม่ได้จางตามชื่อจอ — เลื่อนลงแล้วมันค้างลอยต่ำกว่ากากบาท 11px
+   ทับแถววิชาโดยไม่มีพื้น (เจ้าของ: "ปรับพวกปุ่มให้ตรง") · จางไปพร้อมชื่อจอ เหลือกากบาทลอยตัวเดียวตามที่ตกลงไว้ */
+#scr-form .fm-top .fm-step { transition: opacity .18s ease, transform .18s ease; }
+#scr-form .fm-top.stuck .fm-step { opacity: 0; transform: translateY(-6px); }
 /* จอกว้าง (แถบเมนูซ้าย): กากบาทออกไปอยู่ในช่องว่างซ้ายของคอลัมน์ฟอร์ม ไม่ทับขอบการ์ด
    เจ้าของวาดลูกศรชี้ให้ย้ายไปทางซ้าย — ตอนลอยอยู่ (.stuck) มันไปนั่งบนแถว "การบ้าน" ของการ์ดแรก
    ขอบขวาของปุ่มห่างขอบการ์ด 14px (หัวจอมี padding 20px → left: 20 − 42 − 14 = −36px)
