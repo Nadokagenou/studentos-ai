@@ -35,6 +35,11 @@ const BATCH = 10;
 // ต้นทางล่มแล้วเรายิงซ้ำทุก 30 นาทีไปเรื่อย ๆ คือการเติมภาระให้ระบบที่กำลังมีปัญหาอยู่แล้ว
 const BACKOFF_MIN = [30, 120, 480, 1440];
 const NORMAL_GAP_MIN = 30;
+// 30 ต.ค. 69 · Classroom ลองเร็วสองครั้งก่อนเข้าขั้นเดิม — ข้อมูลจริง 24 ชม.: 503 ×4 · timeout ×2 ·
+// internal_failure ×1 ทุกครั้งหายเองในรอบถัดไป แต่ขั้นแรก 30 นาทีทำให้งานใหม่หายไปครึ่งชั่วโมงทุกครั้ง
+// ทั้งที่ตั้งใจซิงก์ทุก 1 นาที · ล้มเกินสองครั้งติด = ต้นทางมีปัญหาจริง ถอยห่างเหมือนเดิม
+const BACKOFF_FAST: Record<string, number[]> = { google_classroom: [2, 5] };
+const backoffFor = (provider: string) => [...(BACKOFF_FAST[provider] ?? []), ...BACKOFF_MIN];
 
 // ============================================================
 // 16 ต.ค. 69 · Classroom ซิงก์ทุก 1 นาที (เจ้าของ: "ขอส่งแล้วเข้าเลย")
@@ -220,11 +225,14 @@ async function syncOne(row: Row) {
       await markReauth(row, msg, { ...log, status: 'needs_reauth' });
       return { id: row.id, status: 'needs_reauth', error: msg };
     }
-    const n = Math.min(row.fail_count + 1, BACKOFF_MIN.length);
+    const ladder = backoffFor(row.provider);
+    const n = Math.min(row.fail_count + 1, ladder.length);
+    const wait = ladder[n - 1];
     await db.from('integrations').update({
       status: 'error', error_msg: msg.slice(0, 300), fail_count: n,
       last_sync_at: new Date().toISOString(),
-      next_sync_at: minutesFromNow(BACKOFF_MIN[n - 1]),
+      // ช่วงสั้นนัดตามรอบ cron (เหมือนรอบปกติ) · minutesFromNow หักเผื่อ 2 นาที ซึ่งจะกลืน "รอ 2 นาที" จนเหลือศูนย์
+      next_sync_at: wait < NORMAL_GAP_MIN ? nextTickAt(row.run_start ?? t0, wait) : minutesFromNow(wait),
       // diag ของรอบที่สำเร็จล่าสุดยังอยู่ · ลืมลายนิ้วมือ — ทะเบียนอาจถูกเขียนไปครึ่งทาง รอบหน้าต้องเทียบเต็ม
       meta: { ...row.meta, list_fp: null, last_run: log },
     }).eq('id', row.id);

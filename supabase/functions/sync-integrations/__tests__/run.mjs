@@ -19,6 +19,7 @@ globalThis.Deno = { env: { get: k => ENV[k] }, serve: h => { handler = h; } };
 
 // ปฏิทินที่ "ต้นทาง" จะตอบกลับมา — เปลี่ยนได้รายเทสต์
 let FEED = '';
+let FEED_STATUS = 200;   // ต้นทางล่มชั่วคราว (5xx) — ใช้ทดสอบการถอยห่าง
 // ห้องเรียนที่ Classroom API จะตอบกลับมา — คอร์สเดียว งานเปลี่ยนได้รายเทสต์
 let CLASSROOM_WORK = [];
 // บัญชี Google หลายบัญชีพร้อมกัน — เลือกชุดข้อมูลจาก refresh token ที่ถอดรหัสได้
@@ -64,7 +65,7 @@ globalThis.fetch = async (input, init) => {
   if (url.includes('/studentSubmissions')) return json({ studentSubmissions: [] });
   if (url.includes('/courseWork')) return json({ courseWork: CLASSROOM_WORK });
   if (url.includes('classroom.googleapis.com/v1/courses')) return json({ courses: [{ id: 'c1', name: 'คณิตศาสตร์' }] });
-  return new Response(FEED, { status: 200, headers: { 'content-type': 'text/calendar' } });
+  return new Response(FEED, { status: FEED_STATUS, headers: { 'content-type': 'text/calendar' } });
 };
 
 const sb = await import('./sb.mjs');
@@ -806,6 +807,39 @@ const writes = () => sb.__log.filter(x => /^(insert|upsert|delete) /.test(x));
   await rerun(t);
   check('หลังรอบที่ล้ม → เทียบทะเบียนเต็ม และปิดแถวที่ค้าง', reads('integration_items') > 0 && ledgerOf(t, 'wx')?.state === 'cancelled',
     JSON.stringify([sb.__log, ledgerOf(t, 'wx')?.state]));
+}
+
+// ---- 26) Classroom ล้มชั่วคราว → ลองใหม่ในไม่กี่นาที ไม่ใช่ครึ่งชั่วโมง ----
+// ข้อมูลจริง 29–30 ต.ค. 69: 503 ×4 · timeout ×2 · internal_failure ×1 ใน 24 ชม. · ทุกครั้งเว้นไป ~28 นาที
+// ทั้งที่ Classroom ตั้งใจซิงก์ทุก 1 นาที — Google ล่มแค่นาทีเดียว งานใหม่ก็หายไปครึ่งชั่วโมง
+{
+  const tick = Math.floor(Date.now() / 60_000) * 60_000;
+  Date.now = () => tick + 10_000;
+  GOOGLE = { 'rt-b': { email: 'b@gmail.com', tokenError: 'internal_failure', courses: [{ id: 'c-b', name: 'คณิต' }],
+    work: { 'c-b': [] }, subs: { 'c-b': [] } } };
+  const t = await gTables([await gRow('ib', 'ub', 'rt-b')]);
+  const next = () => Date.parse(t.integrations[0].next_sync_at) - tick;
+  await rerun(t);
+  check('Classroom ล้มครั้งแรก → ลองใหม่ภายใน 2 นาที', t.integrations[0].status === 'error' && next() <= 2 * 60_000 && next() > 10_000,
+    JSON.stringify([t.integrations[0].status, next() / 1000]));
+  await rerun(t);
+  check('Classroom ล้มครั้งที่สอง → ภายใน 5 นาที', next() > 2 * 60_000 && next() <= 5 * 60_000, next() / 1000);
+  await rerun(t);
+  check('Classroom ล้มต่อเนื่อง → ถอยห่างตามขั้นเดิม (≥ 28 นาที)', next() >= 28 * 60_000, next() / 1000);
+  delete GOOGLE['rt-b'].tokenError;
+  await rerun(t);
+  check('Classroom กลับมา → นับใหม่ รอบถัดไป 1 นาที', t.integrations[0].fail_count === 0 && next() <= 60_000,
+    JSON.stringify([t.integrations[0].fail_count, next() / 1000]));
+  // ปฏิทินโรงเรียนไม่ได้รีบ — ล้มแล้วยังถอยห่าง 30 นาทีเหมือนเดิม
+  GOOGLE = null;
+  const ti = base();
+  FEED_STATUS = 503;
+  await rerun(ti);
+  FEED_STATUS = 200;
+  const nextI = Date.parse(ti.integrations[0].next_sync_at) - tick;
+  check('ICS ล้ม → ยังถอยห่าง ≥ 28 นาทีเหมือนเดิม', ti.integrations[0].status === 'error' && nextI >= 28 * 60_000,
+    JSON.stringify([ti.integrations[0].status, nextI / 1000]));
+  Date.now = () => tick;
 }
 GOOGLE = null;
 
