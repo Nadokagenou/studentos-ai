@@ -8,8 +8,8 @@
 //   node alt/devtools/news-discord.mjs <ไฟล์เก่า|-> <ไฟล์ใหม่> [--dry]
 //     ส่งเฉพาะ id ที่มีในไฟล์ใหม่แต่ไม่มีในไฟล์เก่า ("-" = ไม่มีไฟล์เก่า → ไม่ส่งอะไร
 //     กันยิงข่าวเก่าทั้งหมดซ้ำตอนรันครั้งแรก)
-//   node alt/devtools/news-discord.mjs --id <id> <ไฟล์ใหม่> [--dry]
-//     ส่งข่าวชิ้นเดียวซ้ำด้วยมือ
+//   node alt/devtools/news-discord.mjs --id <id,id,...|รุ่น> <ไฟล์ใหม่> [--dry]
+//     ส่งซ้ำด้วยมือ — หลาย id คั่นด้วยจุลภาค หรือใส่เลขรุ่น (1C60) = ทุกข่าวของรุ่นนั้น
 //
 // URL ของ webhook อ่านจาก env DISCORD_WEBHOOK_URL เท่านั้น — repo สาธารณะ ห้ามเขียนลงไฟล์
 // ไม่มี env = พิมพ์ข้อความที่จะส่งออกมาเฉย ๆ (เหมือน --dry)
@@ -69,6 +69,12 @@ export function intro(n) {
     'ลองแล้วเจอบั๊ก หรือชอบ/ไม่ชอบตรงไหน บอกในห้องนี้ได้เลย 🙏';
 }
 
+// "1c60-a, 1c60-b" = ตาม id · "1C60" = ทุกข่าวของรุ่นนั้น · เรียงตามไฟล์ (ใหม่สุดก่อน)
+export function pick(doc, query) {
+  const want = String(query || '').split(',').map(x => x.trim()).filter(Boolean);
+  return (doc.items || []).filter(it => want.includes(it.id) || want.some(w => it.release && w.toUpperCase() === it.release.toUpperCase()));
+}
+
 // Discord รับได้ 10 embed ต่อข้อความ
 export function toMessages(items, env = process.env) {
   const out = [];
@@ -84,8 +90,8 @@ async function main(argv) {
   const read = f => JSON.parse(readFileSync(f, 'utf8'));
   let items;
   if (args[0] === '--id') {
-    items = (read(args[2]).items || []).filter(it => it.id === args[1]);
-    if (!items.length) { console.error(`ไม่พบข่าว id "${args[1]}"`); process.exit(1); }
+    items = pick(read(args[2]), args[1]);
+    if (!items.length) { console.error(`ไม่พบข่าว "${args[1]}" — ใส่ id (คั่นด้วยจุลภาค) หรือเลขรุ่น เช่น 1C60`); process.exit(1); }
   } else {
     items = newItems(args[0] === '-' ? null : read(args[0]), read(args[1]));
   }

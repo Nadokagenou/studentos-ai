@@ -2,6 +2,8 @@
 # ทำงานเมื่อ push ขึ้น main แล้ว alt/news/announcements.json เปลี่ยน — ส่งเฉพาะข่าว id ใหม่
 # ตั้งค่าครั้งเดียว: GitHub → Settings → Secrets and variables → Actions → New repository secret
 #   ชื่อ DISCORD_WEBHOOK_URL · ค่า = URL webhook ของช่องใน Discord (ห้ามใส่ลงไฟล์ใน repo)
+# ลืมใส่ก่อน merge: งานนี้จะขึ้นสีแดง → ใส่ secret แล้วกด "Re-run jobs" ในหน้างานนั้น
+#   รันซ้ำใช้คอมมิตเดิม จึงส่งข่าวชุดเดิมพอดี ไม่ต้องจำ id
 name: news-discord
 
 on:
@@ -11,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       id:
-        description: ส่งข่าว id นี้ซ้ำ (เช่น 1c57-notif-source-logo)
+        description: ส่งซ้ำ — id คั่นด้วยจุลภาค หรือเลขรุ่น เช่น 1C60 (= ทุกข่าวของรุ่นนั้น)
         required: true
 
 jobs:
@@ -24,6 +26,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: ต้องมี webhook
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "::error::ยังไม่ได้ใส่ DISCORD_WEBHOOK_URL — Settings → Secrets and variables → Actions แล้วกด Re-run jobs ที่งานนี้"
+            exit 1
+          fi
       - name: ส่งข่าวใหม่
         if: github.event_name == 'push'
         env:

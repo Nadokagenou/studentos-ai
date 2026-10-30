@@ -42,7 +42,9 @@ push ขึ้น main แล้ว `announcements.json` เปลี่ยน �
 
 - ตั้งค่าครั้งเดียว: GitHub → Settings → Secrets and variables → Actions → secret ชื่อ `DISCORD_WEBHOOK_URL`
   (Discord: ตั้งค่าช่อง → Integrations → Webhooks → New Webhook → Copy URL) · **ห้ามใส่ URL ลงไฟล์ใน repo**
-- ส่งข่าวเก่าซ้ำ: แท็บ Actions → news-discord → Run workflow → ใส่ id
+- **ลืมใส่ webhook ก่อน merge:** งานใน Actions จะขึ้นสีแดง → ใส่ secret → เปิดงานสีแดงนั้นแล้วกด **Re-run jobs**
+  (รันซ้ำใช้คอมมิตเดิม จึงส่งข่าวชุดเดิมพอดี ไม่ต้องจำ id)
+- ส่งข่าวเก่าซ้ำ: แท็บ Actions → news-discord → Run workflow → ใส่ id หลายตัวคั่นด้วยจุลภาค หรือเลขรุ่น (`1C60` = ทุกข่าวของรุ่นนั้น)
 - ดูหน้าตาก่อนส่ง: `node alt/devtools/news-discord.mjs - alt/news/announcements.json` ไม่ส่งอะไร ·
   `node alt/devtools/news-discord.mjs --id <id> alt/news/announcements.json --dry` พิมพ์ข้อความที่จะส่ง
 - เทสต์: `node --test alt/devtools/news-discord.test.mjs`

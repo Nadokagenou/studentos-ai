@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newItems, toEmbed, toMessages, intro } from './news-discord.mjs';
+import { newItems, toEmbed, toMessages, intro, pick } from './news-discord.mjs';
 
 const it = (id, extra = {}) => ({ id, date: '2026-10-15', kind: 'feature', release: '1C57', title: 'T ' + id, body: 'B', evidence: [{ quote: 'x' }], ...extra });
 
@@ -49,4 +49,11 @@ test('first message invites testers to try and report back', () => {
   const m = toMessages([it('a')], {});
   assert.equal(m[0].content, intro(1));
   assert.match(m[0].content, /บอกในห้องนี้/);
+});
+
+test('manual resend takes several ids or a whole release', () => {
+  const doc = { items: [it('a'), it('b', { release: '1C60' }), it('c', { release: '1C60' })] };
+  assert.deepEqual(pick(doc, 'a, c').map(x => x.id), ['a', 'c']);
+  assert.deepEqual(pick(doc, '1c60').map(x => x.id), ['b', 'c']);
+  assert.deepEqual(pick(doc, 'nope'), []);
 });
