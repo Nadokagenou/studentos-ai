@@ -45,7 +45,11 @@
  /* 24 ต.ค. 69 · เจ้าของ (ภาพไทล์แท็บเล็ต): "ใส่กรอบให้เหมือนโทรศัพท์ ทำให้มันเต็มขึ้นหน่อย"
     เดิมบีบกรอบเหลือ 44px วงกลม แต่ชิปขาวข้างใน 39px (ไอคอน 23 + ขอบ 8×2) กินเกือบหมด กรอบใสจึงหายไป
     โทรศัพท์: กรอบ 60 มุม 17 ชิป 35 เห็นขอบกรอบรอบชิป → ทรงเดียวกัน ขยายเป็น 72 ให้เต็มช่องที่กว้างกว่า */
- :root body:not(.login-mode) #menuBody .tg-t{height:auto;min-height:0;gap:8px}
+ /* 31 ต.ค. 69 · เจ้าของ (ภาพไทล์หกก้อนแถวเดียว ป้าย "ข้อคว" โดนตัด "เพื่อน/ฉัน" หักสองบรรทัด): ชิป 72 ข้างล่างออกแบบให้ป้ายอยู่ใต้ชิป
+    แต่ทิศของไทล์ไม่ได้ตั้งที่นี่ — ถ้า desktop.css (ไทล์แนวนอน ชิป 36) มาด้วย ชิป 72 ยืนข้างป้ายในไทล์กว้าง ~120 ป้ายเหลือ ~30px
+    → ตั้งทิศเองให้ครบชุด: ชิปบน ป้ายล่าง กลางไทล์ */
+ :root body:not(.login-mode) #menuBody .tg-t{height:auto;min-height:0;gap:8px;flex-direction:column;justify-content:center;align-items:center}
+ :root body:not(.login-mode) #menuBody .tg-lb2{text-align:center}
  :root body:not(.login-mode) #menuBody .tg-grid .tg-ic{width:72px;height:72px;aspect-ratio:1;border-radius:20px}
  :root body:not(.login-mode) #menuBody .tg-ic svg{width:24px;height:24px;padding:9px}
  :root body:not(.login-mode) #menuBody .tg-lb2{font-size:13px}

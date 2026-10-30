@@ -7135,18 +7135,20 @@ function todayBoard(now) {
     // 1B95 · ยุบจากการ์ดสามบรรทัดเหลือแถวเดียว
     // คาบที่กำลังเรียนอยู่ไม่ใช่สิ่งที่ผู้ใช้ตัดสินใจได้ — มันคือ "เหตุผลที่ยังเริ่มไม่ได้"
     // ของที่ตัดสินใจไม่ได้ไม่ควรกินพื้นที่เท่าการ์ดที่มีปุ่มให้กด
-    clsCard = '<div class="tb-now"><span class="tb-now-pip"></span>'
+    clsCard = '<div class="tb-now"><span class="tb-now-pip"></span><span class="tb-now-tx">'
       + 'กำลังเรียน <b>' + esc(ongoing.title) + '</b> · เหลือ '
-      + humanMin(ongoing.to - nowMin) + '</div>';
+      + humanMin(ongoing.to - nowMin) + '</span></div>';
   } else if (next) {
     // ช่องว่างก้อนถัดไปหลังคาบนี้ — ตอบ "เรียนเสร็จแล้วมีเวลาถึงกี่โมง" ซึ่งเป็นสิ่งที่
     // ทำให้เวลาเริ่มของงานข้างล่างมีความหมาย ไม่ใช่แค่ตัวเลขลอย ๆ
     const after = slots.find(x => x.from >= next.to - 1);
     // เหตุผลเดียวกับคาบที่กำลังเรียน · "ว่างถึงกี่โมง" คือส่วนเดียวที่เปลี่ยนการตัดสินใจ
     // จึงเก็บไว้ ส่วนช่วงเวลาเต็ม 11:00–11:50 ตัดทิ้ง — มันอยู่ในตารางเต็มวันอยู่แล้ว
-    clsCard = '<div class="tb-now"><span class="tb-now-pip next"></span>'
+    // 31 ต.ค. 69 · เจ้าของ (ภาพจอมือถือ "คาบถัด/ไป" หักกลางคำ): .tb-now เป็น flex — ตัวหนังสือเปล่ากับ <b> เลยกลายเป็น
+    // ชิ้นแยกสามคอลัมน์ บีบป้ายจนหักกลางคำ · ห่อทั้งประโยคไว้ในก้อนเดียว ตัดบรรทัดแบบประโยคปกติ
+    clsCard = '<div class="tb-now"><span class="tb-now-pip next"></span><span class="tb-now-tx">'
       + 'คาบถัดไป <b>' + esc(next.title) + '</b> · อีก ' + humanMin(next.from - nowMin)
-      + (after ? ' · แล้วว่างถึง ' + esc(after.toHm) : '') + '</div>';
+      + (after ? ' · แล้วว่างถึง ' + esc(after.toHm) : '') + '</span></div>';
   } else {
     const last = classes[classes.length - 1];
     clsCard = '<div class="tb-cls quiet">' + icon('check-circle')

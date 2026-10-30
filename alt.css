@@ -7971,6 +7971,8 @@ button.df-r:active { background: var(--surface); }
   font-size: 13.5px; line-height: 1.4; color: var(--muted);
 }
 .tb-now b { font-weight: 700; color: var(--ink); }
+/* ประโยคทั้งก้อนเป็นชิ้นเดียวในแถว (ดู app.js) · ตัดบรรทัดแบบประโยคปกติ */
+.tb-now-tx { min-width: 0; }
 /* จุดเขียว = กำลังเกิดขึ้นอยู่ตอนนี้ · จุดเทา = ยังมาไม่ถึง
    สองสถานะนี้ต่างกันจริงและต้องแยกออกด้วยหางตา ไม่ต้องอ่านคำ */
 .tb-now-pip {
