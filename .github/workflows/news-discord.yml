@@ -1,0 +1,54 @@
+# ข่าวสารในแอป → Discord ของ tester อัตโนมัติ
+# ทำงานเมื่อ push ขึ้น main แล้ว alt/news/announcements.json เปลี่ยน — ส่งเฉพาะข่าว id ใหม่
+# ตั้งค่าครั้งเดียว: GitHub → Settings → Secrets and variables → Actions → New repository secret
+#   ชื่อ DISCORD_WEBHOOK_URL · ค่า = URL webhook ของช่องใน Discord (ห้ามใส่ลงไฟล์ใน repo)
+# ลืมใส่ก่อน merge: งานนี้จะขึ้นสีแดง → ใส่ secret แล้วกด "Re-run jobs" ในหน้างานนั้น
+#   รันซ้ำใช้คอมมิตเดิม จึงส่งข่าวชุดเดิมพอดี ไม่ต้องจำ id
+name: news-discord
+
+on:
+  push:
+    branches: [main]
+    paths: [alt/news/announcements.json]
+  workflow_dispatch:
+    inputs:
+      id:
+        description: ส่งซ้ำ — id คั่นด้วยจุลภาค หรือเลขรุ่น เช่น 1C60 (= ทุกข่าวของรุ่นนั้น)
+        required: true
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: ต้องมี webhook
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ -z "$DISCORD_WEBHOOK_URL" ]; then
+            echo "::error::ยังไม่ได้ใส่ DISCORD_WEBHOOK_URL — Settings → Secrets and variables → Actions แล้วกด Re-run jobs ที่งานนี้"
+            exit 1
+          fi
+      - name: ส่งข่าวใหม่
+        if: github.event_name == 'push'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          if git cat-file -e "$BEFORE:alt/news/announcements.json" 2>/dev/null; then
+            git show "$BEFORE:alt/news/announcements.json" > /tmp/old.json
+            node alt/devtools/news-discord.mjs /tmp/old.json alt/news/announcements.json
+          else
+            node alt/devtools/news-discord.mjs - alt/news/announcements.json
+          fi
+      - name: ส่งซ้ำด้วยมือ
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          ID: ${{ inputs.id }}
+        run: node alt/devtools/news-discord.mjs --id "$ID" alt/news/announcements.json

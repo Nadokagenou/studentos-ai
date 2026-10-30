@@ -17,7 +17,7 @@
 // โมเดลภาษาเขียนประโยคที่ฟังดูจริงได้เก่งพอ ๆ กับประโยคที่จริง
 // ด่านเดียวที่กันได้คือบังคับให้ทุกประโยคชี้กลับไปที่ของที่เกิดขึ้นแล้ว แล้วให้เครื่องเช็ค
 // ============================================================
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,17 +44,20 @@ function norm(s) {
 }
 
 // ---------- แพตช์โน้ต ----------
-// หัวรุ่นมีสองแบบ: "# StudentOS Update 1C57 — ..." · บางเลขมีหลายหัว (1C50 · 1C46) → รวมทุกหัวของเลขนั้น
+// หัวรุ่นมีสองแบบ: "# StudentOS Update 1C57 — ..." (ถึง 1C57) · "## 1C60: ..." / "## 1C59 — ..." (ตั้งแต่ 1C58)
+// บางเลขมีหลายหัว (1C50 · 1C46) → รวมทุกหัวของเลขนั้น
+// ส่วนของรุ่นจบที่หัวถัดไประดับเดียวกันหรือสูงกว่า — หัว "## ... (คงรุ่น 1C59)" ที่คั่นอยู่ไม่ใช่ของรุ่นก่อนหน้า
 function releases() {
   const lines = readFileSync(PATCHNOTES, 'utf8').replace(/\r/g, '').split('\n');
   const heads = [];
   lines.forEach((l, i) => {
-    const m = /^# StudentOS Update (\S+)/.exec(l);
-    if (m) heads.push({ rel: m[1], at: i });
+    const m = /^# StudentOS Update (\S+)/.exec(l) || /^## (\d[A-Z]\d+[a-z]?)(?::| —| -)/.exec(l);
+    if (m) heads.push({ rel: m[1], at: i, lv: l.startsWith('## ') ? 2 : 1 });
   });
   const out = new Map();
-  heads.forEach((h, k) => {
-    const end = k + 1 < heads.length ? heads[k + 1].at : lines.length;
+  heads.forEach(h => {
+    let end = h.at + 1;
+    while (end < lines.length && !(/^#{1,2} /.test(lines[end]) && lines[end].match(/^#+/)[0].length <= h.lv)) end++;
     const body = lines.slice(h.at, end).join('\n');
     out.set(h.rel, (out.get(h.rel) ? out.get(h.rel) + '\n\n' : '') + body);
   });
@@ -173,6 +176,15 @@ function check(only) {
       if (!Array.isArray(points) || points.length > 5 || points.some(p => typeof p !== 'string' || !p.trim() || p.length > 120)) {
         bad('points เป็นรายการข้อความ ไม่เกิน 5 ข้อ ข้อละไม่เกิน 120 ตัวอักษร');
       }
+      // promo = พาดหัวชวนลองสำหรับ Discord ของ tester (แอปไม่แสดง) — โปรโมทได้ แต่ต้องมีหลักฐานเหมือนช่องอื่น
+      if (it.promo != null && (typeof it.promo !== 'string' || it.promo.length < 4 || it.promo.length > 100)) bad('promo 4–100 ตัวอักษร');
+      // image = รูปประกอบ อยู่ใน alt/news/img/ (ส่งไป Discord · แอปไม่แสดง)
+      if (it.image != null) {
+        const f = join(ALT, 'news', String(it.image));
+        if (!/^img\/[a-z0-9][a-z0-9._-]*\.(png|jpe?g|webp|gif)$/.test(it.image)) bad('image ต้องเป็น img/<ชื่อไฟล์>.png|jpg|webp|gif (a-z 0-9 . _ -)');
+        else if (!existsSync(f)) bad(`image ไม่มีไฟล์ alt/news/${it.image}`);
+        else if (statSync(f).size > 2 << 20) bad('image ใหญ่เกิน 2 MB');
+      }
       if (it.action != null) {
         const a = it.action;
         if (!a || typeof a.label !== 'string' || !a.label.trim() || a.label.length > 24) bad('action.label ต้องมี ไม่เกิน 24 ตัวอักษร');
@@ -182,6 +194,7 @@ function check(only) {
 
       // คำที่สัญญาของที่ยังไม่ปล่อย
       const texts = [['title', it.title], ['body', it.body], ...points.map((p, k) => ['points.' + k, p]),
+        ...(it.promo != null ? [['promo', it.promo]] : []),
         ...(it.action ? [['action', it.action.label]] : [])];
       for (const [f, t] of texts) {
         const low = String(t || '').toLowerCase();
@@ -224,6 +237,15 @@ function check(only) {
         if (!covered.has(f)) bad(`${f} ไม่มีหลักฐานที่ยืนยันได้ — ใส่ evidence ที่ "for" ชี้มาที่ "${f}"`);
       }
     });
+  }
+
+  // แอปหลัก (ราก) อ่านไฟล์ข่าวของตัวเองที่ news/announcements.json — แยกจาก alt/ ตั้งแต่ 21 ต.ค. 69
+  // ข่าวต้องตรงกันทั้งสองไฟล์ ไม่งั้นผู้ใช้เว็บจริงไม่เห็นข่าวที่ส่งเข้า Discord ไปแล้ว
+  const rootFile = join(ROOT, 'news', 'announcements.json');
+  if (!(only && only.length) && existsSync(rootFile)) {
+    const ids = f => (JSON.parse(readFileSync(f, 'utf8')).items || []).map(it => it.id).join(',');
+    const a = ids(FILES[0]), r = ids(rootFile);
+    if (a !== r) errs.push(`news/announcements.json (แอปหลัก) ไม่ตรงกับ alt/news/announcements.json — ก๊อป items ไปให้ตรงกัน\n    alt : ${a}\n    ราก: ${r}`);
   }
 
   warns.forEach(w => console.warn('เตือน · ' + w));

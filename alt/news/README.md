@@ -13,9 +13,9 @@
 
 เพิ่มประกาศ **ไม่ต้องขึ้นเลขรุ่นแอป** — แก้ JSON แล้ว push ผู้ใช้ก็เห็นเลย (service worker ดึงไฟล์แบบ network-first)
 
-**ไฟล์ข่าวมีที่เดียว** — บิลด์ราก (ตัวที่ติดตั้งบนมือถือ) อ่าน `alt/news/announcements.json` ไฟล์เดียวกันนี้
-ผ่าน `NEWS_BASE` ใน `news.js` ซึ่ง `sync-to-root.py` เปลี่ยนเป็น `'alt/'` ให้ตอนซิงก์ · **ห้ามก๊อปโฟลเดอร์ `news/` ขึ้นราก**
-เพิ่มข่าวจึงไม่ต้องซิงก์ — ซิงก์แค่ตอนแก้ `news.js` / จอ / CSS
+**ไฟล์ข่าวมีสองที่ ต้องตรงกัน** — ตั้งแต่ 21 ต.ค. 69 แอปหลัก (ราก = เว็บจริง) อ่าน `news/announcements.json` ของตัวเอง
+ส่วน ALT อ่าน `alt/news/announcements.json` · แก้ที่ `alt/` ก่อน (ตัวตรวจและ Discord อ่านไฟล์นี้) แล้วก๊อป `items` ไปไฟล์ราก
+· `news.mjs check` ล้มถ้ารายการ id สองไฟล์ไม่ตรงกัน · ลิงก์ใน Discord พาไปแอปหลัก
 
 ---
 
@@ -34,6 +34,38 @@
    ```
 5. **เจ้าของอนุมัติ** — เปิด `/alt/?newsDraft=1` ดูหน้าตาจริง → ย้ายชิ้นที่อนุมัติจาก `drafts.json`
    ไป `announcements.json` → `check` อีกรอบ → commit → push (push = ขึ้นเว็บจริงทันที)
+
+## ส่งต่อให้ tester ใน Discord อัตโนมัติ
+
+push ขึ้น main แล้ว `announcements.json` เปลี่ยน → GitHub Action `.github/workflows/news-discord.yml`
+ส่ง **เฉพาะข่าว id ใหม่** เข้าช่อง Discord ด้วยข้อความเดียวกับในแอป (ไม่ส่ง `evidence` · ข้ามประกาศที่เลย `until` แล้ว)
+
+- ตั้งค่าครั้งเดียว: GitHub → Settings → Secrets and variables → Actions → secret ชื่อ `DISCORD_WEBHOOK_URL`
+  (Discord: ตั้งค่าช่อง → Integrations → Webhooks → New Webhook → Copy URL) · **ห้ามใส่ URL ลงไฟล์ใน repo**
+- **ลืมใส่ webhook ก่อน merge:** งานใน Actions จะขึ้นสีแดง → ใส่ secret → เปิดงานสีแดงนั้นแล้วกด **Re-run jobs**
+  (รันซ้ำใช้คอมมิตเดิม จึงส่งข่าวชุดเดิมพอดี ไม่ต้องจำ id)
+- ส่งข่าวเก่าซ้ำ: แท็บ Actions → news-discord → Run workflow → ใส่ id หลายตัวคั่นด้วยจุลภาค หรือเลขรุ่น (`1C60` = ทุกข่าวของรุ่นนั้น)
+- ดูหน้าตาก่อนส่ง: `node alt/devtools/news-discord.mjs - alt/news/announcements.json` ไม่ส่งอะไร ·
+  `node alt/devtools/news-discord.mjs --id <id> alt/news/announcements.json --dry` พิมพ์ข้อความที่จะส่ง
+- เทสต์: `node --test alt/devtools/news-discord.test.mjs`
+
+**โปรโมท + รูป** (ไม่บังคับ · ส่งไป Discord เท่านั้น แอปไม่แสดง):
+
+- `promo` — พาดหัวชวนลอง 4–100 ตัวอักษร ขึ้นเป็นหัวใหญ่ของการ์ด (หัวข้อเดิมเลื่อนลงเป็นบรรทัดหนาแรก)
+  **ต้องมี evidence ที่ `for` ชี้มาที่ `"promo"` เหมือนช่องอื่น** และห้ามคำสัญญาอนาคต — โปรโมทได้ แต่แต่งไม่ได้
+- `image` — `"img/<ชื่อไฟล์>.png"` (png · jpg · webp · gif · ไม่เกิน 2 MB) วางไฟล์ไว้ที่ `alt/news/img/`
+  ภาพหน้าจอแนะนำขนาด 375×812 ตัวตรวจล้มถ้าไม่มีไฟล์
+- **ถ่ายภาพหน้าจออัตโนมัติ** (ข้อมูลจำลอง ไม่เชื่อมบัญชีจริง · ต้องมี Playwright):
+  ```
+  node alt/devtools/news-shot.mjs 1c60-news scr-news --theme=halloween
+  ```
+  → `alt/news/img/1c60-news.png` (375×812 คมชัด 2 เท่า) · ไม่ใส่จอ = หน้าแรก · ธีม: light dark galaxy magic halloween
+  ตัวเลือก: `--open=<CSS>` เปิดส่วนที่พับ · `--scroll=<CSS>` เลื่อนไปหา · `--call=openDaySheet` เปิดแผ่น · `--clip=<CSS>` ตัดเฉพาะชิ้นนั้น
+  นาฬิกาข้อมูลจำลองคือ 20 ต.ค. 69 — ป้ายอีเวนต์/นับถอยหลังบนหน้าแรกจะผิดวัน ใช้ `--clip` ตัดออก
+  ตัวอย่างจริง (1C60): `news-shot.mjs 1c60-school-break scr-context --open='.cx2-sec[data-k=brk]' --scroll='.cx2-sec[data-k=brk]' --clip=.cx2-list` · `news-shot.mjs 1c60-today-line --call=openDaySheet --tap='#daySheet .dc-chips button:nth-child(2)' --clip='#scr-menu .td-railwrap'`
+  ข้อมูลจำลองมีแค่งาน 4 ชิ้น — จอที่ต้องมีข้อมูลอื่น (แจ้งเตือน · แชท · เพื่อน) จะออกมาว่าง **เปิดดูภาพก่อนใช้ทุกครั้ง**
+- ข้อความนำทุกครั้ง: ชวนเปิดแอป + ชวนแจ้งบั๊กในห้อง (ไม่อ้างอะไรเกินข่าวที่ตรวจแล้ว)
+
 
 ## กติกาเนื้อหา — ห้ามแต่ง
 
