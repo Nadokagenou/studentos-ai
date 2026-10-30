@@ -44,17 +44,20 @@ function norm(s) {
 }
 
 // ---------- แพตช์โน้ต ----------
-// หัวรุ่นมีสองแบบ: "# StudentOS Update 1C57 — ..." · บางเลขมีหลายหัว (1C50 · 1C46) → รวมทุกหัวของเลขนั้น
+// หัวรุ่นมีสองแบบ: "# StudentOS Update 1C57 — ..." (ถึง 1C57) · "## 1C60: ..." / "## 1C59 — ..." (ตั้งแต่ 1C58)
+// บางเลขมีหลายหัว (1C50 · 1C46) → รวมทุกหัวของเลขนั้น
+// ส่วนของรุ่นจบที่หัวถัดไประดับเดียวกันหรือสูงกว่า — หัว "## ... (คงรุ่น 1C59)" ที่คั่นอยู่ไม่ใช่ของรุ่นก่อนหน้า
 function releases() {
   const lines = readFileSync(PATCHNOTES, 'utf8').replace(/\r/g, '').split('\n');
   const heads = [];
   lines.forEach((l, i) => {
-    const m = /^# StudentOS Update (\S+)/.exec(l);
-    if (m) heads.push({ rel: m[1], at: i });
+    const m = /^# StudentOS Update (\S+)/.exec(l) || /^## (\d[A-Z]\d+[a-z]?)(?::| —| -)/.exec(l);
+    if (m) heads.push({ rel: m[1], at: i, lv: l.startsWith('## ') ? 2 : 1 });
   });
   const out = new Map();
-  heads.forEach((h, k) => {
-    const end = k + 1 < heads.length ? heads[k + 1].at : lines.length;
+  heads.forEach(h => {
+    let end = h.at + 1;
+    while (end < lines.length && !(/^#{1,2} /.test(lines[end]) && lines[end].match(/^#+/)[0].length <= h.lv)) end++;
     const body = lines.slice(h.at, end).join('\n');
     out.set(h.rel, (out.get(h.rel) ? out.get(h.rel) + '\n\n' : '') + body);
   });
