@@ -114,3 +114,12 @@ verify_jwt = false
 #    ตัวนี้ไม่ถือกุญแจ AI ใด ๆ จึงไม่ใช่พร็อกซีที่เผาโควตาได้
 [functions.quick-add]
 verify_jwt = false
+
+# เติมโทเคน — เปิดหน้าจ่ายเงินได้เฉพาะผู้ใช้ที่ล็อกอินแล้ว (ตัวฟังก์ชันตรวจซ้ำว่าไม่ใช่บัญชีนิรนาม)
+[functions.token-checkout]
+verify_jwt = true
+
+# ⚠️ verify_jwt = false จงใจ — Stripe เป็นคนยิงมา ไม่มี JWT ของเรา
+#    ด่านจริงคือลายเซ็น Stripe-Signature ที่ตรวจด้วย STRIPE_WEBHOOK_SECRET ใน index.ts
+[functions.token-webhook]
+verify_jwt = false

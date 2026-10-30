@@ -11676,6 +11676,19 @@ function renderPro() {
 }
 
 // ---------- ร้านค้า ----------
+// 30 ต.ค. 69 · เจ้าของ: หน้าร้าน "ยาวเกิน ต้องเลื่อนเยอะ" — เดิมห้าหมวดเรียงต่อกันลงมา
+// สูงราว 3,350px (สี่จอเต็มที่ 375×812) ของที่ซื้อตรง · คราฟ · สุ่มเท่านั้น หน้าตาเหมือนกันหมด
+// ตอนนี้เห็นทีละหมวดผ่านแท็บ (หน้าตาเดียวกับสวิตช์โหมดของจองาน .tk-modes)
+// ยอดโทเคนกับเช็คอินอยู่เหนือแท็บเสมอ — สองอย่างนี้คือเหตุผลที่คนเปิดร้านเกือบทุกครั้ง
+const SHOP_TABS = [['spin', 'สุ่ม'], ['theme', 'ธีม'], ['fx', 'เอฟเฟกต์'], ['mine', 'ของฉัน']];
+let shopTab = 'spin';
+function setShopTab(id) {
+  if (id === shopTab || !SHOP_TABS.some(t => t[0] === id)) return;
+  shopTab = id;
+  haptic('arm');
+  renderShop();
+}
+
 function renderShop() {
   const box = document.getElementById('shopBody');
   if (!box) return;
@@ -11700,7 +11713,7 @@ function renderShop() {
   const rich = (s.bal || 0) >= SPIN_COST_10;
   const pct = Math.max(3, Math.min(100, ((s.bal || 0) / SPIN_COST_10) * 100));
 
-  box.innerHTML = `<div class="page-head">
+  const head = `<div class="page-head">
       <div class="eyebrow mono">เช็คอินต่อเนื่อง ${s.streak || 0} วัน</div>
       <h1 class="page-title">ร้านค้า</h1>
     </div>
@@ -11712,6 +11725,7 @@ function renderShop() {
           <div class="tk-bal mono" data-tok="${s.bal}">${fmtTok(s.bal)}</div>
           <div class="tk-unit">โทเคน${pill}</div>
         </div>
+        ${topupOpen() ? `<button type="button" class="tk-topup" onclick="openTopup()">${icon('plus')}เติม</button>` : ''}
       </div>
       <div class="tk-track"><i style="width:${pct}%"></i></div>
       <div class="tk-goal">${rich
@@ -11728,59 +11742,17 @@ function renderShop() {
         : 'รับของวันนี้แล้ว · พรุ่งนี้ 6 โมงเช้า'}</i></span>
       ${dailyPending() ? '<span class="tk-live">รับเลย</span>' : icon('chevron')}
     </button>
-    <button class="tk-cta" onclick="go('scr-wheel')">
+    <div class="tk-modes sh-tabs" role="tablist" aria-label="หมวดในร้านค้า">
+      ${SHOP_TABS.map(([id, lb]) => `<button type="button" role="tab" class="tk-mode${shopTab === id ? ' on' : ''}"
+        aria-selected="${shopTab === id}" onclick="setShopTab('${id}')">${lb}</button>`).join('')}
+    </div>`;
+
+  // ---------- สุ่ม ----------
+  const spinTab = () => `<button class="tk-cta" onclick="go('scr-wheel')">
       <span class="tile deck"><i></i><i></i><i></i></span>
       <span class="bd"><b>สุ่มสกิน</b><i>1 ใบ ${SPIN_COST_1} · 10 ใบ ${SPIN_COST_10} โทเคน</i></span>
       ${icon('chevron')}
     </button>
-
-    <div class="sec-label">ธีมที่ซื้อได้</div>
-    <div class="tk-buy">
-      ${Object.entries(THEME_SHOP).map(([id, t]) => {
-        const own = themeOwned(id);
-        return `<div class="tb-row${own ? ' own' : ''}">
-          <span class="tb-sw sw-${id}"></span>
-          <span class="tb-bd"><b>${esc(t.name)}</b><i>${own ? 'มีแล้ว' : t.cost + ' โทเคน'}</i></span>
-          ${own ? `<span class="tb-ok">${icon('check')}</span>`
-                : `<button class="tb-go${(s.bal || 0) < t.cost ? ' poor' : ''}" onclick="buyTheme('${id}')">ซื้อ</button>`}
-        </div>`;
-      }).join('')}
-    </div>
-
-    ${typeof FX_SHOP === 'object' ? `<div class="sec-label">เอฟเฟกต์ตอนงานเสร็จ</div>
-    <div class="tk-buy">
-      ${Object.entries(FX_SHOP).map(([id, f]) => {
-        const own = fxOwned(id), eventReward=window.HalloweenCosmetics?.isEffect(id)===true;
-        return `<div class="tb-row${own ? ' own' : ''}">
-          <span class="tb-sw fxi">${fxIcon(id)}</span>
-          <span class="tb-bd"><b>${esc(f.name)}${fx3dOwned(id) ? ' <span class="fx-3dtag">3D</span>' : ''}</b><i>${own
-            ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว')
-            : eventReward ? 'รางวัล Halloween · รับจากอีเวนต์' : (fx3dOwned(id) ? 'มี 3D แล้ว · ซื้อเพื่อปลดล็อก · ' : '') + f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
-          <button class="tb-try" onclick="previewFx('${id}')">ลอง</button>
-          ${own ? `<span class="tb-ok">${icon('check')}</span>`
-                : eventReward ? `<button class="tb-go" onclick="HalloweenRewardAccess.explain()">วิธีรับ</button>`
-                : `<button class="tb-go${(s.bal || 0) < f.cost ? ' poor' : ''}" onclick="buyFx('${id}')">ซื้อ</button>`}
-        </div>`;
-      }).join('')}
-    </div>` : ''}
-
-    <div class="sec-label">คราฟธีม</div>
-    <div class="tk-buy">
-      ${Object.entries(THEME_CRAFT).map(([id, c]) => {
-        const done = secretUnlocked(c.secret);
-        const hasBase = themeOwned(c.base);
-        const poor = (s.bal || 0) < c.cost;
-        return `<div class="tb-row${done ? ' own' : ''}">
-          <span class="tb-sw sw-${id}"></span>
-          <span class="tb-bd"><b>${esc(c.name)}</b><i>${done ? 'คราฟแล้ว'
-            : (hasBase ? 'ใช้ธีม' + esc(THEME_NAME[c.base]) + ' + ' + c.cost + ' โทเคน'
-                       : 'ต้องมีธีม' + esc(THEME_NAME[c.base]) + 'ก่อน')}</i></span>
-          ${done ? `<span class="tb-ok">${icon('check')}</span>`
-                 : `<button class="tb-go${(!hasBase || poor) ? ' poor' : ''}" onclick="craftTheme('${id}')">คราฟ</button>`}
-        </div>`;
-      }).join('')}
-    </div>
-
     ${typeof FX3D_IDS === 'object' ? `<div class="sec-label">เอฟเฟกต์ 3D · สุ่มเท่านั้น (ตัวละ 0.1%)</div>
     <div class="tk-skins">
       ${FX3D_IDS.map(fx => {
@@ -11795,9 +11767,59 @@ function renderShop() {
           <div class="ts-try">▶ ลองเล่น</div>
         </div>`;
       }).join('')}
-    </div>` : ''}
+    </div>` : ''}`;
 
-    <div class="sec-label">ธีมจากการสุ่มเท่านั้น</div>
+  // ---------- ธีม: ซื้อตรง + คราฟ ----------
+  const themeTab = () => `<div class="sec-label">ซื้อได้เลย</div>
+    <div class="tk-buy">
+      ${Object.entries(THEME_SHOP).map(([id, t]) => {
+        const own = themeOwned(id);
+        return `<div class="tb-row${own ? ' own' : ''}">
+          <span class="tb-sw sw-${id}"></span>
+          <span class="tb-bd"><b>${esc(t.name)}</b><i>${own ? 'มีแล้ว' : t.cost + ' โทเคน'}</i></span>
+          ${own ? `<span class="tb-ok">${icon('check')}</span>`
+                : `<button class="tb-go${(s.bal || 0) < t.cost ? ' poor' : ''}" onclick="buyTheme('${id}')">ซื้อ</button>`}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="sec-label">คราฟจากธีมที่สุ่มได้</div>
+    <div class="tk-buy">
+      ${Object.entries(THEME_CRAFT).map(([id, c]) => {
+        const done = secretUnlocked(c.secret);
+        const hasBase = themeOwned(c.base);
+        const poor = (s.bal || 0) < c.cost;
+        return `<div class="tb-row${done ? ' own' : ''}">
+          <span class="tb-sw sw-${id}"></span>
+          <span class="tb-bd"><b>${esc(c.name)}</b><i>${done ? 'คราฟแล้ว'
+            : (hasBase ? 'ใช้ธีม' + esc(THEME_NAME[c.base]) + ' + ' + c.cost + ' โทเคน'
+                       : 'ต้องมีธีม' + esc(THEME_NAME[c.base]) + 'ก่อน')}</i></span>
+          ${done ? `<span class="tb-ok">${icon('check')}</span>`
+                 : `<button class="tb-go${(!hasBase || poor) ? ' poor' : ''}" onclick="craftTheme('${id}')">คราฟ</button>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+
+  // ---------- เอฟเฟกต์ตอนงานเสร็จ ----------
+  const fxTab = () => typeof FX_SHOP === 'object' ? `<div class="sec-label">เอฟเฟกต์ตอนงานเสร็จ</div>
+    <div class="tk-buy">
+      ${Object.entries(FX_SHOP).map(([id, f]) => {
+        const own = fxOwned(id), eventReward=window.HalloweenCosmetics?.isEffect(id)===true;
+        return `<div class="tb-row${own ? ' own' : ''}">
+          <span class="tb-sw fxi">${fxIcon(id)}</span>
+          <span class="tb-bd"><b>${esc(f.name)}${fx3dOwned(id) ? ' <span class="fx-3dtag">3D</span>' : ''}</b><i>${own
+            ? (doneFxPref() === id ? 'มีแล้ว · ใช้อยู่' : 'มีแล้ว')
+            : eventReward ? 'รางวัล Halloween · รับจากอีเวนต์' : (fx3dOwned(id) ? 'มี 3D แล้ว · ซื้อเพื่อปลดล็อก · ' : '') + f.cost + ' โทเคน · ' + esc(f.desc)}</i></span>
+          <button class="tb-try" onclick="previewFx('${id}')">ลอง</button>
+          ${own ? `<span class="tb-ok">${icon('check')}</span>`
+                : eventReward ? `<button class="tb-go" onclick="HalloweenRewardAccess.explain()">วิธีรับ</button>`
+                : `<button class="tb-go${(s.bal || 0) < f.cost ? ' poor' : ''}" onclick="buyFx('${id}')">ซื้อ</button>`}
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  // ---------- ของฉัน: ตู้สะสมจากการสุ่ม + สถิติ ----------
+  const mineTab = () => `<div class="sec-label">ธีมที่สุ่มได้</div>
     <div class="tk-skins">
       ${gacha.map(p => {
         const n = skins[p.id] || 0;
@@ -11813,6 +11835,153 @@ function renderShop() {
       <div><div class="v mono">${s.days || 0}</div><div class="k">เช็คอินรวม</div></div>
       <div><div class="v mono">${Object.values(skins).reduce((a, b) => a + b, 0)}</div><div class="k">ธีมที่สุ่มได้</div></div>
     </div>`;
+
+  const body = { spin: spinTab, theme: themeTab, fx: fxTab, mine: mineTab }[shopTab] || spinTab;
+  box.innerHTML = head + `<div class="sh-pane" role="tabpanel">${body()}</div>`;
+}
+
+// ---------- เติมโทเคน ----------
+// จ่ายเงินบนหน้าของ Stripe (พร้อมเพย์ · บัตร) ผ่าน Edge Function token-checkout — แอปไม่เคยเห็นเลขบัตร
+// การกลับมาที่ ?topup=done ไม่ได้แปลว่าเงินเข้า: โทเคนเข้าเมื่อ token-webhook ได้รับเหตุการณ์ที่ Stripe เซ็นแล้ว
+// แล้วคลังโทเคนของบัญชี (economy/client.js) อ่านยอดใหม่เอง — แอปไม่บวกยอดเองเด็ดขาด
+//
+// ราคาตั้งโดยเจ้าของ (30 ต.ค. 69): 100 โทเคน ฿19 แล้วแพ็กใหญ่ได้ต่อบาทมากขึ้นเรื่อย ๆ ไม่ใช่บาทละโทเคน
+// ตารางนี้เป็นสำเนาไว้วาดแผ่นเท่านั้น — เซิร์ฟเวอร์ใช้ supabase/functions/_shared/topup.mjs
+// และเทสต์ token-webhook/__tests__/topup.test.mjs เทียบสองตารางทุกแพ็ก แก้ราคาต้องแก้ทั้งสองที่
+const TOPUP_PACKS = [
+  { id: 'p19', tokens: 100, baht: 19 },
+  { id: 'p49', tokens: 280, baht: 49 },
+  { id: 'p99', tokens: 600, baht: 99 },
+  { id: 'p249', tokens: 1600, baht: 249 },
+];
+let topupPick = 'p19', topupBusy = false;
+const TOPUP_PENDING_KEY = 'studentos.alt.topupPending';
+
+// ปุ่ม "เติม" ปิดไว้จนกว่าจะเปิด features.topup ในค่าตั้งจากเซิร์ฟเวอร์ (ไม่รู้จัก = ปิด ต่างจากฟีเจอร์อื่น)
+// เพราะปุ่มที่กดแล้วได้แค่ "ยังไม่เปิด" บนเว็บจริงคือทางตัน · บัญชีแอดมินเห็นเสมอ ไว้ทดสอบบนของจริง
+function topupOpen() {
+  const on = typeof window.sosCfg === 'function' && window.sosCfg('features.topup', false) === true;
+  const admin = !!(window.StudentOSEconomy && window.StudentOSEconomy.admin()) || tokenAdmin;
+  return on || admin;
+}
+// โบนัสเทียบกับแพ็กเล็กสุด — ตัวเลขที่บอกได้จริงว่าแพ็กใหญ่คุ้มกว่าเท่าไหร่
+function topupBonus(p) {
+  const base = TOPUP_PACKS[0].tokens / TOPUP_PACKS[0].baht;
+  return Math.round((p.tokens / p.baht / base - 1) * 100);
+}
+
+function openTopup() {
+  // ยืมแผ่น #soonSheet — ได้ฉากหลัง ปุ่มย้อนกลับ การคืนโฟกัส และ body.sheet-up มาครบโดยไม่ต้องเพิ่มแผ่นใหม่
+  const el = document.getElementById('soonSheet');
+  if (!el) return;
+  if (el._closeT) { clearTimeout(el._closeT); el._closeT = 0; }
+  const p = TOPUP_PACKS.find(x => x.id === topupPick) || TOPUP_PACKS[0];
+  const live = typeof window.sosCfg === 'function' && window.sosCfg('topup.live', false) === true;
+  el.innerHTML = `<div class="as-scrim" onclick="closeSoonSheet()"></div>
+    <div class="as-card soon-card tu-card" role="dialog" aria-label="เติมโทเคน">
+      <div class="as-grip"></div>
+      <h3 class="soon-t">เติมโทเคน</h3>
+      <p class="tu-has">มีอยู่ <b class="mono">${fmtTok(tokenState().bal)}</b> โทเคน</p>
+      <div class="tu-grid">
+        ${TOPUP_PACKS.map(x => {
+          const b = topupBonus(x);
+          return `<button type="button" class="tu-pack${x.id === p.id ? ' on' : ''}" aria-pressed="${x.id === p.id}"
+            onclick="topupSelect('${x.id}')">
+            <span class="tu-n">${coin(18)}<b class="mono">${x.tokens.toLocaleString('en-US')}</b></span>
+            <span class="tu-p">฿${x.baht}</span>
+            ${b > 0 ? `<span class="tu-b">คุ้มขึ้น ${b}%</span>` : ''}
+          </button>`;
+        }).join('')}
+      </div>
+      ${currentUser
+        ? `<button class="soon-go" id="tuGo" onclick="topupGo()">${topupBusy ? 'กำลังเปิดหน้าจ่ายเงิน…' : 'จ่าย ฿' + p.baht}</button>`
+        : `<button class="soon-go" onclick="closeSoonSheet();setLoginView('root');go('scr-login')">เข้าสู่ระบบก่อนเติม</button>`}
+      <p class="tu-note">จ่ายบนหน้าของ Stripe ด้วยพร้อมเพย์หรือบัตร · แอปไม่เห็นเลขบัตร · โทเคนเข้าบัญชีเมื่อเงินเข้าแล้ว</p>
+      ${live ? '' : '<p class="tu-test">โหมดทดสอบ · ยังไม่ตัดเงินจริง</p>'}
+      <button class="soon-x" onclick="closeSoonSheet()">ปิด</button>
+    </div>`;
+  if (el.hidden) {
+    el.hidden = false;
+    setTimeout(() => el.classList.add('on'), 16);
+    haptic('tap');
+  }
+}
+
+function topupSelect(id) {
+  if (topupBusy || id === topupPick || !TOPUP_PACKS.some(x => x.id === id)) return;
+  topupPick = id;
+  haptic('arm');
+  openTopup();
+}
+
+async function topupGo() {
+  if (topupBusy) return;
+  if (!(sb && currentUser)) { openTopup(); return; }
+  topupBusy = true;
+  openTopup();
+  let msg = 'เปิดหน้าจ่ายเงินไม่ได้ ลองใหม่อีกครั้ง';
+  try {
+    const { data, error } = await withTimeout(sb.functions.invoke('token-checkout', {
+      body: { pack: topupPick, back: location.origin + location.pathname },
+    }), 15000, 'เปิดหน้าจ่ายเงิน');
+    if (!error && data && /^https:\/\/checkout\.stripe\.com\//.test(data.url || '')) {
+      // ยอดก่อนจ่าย — ตอนกลับมาจะเทียบกับยอดนี้ (ถ้า webhook มาก่อนคนกลับ ยอดแรกที่อ่านได้ก็เพิ่มไปแล้ว)
+      try {
+        const bal = window.StudentOSEconomy ? window.StudentOSEconomy.tokens().bal : rawTokenState().bal;
+        localStorage.setItem(TOPUP_PENDING_KEY, JSON.stringify({ bal: bal || 0, at: Date.now() }));
+      } catch (_) {}
+      location.href = data.url;
+      return;                                       // ออกจากแอปไปหน้าจ่ายเงิน — ไม่ต้องคืนปุ่ม
+    }
+    let code = '';
+    try { code = (await error.context.json()).error || ''; } catch (_) {}
+    if (code === 'not_configured' || code === 'live_locked') msg = 'ยังไม่เปิดเติมเงิน';
+    else if (code === 'login') msg = 'เข้าสู่ระบบใหม่อีกครั้งแล้วลองเติม';
+  } catch (e) {
+    msg = e && e.message ? e.message : msg;
+  }
+  topupBusy = false;
+  openTopup();
+  showToast({ title: 'ยังเติมไม่ได้', body: msg });
+}
+
+// กลับมาจากหน้าจ่ายเงิน (?topup=done|cancel ที่ token-checkout ตั้งไว้) — อ่านจาก BOOT_Q เพราะ initApp ล้าง URL ทิ้ง
+// เปิดร้านให้เห็นยอด แล้วขอยอดจากคลังซ้ำเป็นระยะ: webhook อาจมาถึงช้ากว่าคนกลับมาไม่กี่วินาที
+// และพร้อมเพย์ยืนยันช้ากว่าบัตร — ไม่ขึ้น "เติมแล้ว" จนกว่ายอดจากเซิร์ฟเวอร์จะเพิ่มจริง
+function topupReturn() {
+  const r = BOOT_Q.get('topup');
+  if (r !== 'done' && r !== 'cancel') return;
+  setTimeout(() => go('scr-shop'), 300);
+  if (r === 'cancel') {
+    showToast({ title: 'ยกเลิกการจ่ายเงินแล้ว', body: 'ยังไม่ได้ตัดเงิน' });
+    return;
+  }
+  showToast({ title: 'กำลังรอยืนยันการจ่ายเงิน', body: 'โทเคนจะเข้าบัญชีเมื่อเงินเข้าแล้ว' });
+  const eco = window.StudentOSEconomy;
+  if (!eco) return;
+  let before = null;
+  try {
+    const p = JSON.parse(localStorage.getItem(TOPUP_PENDING_KEY) || 'null');
+    if (p && Date.now() - p.at < 2 * 3600e3 && Number.isFinite(p.bal)) before = p.bal;
+  } catch (_) {}
+  const waits = [1500, 4000, 8000, 15000, 30000, 60000];
+  const tick = async i => {
+    if (i >= waits.length) {
+      showToast({ title: 'ยังไม่เห็นโทเคนเข้า', body: 'ถ้าจ่ายด้วยพร้อมเพย์อาจใช้เวลาสักครู่ · เปิดร้านค้าอีกครั้งทีหลัง' });
+      return;
+    }
+    await eco.refresh(true);
+    const bal = eco.ready() ? (eco.tokens().bal || 0) : null;
+    if (before === null && bal !== null) before = bal;   // ไม่มียอดก่อนจ่ายจดไว้ (คนละเครื่อง/ล้างที่เก็บ) = นับจากยอดแรกที่เห็น
+    if (before !== null && bal !== null && bal > before) {
+      try { localStorage.removeItem(TOPUP_PENDING_KEY); } catch (_) {}
+      showToast({ title: 'เติมแล้ว', body: '+' + fmtTok(bal - before) + ' โทเคน' });
+      haptic('done');
+      return;
+    }
+    setTimeout(() => tick(i + 1), waits[i]);
+  };
+  setTimeout(() => tick(0), 1200);
 }
 // ---------- ALT 1A6M3: ป้ายเตือนบนแถบเมนู ----------
 // งานที่ AI จัดว่า "ด่วนมาก" และยังไม่เสร็จ ต้องเห็นได้โดยไม่ต้องเข้าไปดู
@@ -19588,6 +19757,7 @@ function syncLiteRow() { syncGfxRow(); }
   // ที่เหลือ (ฟอนต์จาก CDN · บัญชี · การแจ้งเตือน) เติมเข้ามาทีหลังได้โดยไม่ต้องให้ใครรอ
   const guessedSignedIn = hasStoredSession();
   routeStart();
+  topupReturn();     // กลับมาจากหน้าจ่ายเงิน (?topup=) — เปิดร้านแล้วรอยอดจากเซิร์ฟเวอร์
   // จอแรกวาดเสร็จแล้ว → แถบหน้าโหลด (#boot ใน index.html) ขึ้น 55%
   // 12 ต.ค. 69 · หน้าโหลดไม่ออกตรงนี้แล้ว — รอฟอนต์ เครื่องว่าง และข้อมูลบัญชีข้างล่างก่อน (ต้องถึง 75% ถึงเข้าได้ · ดู index.html)
   // แอปข้างใต้ยังบูตต่อตามปกติ ไม่มีบรรทัดไหนในนี้รอหน้าโหลด

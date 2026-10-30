@@ -15824,3 +15824,42 @@ body.sheet-up .phone .screens { scale: .94; translate: 0 12px; border-radius: 22
 .tt-subhint { font-size: 11.5px; font-weight: 600; color: var(--blue); margin-top: -2px; }
 /* จอบริบท · รหัสวิชาเป็นบรรทัดเล็กใต้ชื่อ — เป็นป้ายข้างชื่อแล้วชนชื่อยาว ๆ ที่ 375px */
 .ctx-per b small { display: block; font-size: 10.5px; font-weight: 400; color: var(--faint); line-height: 1.3; }
+
+/* ---------- ร้านค้าแบบแท็บ + เติมโทเคน (30 ต.ค. 69) ----------
+   แท็บยืม .tk-modes/.tk-mode ของจองานทั้งชุด — ตัวที่เลือกเป็นน้ำเงินทึบเหมือนกันทั้งแอป
+   ปุ่ม "เติม" อยู่บนการ์ดยอด เป็นจุดน้ำเงินจุดเดียวในการ์ด (เหรียญทองยังเป็นพระเอก)
+   แผ่นเติมยืม .soon-card (แผ่นเร็ว ๆ นี้) · ข้างในปุ่มแพ็กใช้ grid ไม่ใช่ flex
+   (span ที่เป็น flex item ใน alt/ กว้าง 0 — ดูความจำ flex-span-zero-width) */
+.sh-tabs { margin: 4px 0 12px; }
+.tk-topup {
+  margin-left: auto; align-self: center;
+  display: inline-grid; grid-auto-flow: column; align-items: center; gap: 4px;
+  padding: 8px 13px 8px 10px; border: 0; border-radius: 12px; cursor: pointer;
+  background: var(--fill); color: var(--on-fill);
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+}
+.tk-topup svg { width: 16px; height: 16px; }
+.tk-topup:active { transform: scale(.96); }
+.tu-card { text-align: left; }
+.tu-card .soon-t { text-align: center; }
+.tu-has { margin: 0 0 14px; text-align: center; font-size: 13px; color: var(--muted); }
+.tu-has b { color: var(--ink); font-weight: 700; }
+.tu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 14px; }
+.tu-pack {
+  position: relative; display: grid; justify-items: center; gap: 3px;
+  padding: 13px 8px 11px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer;
+  background: var(--card); color: var(--ink); font-family: inherit;
+}
+.tu-pack.on { border-color: var(--fill); background: var(--blue-soft); }
+.tu-pack:active { transform: scale(.97); }
+.tu-n { display: inline-grid; grid-auto-flow: column; align-items: center; gap: 5px; }
+.tu-n b { font-size: 19px; font-weight: 700; }
+.tu-p { font-size: 13px; font-weight: 600; color: var(--muted); }
+.tu-pack.on .tu-p { color: var(--ink); }
+.tu-b {
+  position: absolute; top: -8px; right: 8px;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--fill); color: var(--on-fill); font-size: 10.5px; font-weight: 700;
+}
+.tu-note { margin: 10px 2px 0; font-size: 11.5px; line-height: 1.5; color: var(--faint); text-align: center; }
+.tu-test { margin: 6px 0 0; font-size: 11.5px; font-weight: 700; color: var(--alert); text-align: center; }

@@ -140,6 +140,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
 | ตัวกรองผล read-day (Edge Function) | `node --test supabase/functions/read-day/__tests__/clean.test.mjs` | 6/6 (18 ต.ค. 69) |
 | ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
+| เติมโทเคน: ราคา · ลายเซ็น Stripe · ใบเสร็จ (supabase/functions/_shared/topup.mjs + TOPUP_PACKS ใน app.js) | `node --test supabase/functions/token-webhook/__tests__/topup.test.mjs` | 8/8 (30 ต.ค. 69) |
 
 **เทสต์ที่ต้องฉีดเข้าแอปในพรีวิว** (`<script src>` เท่านั้น ห้าม `eval`) — parser · OCR · เอนจินตัดสินใจ:
 `parsebench.js` → `benchParse()` · `ocrbench.js` → `benchReal()` · `riskbench.js` → `benchRisk()` ·
@@ -150,6 +151,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 - ระบบทีมงาน `alt/staff/tests/` — วิธีรันอยู่ใน `alt/staff/INSTALL-TH.md` (ใช้ pnpm ติดตั้งใน `alt/staff/backend`)
 - RLS `supabase/tests/*.test.mjs` — วิธีรันเขียนไว้หัวไฟล์ (ติดตั้ง PGlite นอก repo แล้วส่ง path เข้าไป)
   · รหัสเชิญ/ภารกิจธีม Halloween `supabase/tests/invites.test.mjs` — 29/29 (23 ต.ค. 69)
+  · โทเคนที่ซื้อเข้าคลังบัญชี `supabase/tests/token_purchases.test.mjs` — 16/16 (30 ต.ค. 69)
 - Edge Function `supabase/functions/*/__tests__/` — อ่าน `README.md` ในโฟลเดอร์ · ต้อง bundle `fn.mjs` ใหม่ทุกครั้งที่แก้ `index.ts`
 
 ---
