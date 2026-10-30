@@ -35,6 +35,18 @@
 5. **เจ้าของอนุมัติ** — เปิด `/alt/?newsDraft=1` ดูหน้าตาจริง → ย้ายชิ้นที่อนุมัติจาก `drafts.json`
    ไป `announcements.json` → `check` อีกรอบ → commit → push (push = ขึ้นเว็บจริงทันที)
 
+## ส่งต่อให้ tester ใน Discord อัตโนมัติ
+
+push ขึ้น main แล้ว `announcements.json` เปลี่ยน → GitHub Action `.github/workflows/news-discord.yml`
+ส่ง **เฉพาะข่าว id ใหม่** เข้าช่อง Discord ด้วยข้อความเดียวกับในแอป (ไม่ส่ง `evidence` · ข้ามประกาศที่เลย `until` แล้ว)
+
+- ตั้งค่าครั้งเดียว: GitHub → Settings → Secrets and variables → Actions → secret ชื่อ `DISCORD_WEBHOOK_URL`
+  (Discord: ตั้งค่าช่อง → Integrations → Webhooks → New Webhook → Copy URL) · **ห้ามใส่ URL ลงไฟล์ใน repo**
+- ส่งข่าวเก่าซ้ำ: แท็บ Actions → news-discord → Run workflow → ใส่ id
+- ดูหน้าตาก่อนส่ง: `node alt/devtools/news-discord.mjs - alt/news/announcements.json` ไม่ส่งอะไร ·
+  `node alt/devtools/news-discord.mjs --id <id> alt/news/announcements.json --dry` พิมพ์ข้อความที่จะส่ง
+- เทสต์: `node --test alt/devtools/news-discord.test.mjs`
+
 ## กติกาเนื้อหา — ห้ามแต่ง
 
 - **ทุกช่องที่ผู้ใช้อ่าน** (`title` · `body` · ทุกข้อใน `points`) ต้องมี `evidence` อย่างน้อยหนึ่งชิ้น
