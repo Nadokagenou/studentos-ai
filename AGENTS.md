@@ -40,7 +40,7 @@ To-do list ทั่วไปแสดงรายการทั้งหมด
 
 ## Critical Rules
 
-- **แก้ที่ `alt/` เท่านั้น** — root คือสายเก่าของอีกทีม ห้ามแตะถ้าไม่ได้สั่ง
+- **ถามเจ้าของก่อนว่างานนี้ลงสายไหน** — ตั้งแต่ 21 ต.ค. 69 ราก (root) คือ **แอปหลักที่ขึ้นเว็บจริง** และแยกเดินจาก `alt/` (เจ้าของสั่ง "อย่าเอา alt ไปรวมกับแอปหลัก" · `sync-to-root.py` ถูกปิด เหลือแค่ `--dry-run`) · แพตช์โน้ตของรากอยู่ที่ `MAIN-PATCHNOTES.md`
 - **ห้ามเปลี่ยนคีย์ `studentos.alt.*`** — คีย์คือที่อยู่ข้อมูลผู้ใช้ เปลี่ยนเมื่อไหร่ทุกเครื่องกลายเป็นแอปเปล่า กู้ไม่ได้
 - **ทุกจอที่พูดเรื่อง "ควรทำอะไร" ต้องอ่านจาก `studyPlan()` ก้อนเดียว** — ห้ามเรียก `buildDayPlan()` เองในจอไหน (เคยเรียกเอง 3 จอ แล้วตอบคนละอย่างจริง)
 - **ห้ามแก้ `style.css`** — ของ ALT ไปอยู่ใน `alt.css` เท่านั้น
@@ -63,16 +63,16 @@ To-do list ทั่วไปแสดงรายการทั้งหมด
 |---|---|
 | `scr-menu` | **หน้าแรก** |
 | `scr-home` | รายการงานเก่า (ไม่ใช่หน้าแรก — ชื่อสวนทางกันมาตั้งแต่ 1A8) |
-| โฟลเดอร์ `alt/` | **ตัวหลัก** ตั้งแต่ 1A7V2 ไม่ใช่บิลด์ทดลองแล้ว |
-| repo root | สายเก่า |
+| โฟลเดอร์ `alt/` | สาย ALT · แยกเดินจากรากตั้งแต่ 21 ต.ค. 69 |
+| repo root | **แอปหลัก = เว็บจริง** (ไม่ใช่สายเก่าแล้ว) · ใช้โปรเจกต์ Supabase และคีย์ `studentos.alt.v1` ชุดเดียวกับ `alt/` |
 
 ---
 
 ## Where Things Are
 
 ```
-C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เครื่องนี้)
-└── alt\                                       ← ตัวแอปทั้งหมด แก้ที่นี่
+C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เครื่องนี้) · ไฟล์ที่รากคือแอปหลัก (เว็บจริง)
+└── alt\                                       ← สาย ALT (แยกเดินจากรากตั้งแต่ 21 ต.ค. 69)
     ├── app.js       8,270 บรรทัด · UI · state · OCR
     ├── engine.js    parser ไทย · priorityInfo · buildDayPlan
     ├── planner.js   studyPlan() — ชั้นที่ตอบว่าควรทำอะไร
@@ -80,7 +80,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
     └── inbox.js brain.js linelink.js   ← ของอีกทีม (ระบบ LINE)
 ```
 
-**Live:** https://nadokagenou.github.io/studentos-ai/alt/
+**Live (แอปหลัก):** https://nadokagenou.github.io/studentos-ai/ · สาย ALT: https://nadokagenou.github.io/studentos-ai/alt/
 
 **Stack:** Vanilla JS ล้วน · ไม่มี build step ไม่มี npm ไม่มี framework · PWA + Supabase (CDN)
 **Data:** `localStorage['studentos.alt.v1']`
@@ -120,7 +120,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 |---|---|
 | `npm test` / เขียนเทสต์ด้วย jest | ไม่มี npm ไม่มีชุดเทสต์รวม — เลือกชุดจากตารางข้างล่างตามไฟล์ที่แตะ · เทสต์ใหม่ = เพิ่มเคสลงชุดเดิม |
 | "เห็นเทสต์ตกก่อน" (RED) | ทำจริง — ถอดโค้ดที่เพิ่งเขียนออกแล้วรันให้เห็นว่าตก ถึงจะนับว่าเทสต์ใช้ได้ |
-| เก็บแผน/สเปกที่ `docs/superpowers/` | เก็บที่ `alt/docs/superpowers/` แทน (รากเป็นสายเก่า) · repo สาธารณะ ห้ามมีข้อมูลผู้ใช้หรือกุญแจ |
+| เก็บแผน/สเปกที่ `docs/superpowers/` | เก็บที่ `alt/docs/superpowers/` แทน (รากคือแอปหลัก ไม่ใช่ที่เก็บเอกสาร) · repo สาธารณะ ห้ามมีข้อมูลผู้ใช้หรือกุญแจ |
 | brainstorming ถามทีละข้อ | ถามเป็นภาษาไทย · งานหน้าจอให้ม็อกอัปก่อนลงมือ · หน้า "Home" ของเจ้าของ = แท็บ "ฉัน" |
 | finishing-a-development-branch: merge / push / PR | ห้าม push หรือเปิด PR จนกว่าเจ้าของสั่ง (push = ขึ้นเว็บจริง) · ชื่อเวอร์ชันเจ้าของตั้งเอง |
 | using-git-worktrees | แอป Claude สร้าง worktree ให้อยู่แล้ว ใช้อันที่มี ไม่ต้องสร้างซ้อน |
@@ -183,4 +183,4 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | `HANDOFF.md` §2 | working dir อยู่ที่ `Downloads\StudentOS AI design system\` | ไม่มีอยู่แล้ว · ตัวจริงคือ `OneDrive\code\StudentOS-AI` |
 | `README-ALT.md` | "เครื่องนี้ไม่มี node/python" | มีทั้งคู่ — Node v24 · Python 3.13 (ใช้ `node --check` ได้) |
 | `BUILD-SPEC.md` §11 | git อยู่ที่ `4c34c2b` · branch `priority-engine-last-chance` | main อยู่ที่ `af4677c` แล้ว |
-| `README.md` (root) | เว็บจริงคือ root URL | เว็บจริงคือ `/alt/` — ยึดตาม HANDOFF |
+| `HANDOFF.md` · `README-ALT.md` | เว็บจริงคือ `/alt/` · รากเป็นสายเก่า | ตั้งแต่ 21 ต.ค. 69 เว็บจริงคือ root URL (แอปหลัก) · `/alt/` เป็นอีกสาย |
