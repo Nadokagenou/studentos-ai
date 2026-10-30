@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ม็อกอัปคลังงาน</title>
+<!-- ม็อกอัปคลังงาน (31 ต.ค. 69) ให้เจ้าของดูก่อนลงมือ · ไม่ใช่ของแอป · ข้อมูลในจอเป็นตัวอย่างล้วน -->
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; background: #DDE3EE; font-family: 'Sarabun', system-ui, sans-serif; color: #12233F; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .lead { margin: 0 0 18px; color: #4A5A75; font-size: 14px; }
+  .row { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+  .cap { width: 360px; }
+  .cap > b { display: block; margin-bottom: 8px; font-size: 15px; }
+  .cap > p { margin: 8px 2px 0; font-size: 13px; color: #4A5A75; line-height: 1.6; }
+  .phone { position: relative; width: 360px; height: 740px; overflow: hidden; border-radius: 28px;
+    background: #F3F6FC; box-shadow: 0 18px 40px -18px #12233F66; }
+  .scroll { padding: 14px 16px 110px; height: 100%; overflow: hidden; }
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 40px; margin-bottom: 6px; }
+  .bar .ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: #fff; font-weight: 800; }
+  .bar .ed { padding: 7px 14px; border-radius: 99px; background: #fff; font-size: 13px; font-weight: 700; color: #1F5BD8; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: #E3ECFF; color: #1F4FB8; font-size: 12px; font-weight: 700; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: #2D6BFF; }
+  .tt { margin: 8px 0 2px; font-size: 21px; font-weight: 800; line-height: 1.35; }
+  .sub { font-size: 13px; color: #5B6B86; }
+  .sec { margin-top: 16px; }
+  .sec h3 { display: flex; justify-content: space-between; margin: 0 0 8px; font-size: 14px; font-weight: 800; }
+  .sec h3 small { font-size: 12px; font-weight: 600; color: #5B6B86; }
+  .strip { display: flex; gap: 8px; }
+  .ph { position: relative; flex: none; width: 76px; height: 98px; border-radius: 12px; overflow: hidden;
+    background: repeating-linear-gradient(180deg, #fff 0 11px, #D9E1EE 11px 12px); box-shadow: inset 0 0 0 1px #12233F14; }
+  .ph::before { content: ""; position: absolute; left: 10px; top: 10px; width: 40px; height: 6px; border-radius: 3px; background: #9AA8C0; }
+  .ph.slide { background: linear-gradient(160deg, #2F4C8C, #1C2E57); }
+  .ph.slide::before { background: #ffffffaa; width: 46px; }
+  .ph.done { background: repeating-linear-gradient(180deg, #FFFDF6 0 11px, #E8DDC2 11px 12px); }
+  .ph.done::after { content: "✓"; position: absolute; right: 6px; bottom: 4px; color: #1E8A55; font-weight: 800; }
+  .ph.wait::after { content: "☁ รอส่ง"; position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 0; font-size: 10px; text-align: center; color: #fff; background: #12233Fbb; }
+  .add { flex: none; width: 76px; height: 98px; border-radius: 12px; border: 1.5px dashed #9AB0D8; display: grid; place-items: center;
+    text-align: center; font-size: 12px; font-weight: 700; color: #1F5BD8; background: #F8FAFF; line-height: 1.3; }
+  .add b { display: block; font-size: 22px; line-height: 1; }
+  .empty { padding: 12px; border-radius: 12px; border: 1.5px dashed #C3CFE3; font-size: 12.5px; color: #5B6B86; display: flex; align-items: center; justify-content: space-between; }
+  .empty span { color: #1F5BD8; font-weight: 700; }
+  .note { min-height: 70px; padding: 10px 12px; border-radius: 12px; background: #fff; font-size: 14px; line-height: 1.6; box-shadow: inset 0 0 0 1px #12233F14; }
+  .note small { display: block; margin-top: 4px; font-size: 11px; color: #8592A8; }
+  .cta { position: absolute; left: 16px; right: 16px; bottom: 18px; height: 52px; border-radius: 16px; display: grid; place-items: center;
+    background: #1F5BD8; color: #fff; font-size: 16px; font-weight: 800; box-shadow: 0 10px 22px -10px #1F5BD8; }
+  .sync { position: absolute; left: 0; right: 0; bottom: 76px; text-align: center; font-size: 11.5px; color: #5B6B86; }
+  /* แผ่นเลือกประเภท */
+  .dim { position: absolute; inset: 0; background: #12233F66; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; border-radius: 24px 24px 0 0; background: #fff; }
+  .grab { width: 38px; height: 4px; border-radius: 2px; background: #C9D2E2; margin: 0 auto 12px; }
+  .sheet h4 { margin: 0 0 4px; font-size: 17px; }
+  .sheet p { margin: 0 0 12px; font-size: 13px; color: #5B6B86; }
+  .kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 14px; }
+  .k { padding: 10px 6px; border-radius: 14px; border: 1.5px solid #D5DDEA; text-align: center; font-size: 13px; font-weight: 700; }
+  .k.on { border-color: #1F5BD8; background: #EEF3FF; color: #1F4FB8; }
+  .k small { display: block; font-size: 11px; font-weight: 500; color: #6B7A93; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { height: 46px; border-radius: 14px; display: grid; place-items: center; font-weight: 800; font-size: 14.5px; }
+  .btn.p { background: #1F5BD8; color: #fff; }
+  .btn.q { background: #EEF3FF; color: #1F4FB8; }
+  /* โหมดโฟกัส */
+  .focus { background: #0F1A30; color: #EAF0FF; }
+  .focus .scroll { padding-top: 26px; }
+  .fz-t { font-size: 13px; color: #A9B7D6; text-align: center; }
+  .fz-n { margin: 6px 0 2px; text-align: center; font-size: 18px; font-weight: 800; }
+  .ring { width: 210px; height: 210px; margin: 22px auto 16px; border-radius: 50%; display: grid; place-items: center;
+    background: conic-gradient(#6E9BFF 0 62%, #24345A 62% 100%); }
+  .ring div { width: 184px; height: 184px; border-radius: 50%; background: #0F1A30; display: grid; place-items: center; font-size: 44px; font-weight: 800; }
+  .peek { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: #1B2A4A; }
+  .peek .ph { width: 54px; height: 70px; }
+  .peek b { display: block; font-size: 14px; }
+  .peek small { font-size: 12px; color: #A9B7D6; }
+  .peek .go { margin-left: auto; padding: 8px 12px; border-radius: 12px; background: #2D4B8A; font-size: 13px; font-weight: 700; }
+  .fz-act { position: absolute; left: 16px; right: 16px; bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fz-act div { height: 50px; border-radius: 16px; display: grid; place-items: center; font-weight: 800; background: #24345A; }
+  .fz-act div:last-child { background: #6E9BFF; color: #0F1A30; }
+  /* คลังตามวิชา */
+  .h2 { margin: 6px 0 2px; font-size: 22px; font-weight: 800; }
+  .folders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .fd { padding: 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #12233F12; }
+  .fd i { display: block; width: 30px; height: 30px; border-radius: 10px; margin-bottom: 8px; }
+  .fd b { display: block; font-size: 14.5px; }
+  .fd small { font-size: 12px; color: #5B6B86; }
+  .fd.on { box-shadow: inset 0 0 0 2px #1F5BD8; }
+  .list { margin-top: 16px; }
+  .it { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #12233F12; }
+  .it .ph { width: 44px; height: 56px; border-radius: 9px; }
+  .it b { display: block; font-size: 14px; }
+  .it small { font-size: 12px; color: #5B6B86; }
+  .it em { margin-left: auto; font-style: normal; font-size: 12px; font-weight: 700; color: #5B6B86; }
+  .it em.ok { color: #1E8A55; }
+  /* ภาพอธิบายแบบ Illustration Fluid Rendering ของ Cult UI · MIT — SVG นิ่ง สีจากโทเคน (เขียนใหม่เป็น HTML ล้วน ไม่ใช่ React) */
+  .flow { --card: #fff; --border: #D3DBE8; --muted: #E7ECF5; --ink: #12233F; --faint: #5B6B86; display: block; width: 100%; height: auto; }
+  .vt-empty { margin-top: 18px; padding: 14px 4px 14px; border-radius: 18px; background: #F8FAFF; box-shadow: inset 0 0 0 1px #12233F12; text-align: center; }
+  .vt-empty b { display: block; margin-top: 12px; font-size: 16px; font-weight: 800; }
+  .vt-empty p { margin: 4px 12px 12px; font-size: 13px; color: #5B6B86; line-height: 1.6; }
+  .vt-empty .btn { margin: 0 8px; }
+  /* หน้างานแบบเส้นสาย — ทรงจาก Illustration Fluid Rendering ของ Cult UI · MIT (การ์ดหัว → เส้นโค้งสีแยกไปการ์ดปลายทาง · จุดต่อที่ขอบการ์ด · เงาจาง)
+     จอมือถือแคบเกินจะวางซ้ายไปขวา จึงหมุนเป็นแนวตั้ง: เส้นสี่สายวิ่งลงขนานกัน แล้วโค้งเข้าการ์ดของตัวเอง */
+  .fl-hub { position: relative; padding: 12px 14px 14px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #D3DBE8, 0 3px 8px -4px #12233F1F; }
+  .fl-hub .tt { font-size: 19px; margin-top: 6px; }
+  .fl-list { position: relative; display: grid; gap: 9px; margin-top: 14px; padding-left: 34px; }
+  .fl-rails { position: absolute; left: 0; top: -14px; width: 100%; height: calc(100% + 14px); overflow: visible; pointer-events: none; }
+  .fl-card { position: relative; padding: 9px 11px 10px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px #D3DBE8, 0 3px 8px -5px #12233F1F; }
+  .fl-card::before { content: ""; position: absolute; left: -4.5px; top: 15.5px; width: 9px; height: 9px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px #B9C5D9; }
+  .fl-h { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 14px; font-weight: 800; }
+  .fl-h i { width: 8px; height: 8px; border-radius: 50%; }
+  .fl-h small { margin-left: auto; font-size: 12px; font-weight: 600; color: #5B6B86; }
+  .fl-card .ph, .fl-card .add { width: 54px; height: 70px; border-radius: 10px; }
+  .fl-card .add { font-size: 11.5px; }
+  .fl-dash { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 9px; border: 1.5px dashed #C3CFE3; font-size: 12.5px; color: #5B6B86; }
+  .fl-dash span { color: #1F5BD8; font-weight: 700; }
+  .fl-note { font-size: 13.5px; line-height: 1.55; }
+</style>
+</head>
+<body>
+<h1>คลังงาน · ม็อกอัป</h1>
+<p class="lead">5 จอ · แตะการ์ดงาน → หน้างาน · เพิ่มรูปได้ทีละหลายรูป · ตอนโฟกัสเปิดดูโจทย์ได้ · แท็บ "ฉัน" มีคลังตามวิชา</p>
+<div class="row">
+
+  <div class="cap"><b>1 · หน้างาน แบบเส้นสาย (Cult UI · Fluid Rendering)</b>
+    <div class="phone"><div class="scroll">
+      <div class="bar"><span class="ic">←</span><span class="ed">แก้ไขงาน</span></div>
+      <div class="fl-hub">
+        <span class="chip"><i></i>คณิตศาสตร์</span>
+        <div class="tt">แบบฝึกหัดฟังก์ชัน ข้อ 1–10</div>
+        <div class="sub">ส่งพรุ่งนี้ 08:00 · ~40 นาที</div>
+      </div>
+      <div class="fl-list">
+        <svg class="fl-rails" aria-hidden="true"></svg>
+        <div class="fl-card" data-c="#2BB59B"><div class="fl-h"><i style="background:#2BB59B"></i>โจทย์ · ใบงาน<small>2 รูป</small></div>
+          <div class="strip"><div class="ph"></div><div class="ph wait"></div><div class="add"><span><b>+</b>เพิ่ม</span></div></div></div>
+        <div class="fl-card" data-c="#3E8EF0"><div class="fl-h"><i style="background:#3E8EF0"></i>งานที่ทำเสร็จ<small>ถ่ายก่อนส่ง</small></div>
+          <div class="fl-dash">ยังไม่มีรูป <span>+ ถ่าย</span></div></div>
+        <div class="fl-card" data-c="#8B6CF0"><div class="fl-h"><i style="background:#8B6CF0"></i>โน้ต · สไลด์<small>1 รูป</small></div>
+          <div class="strip"><div class="ph slide"></div><div class="add"><span><b>+</b>เพิ่ม</span></div></div></div>
+        <div class="fl-card" data-c="#E5484D"><div class="fl-h"><i style="background:#E5484D"></i>จดไว้<small>บันทึกเอง</small></div>
+          <div class="fl-note">ข้อ 7 ถามครูก่อน · ใช้สูตรหน้า 42</div></div>
+      </div>
+    </div>
+    <div class="sync">☁ 1 รูปรอส่งขึ้นคลาวด์ · ต่อเน็ตแล้วส่งเอง</div>
+    <div class="cta">▶ เริ่มทำ</div></div>
+    <p>การ์ดงานคือ "หัว" ด้านบน · เส้นสีสี่สายวิ่งลงขนานกันแบบแผนที่รถไฟฟ้า แล้วโค้งเข้าแต่ละกลุ่ม ปลายเส้นมีจุดต่อที่ขอบการ์ดแบบต้นฉบับ · สีเส้น = สีกลุ่มเดียวกับในภาพคลังว่าง · ปุ่ม "เริ่มทำ" ยังเป็นปุ่มหลัก</p>
+  </div>
+
+  <div class="cap"><b>2 · เลือกรูปหลายรูปทีเดียว</b>
+    <div class="phone"><div class="scroll" style="filter:blur(1px)">
+      <div class="bar"><span class="ic">←</span><span class="ed">แก้ไขงาน</span></div>
+      <span class="chip"><i></i>คณิตศาสตร์</span>
+      <div class="tt">แบบฝึกหัดฟังก์ชัน ข้อ 1–10</div>
+    </div>
+    <div class="dim"></div>
+    <div class="sheet"><div class="grab"></div>
+      <h4>เพิ่ม 3 รูป</h4><p>ย่อรูปในเครื่องก่อนส่ง (~250KB ต่อรูป) · เห็นได้ทุกเครื่องที่ล็อกอิน</p>
+      <div class="strip"><div class="ph"></div><div class="ph"></div><div class="ph"></div></div>
+      <div class="kinds"><div class="k on">โจทย์<small>ใบงาน/หนังสือ</small></div><div class="k">ทำเสร็จ<small>ก่อนส่ง</small></div><div class="k">โน้ต<small>สไลด์/จดเอง</small></div></div>
+      <div class="two"><div class="btn q">ถ่ายเพิ่ม</div><div class="btn p">บันทึก 3 รูป</div></div>
+    </div></div>
+    <p>กด "+ เพิ่มรูป" → เลือกจากคลังได้หลายรูป หรือถ่ายต่อกันหลายใบ · เลือกประเภทครั้งเดียวทั้งชุด · ค่าเริ่มต้น: งานยังไม่เสร็จ = โจทย์ · เสร็จแล้ว = ทำเสร็จ</p>
+  </div>
+
+  <div class="cap"><b>3 · โหมดโฟกัส (กดเริ่มทำ)</b>
+    <div class="phone focus"><div class="scroll">
+      <div class="fz-t">กำลังทำ</div>
+      <div class="fz-n">แบบฝึกหัดฟังก์ชัน ข้อ 1–10</div>
+      <div class="ring"><div>24:10</div></div>
+      <div class="peek"><div class="ph"></div><div><b>โจทย์ 2 รูป</b><small>แตะเพื่อดูเต็มจอ</small></div><span class="go">ดูโจทย์</span></div>
+    </div>
+    <div class="fz-act"><div>พัก</div><div>เสร็จแล้ว</div></div></div>
+    <p>มีรูปโจทย์เมื่อไหร่ แถว "ดูโจทย์" โผล่เอง ไม่ต้องออกไปหาในแกลเลอรี · ไม่มีรูป = จอโฟกัสเหมือนเดิมทุกอย่าง</p>
+  </div>
+
+  <div class="cap"><b>4 · แท็บ "ฉัน" → คลังงาน</b>
+    <div class="phone"><div class="scroll">
+      <div class="bar"><span class="ic">←</span><span></span></div>
+      <div class="h2">คลังงาน</div>
+      <div class="sub">งานที่มีรูปหรือโน้ต · รวมงานที่ส่งไปแล้ว</div>
+      <div class="folders">
+        <div class="fd on"><i style="background:#2D6BFF"></i><b>คณิตศาสตร์</b><small>4 งาน · 11 รูป</small></div>
+        <div class="fd"><i style="background:#E0663A"></i><b>ภาษาอังกฤษ</b><small>2 งาน · 3 รูป</small></div>
+        <div class="fd"><i style="background:#1E9E6A"></i><b>วิทยาศาสตร์</b><small>3 งาน · 7 รูป</small></div>
+        <div class="fd"><i style="background:#9A5BE0"></i><b>ภาษาไทย</b><small>1 งาน · 1 รูป</small></div>
+      </div>
+      <div class="list">
+        <div class="it"><div class="ph"></div><div><b>แบบฝึกหัดฟังก์ชัน ข้อ 1–10</b><small>3 รูป · จดไว้ 1</small></div><em>ส่งพรุ่งนี้</em></div>
+        <div class="it"><div class="ph done"></div><div><b>ใบงานลิมิต ชุด 2</b><small>4 รูป</small></div><em class="ok">ส่งแล้ว ✓</em></div>
+        <div class="it"><div class="ph slide"></div><div><b>สอบย่อยบทที่ 3</b><small>4 รูป · จดไว้ 1</small></div><em class="ok">ส่งแล้ว ✓</em></div>
+      </div>
+    </div></div>
+    <p>อยู่หลังแท็บ "ฉัน" ตามกฎวิสัยทัศน์ (ของที่ไม่ได้ช่วยตัดสินใจ ไม่ขึ้นหน้าแรก) · งานที่ส่งแล้วยังอยู่ ไว้ทวนก่อนสอบ</p>
+  </div>
+
+  <div class="cap"><b>5 · คลังงานตอนยังว่าง (ภาพแบบ Cult UI · Fluid Rendering)</b>
+    <div class="phone"><div class="scroll">
+      <div class="bar"><span class="ic">←</span><span></span></div>
+      <div class="h2">คลังงาน</div>
+      <div class="sub">งานที่มีรูปหรือโน้ต · รวมงานที่ส่งไปแล้ว</div>
+      <div class="vt-empty">
+        <svg class="flow" viewBox="0 0 448 195" fill="none" role="img" aria-label="รูปที่ถ่ายเข้าไปอยู่ในหน้างาน แล้วแยกเป็นโจทย์ งานที่ทำเสร็จ โน้ต และซิงก์ทุกเครื่อง">
+          <!-- เงาจาง ๆ ใต้การ์ดทุกใบ (ต้นฉบับใช้ feGaussianBlur 1 + ทึบ 4%) -->
+          <defs><filter id="vtSoft" x="-10" y="0" width="470" height="210" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="1"/></filter></defs>
+          <g filter="url(#vtSoft)" opacity=".05" fill="#000">
+            <rect x="2" y="33" width="163" height="130" rx="12"/><rect x="191" y="65" width="66" height="66" rx="12"/>
+            <rect x="313" y="3" width="133" height="35" rx="8"/><rect x="313" y="54" width="133" height="35" rx="8"/>
+            <rect x="313" y="107" width="133" height="35" rx="8"/><rect x="313" y="158" width="133" height="35" rx="8"/>
+          </g>
+          <!-- เส้นสี่สาย แตกจากหน้างานไปสี่ปลายทาง (ทรงโค้งเดียวกับต้นฉบับ) · ไม่มีสีทอง -->
+          <path d="M244 95.86H276C282.63 95.86 288 90.48 288 83.86V30.63C288 24 293.37 18.63 300 18.63H330" stroke="#2BB59B" stroke-width="2"/>
+          <path d="M244 95.86H276C282.63 95.86 288 90.49 288 83.86V79.78C288 74.26 292.48 69.78 298 69.78H330" stroke="#3E8EF0" stroke-width="2"/>
+          <path d="M244 95.86H276C282.63 95.86 288 101.23 288 107.86V111.94C288 117.46 292.48 121.94 298 121.94H330" stroke="#8B6CF0" stroke-width="2"/>
+          <path d="M244 95.86H276C282.63 95.86 288 101.23 288 107.86V161.09C288 167.72 293.37 173.09 300 173.09H330" stroke="#E5484D" stroke-width="2"/>
+          <path d="M166 95.86H191" stroke="#9AA8C0" stroke-width="1.6"/>
+          <!-- ซ้าย: รูปใบงานที่ถ่าย -->
+          <rect x="1.5" y="30.5" width="164" height="131" rx="12.5" fill="var(--card)" stroke="var(--border)"/>
+          <circle cx="15" cy="43.8" r="3.2" fill="#12233F1F"/><circle cx="24.8" cy="43.8" r="3.2" fill="#12233F1F"/><circle cx="34.6" cy="43.8" r="3.2" fill="#12233F1F"/>
+          <rect x="12" y="56" width="66" height="72" rx="4" fill="var(--muted)"/>
+          <path d="M18 120l16-20 10 12 8-8 20 16z" fill="#C3CEE0"/><circle cx="62" cy="72" r="6" fill="#C3CEE0"/>
+          <rect x="86" y="58" width="66" height="7" rx="3.5" fill="var(--muted)"/><rect x="86" y="72" width="54" height="7" rx="3.5" fill="var(--muted)"/>
+          <rect x="86" y="86" width="62" height="7" rx="3.5" fill="var(--muted)"/>
+          <rect x="86" y="102" width="66" height="26" rx="2" stroke="#9AA8C066" stroke-dasharray="3.2 3.2"/>
+          <text x="83.5" y="150" text-anchor="middle" font-size="15" font-weight="700" fill="var(--faint)" font-family="Sarabun, system-ui, sans-serif">รูปที่ถ่าย</text>
+          <!-- กลาง: หน้างาน -->
+          <rect x="190.6" y="62.4" width="66.8" height="67" rx="12.4" fill="var(--card)" stroke="var(--border)" stroke-width=".8"/>
+          <rect x="211" y="78" width="26" height="33" rx="3" stroke="var(--ink)" stroke-width="2"/>
+          <path d="M216 87h16M216 93h16M216 99h10" stroke="var(--ink)" stroke-width="2" stroke-linecap="round"/>
+          <text x="224" y="146" text-anchor="middle" font-size="15" font-weight="700" fill="var(--faint)" font-family="Sarabun, system-ui, sans-serif">หน้างาน</text>
+          <!-- ขวา: สี่ปลายทาง · จุดต่อสายที่ขอบซ้ายการ์ดแบบต้นฉบับ -->
+          <g font-family="Sarabun, system-ui, sans-serif" font-size="16" font-weight="700" fill="var(--ink)">
+            <rect x="312.5" y="1.5" width="134" height="34.5" rx="8.5" fill="var(--card)" stroke="var(--border)"/>
+            <circle cx="326" cy="18.6" r="5" fill="#2BB59B"/><text x="338" y="23.4">โจทย์ · ใบงาน</text>
+            <rect x="312.5" y="52.5" width="134" height="34.5" rx="8.5" fill="var(--card)" stroke="var(--border)"/>
+            <circle cx="326" cy="69.8" r="5" fill="#3E8EF0"/><text x="338" y="74.6">งานที่ทำเสร็จ</text>
+            <rect x="312.5" y="104.5" width="134" height="34.5" rx="8.5" fill="var(--card)" stroke="var(--border)"/>
+            <circle cx="326" cy="121.9" r="5" fill="#8B6CF0"/><text x="338" y="126.7">โน้ต · สไลด์</text>
+            <rect x="312.5" y="155.5" width="134" height="34.5" rx="8.5" fill="var(--card)" stroke="var(--border)"/>
+            <circle cx="326" cy="173" r="5" fill="#E5484D"/><text x="338" y="177.8">ซิงก์ทุกเครื่อง</text>
+          </g>
+          <g fill="var(--card)" stroke="var(--border)"><circle cx="312.3" cy="18.6" r="3.8"/><circle cx="312.3" cy="69.8" r="3.8"/><circle cx="312.3" cy="121.9" r="3.8"/><circle cx="312.3" cy="173" r="3.8"/></g>
+        </svg>
+        <b>ยังไม่มีรูปในคลัง</b>
+        <p>ถ่ายใบงานครั้งเดียว แอปเก็บไว้ในหน้างาน แยกเป็นโจทย์ งานที่ทำเสร็จ และโน้ต · เปิดได้ทุกเครื่อง</p>
+        <div class="btn p">ไปที่งานของวันนี้</div>
+      </div>
+    </div></div>
+    <p>ภาพเดียวอธิบายทั้งระบบโดยไม่ต้องอ่านยาว · เป็น SVG นิ่ง ไม่ใช่ WebGL (เครื่องอ่อนไม่ค้าง) · สีเส้นเลี่ยงสีทอง เพราะทองใช้เฉพาะของที่ทำสำเร็จ</p>
+  </div>
+
+</div>
+<script>
+/* วาดเส้นสายของหน้างาน: เส้นที่ i วิ่งลงจากใต้การ์ดหัวที่ x ของตัวเอง แล้วโค้งรัศมี 8 เข้าจุดต่อของการ์ดใบที่ i
+   การ์ดบนสุดได้เส้นขวาสุด (ใกล้การ์ดที่สุด) เส้นจะได้ไม่ตัดกัน */
+function drawRails(){document.querySelectorAll('.fl-list').forEach(list=>{
+  const svg=list.querySelector('.fl-rails'),cards=[...list.querySelectorAll('.fl-card')],box=list.getBoundingClientRect(),n=cards.length;
+  svg.setAttribute('viewBox','0 -14 '+box.width+' '+(box.height+14));
+  svg.innerHTML=cards.map((c,i)=>{const r=c.getBoundingClientRect(),cy=r.top-box.top+20,x=6+(n-1-i)*6,end=r.left-box.left-4.5;
+    return '<path d="M'+x+' -14V'+(cy-8)+'Q'+x+' '+cy+' '+(x+8)+' '+cy+'H'+end+'" stroke="'+c.dataset.c+'" stroke-width="2" fill="none" stroke-linecap="round"/>';}).join('');
+});}
+addEventListener('load',drawRails);addEventListener('resize',drawRails);document.fonts&&document.fonts.ready.then(drawRails);
+</script>
+</body>
+</html>
