@@ -1,0 +1,93 @@
+/* Permanent biome themes. Main Halloween retains the richest scene and music. */
+:root[data-theme="hw-vampire"] .hw-biome-view{animation:none;background-position:center 32%;opacity:.58}
+/* A small ship travels through the distant sea; separate wrappers own travel and swell. */
+.hw-sea-voyage{display:none;position:absolute;inset:0;pointer-events:none;overflow:hidden}
+:root[data-theme="hw-ghostship"] .hw-sea-voyage{display:block}
+:root[data-theme="hw-ghostship"] .hw-biome-view{animation:none;background-position:center 45%;opacity:.5}
+.hw-ship-course{position:absolute;top:58%;left:0;width:clamp(115px,27vw,240px);aspect-ratio:450/390;animation:hwr-voyage 38s -14s linear infinite;opacity:.72;will-change:transform}
+.hw-ship-bob{width:100%;height:100%;animation:hwr-swell 4.6s ease-in-out infinite;transform-origin:50% 85%}
+.hw-ship-bob img{display:block;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 10px #071a2180)}
+.hw-ship-wake{position:absolute;left:-37%;bottom:10%;width:84%;height:10%;border-bottom:1px solid #b8ecdf66;border-radius:50%;background:linear-gradient(transparent,#b8ecdf15,transparent);transform:skewX(-20deg)}
+.hw-sea-wave{position:absolute;left:-25%;width:150%;height:16%;bottom:13%;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 80'%3E%3Cpath d='M-20 40 Q20 15 60 40 T140 40 T220 40 T300 40 T380 40' fill='none' stroke='%239edacb' stroke-opacity='.36' stroke-width='1.5'/%3E%3Cpath d='M-20 55 Q20 30 60 55 T140 55 T220 55 T300 55 T380 55' fill='none' stroke='%239edacb' stroke-opacity='.16'/%3E%3C/svg%3E") center/300px 80px repeat-x;animation:hwr-wave 11s ease-in-out infinite alternate;opacity:.65}
+.hw-sea-wave.back{bottom:20%;opacity:.3;animation-duration:16s;animation-direction:alternate-reverse}
+@keyframes hwr-voyage{from{transform:translateX(-260px)}to{transform:translateX(calc(100vw + 260px))}}
+@keyframes hwr-swell{0%,100%{transform:translateY(2px) rotate(-1.8deg)}50%{transform:translateY(-6px) rotate(1.4deg)}}
+@keyframes hwr-wave{from{transform:translate3d(-35px,2px,0)}to{transform:translate3d(35px,-3px,0)}}
+html[data-lite="1"] .hw-ship-course,html[data-hw-motion="still"] .hw-ship-course{transform:translateX(52vw)}
+@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-ship-course{transform:translateX(52vw)}}
+html[data-hw-showroom="true"] #boot{display:none!important}
+:root[data-theme^="hw-"]{color-scheme:dark;--scr:#101b24;--card:#1d2c35;--card2:#263840;--surface:#263840;--ink:#e9ede1;--muted:#b4c7c6;--faint:#93afaf;--fill:#a4d7c8;--on-fill:#14252a;--fill-on:#14252a;--blue:#aeddd1;--blue-soft:#27463f;--blue-deep:#bcdfcb;--line:#b8d9c232;--pg:#101b24;--pg-ink:#e9ede1;--pg-muted:#b4c7c6;--frame:#101b24;--on-accent:#14252a;--tint:#284740;--tint2:#2a3b40;--good:#9bd2b6;--good-soft:#9bd2b61a;--warn:#e5bf8d;--warn-soft:#e5bf8d1a;--alert:#eea4ae;--alert-soft:#eea4ae1a;--soft-card:#1b2b34ed;--soft-shadow:0 12px 35px #050b1455;--shadow:0 12px 35px #050b1455;--glass:#1b2b34e8;--grad-brand:linear-gradient(125deg,#618b88,#3e676c);--grad-hero:linear-gradient(140deg,#2b4a49,#162630)}
+:root[data-theme="hw-jackhollow"]{--scr:#21151c;--card:#35232a;--card2:#422d33;--surface:#422d33;--ink:#f4e6d5;--muted:#d3b6aa;--faint:#bd9b8c;--fill:#e5b37d;--on-fill:#301c24;--blue:#e8c094;--blue-soft:#573a32;--line:#d7ac7e38;--pg:#21151c;--frame:#21151c;--soft-card:#35232aeb;--grad-brand:linear-gradient(125deg,#a66b43,#71483d)}
+:root[data-theme="hw-vampire"]{--scr:#1b1425;--card:#302031;--card2:#3d2a40;--surface:#3d2a40;--ink:#f0e4ea;--muted:#d1b0c7;--faint:#b892ad;--fill:#daa4ba;--on-fill:#2d182b;--blue:#e0b6d1;--blue-soft:#56324b;--line:#d7a1bf38;--pg:#1b1425;--frame:#1b1425;--soft-card:#302031eb;--grad-brand:linear-gradient(125deg,#9c576f,#553854)}
+:root[data-theme="hw-graveyard"]{--scr:#171728;--card:#29263b;--card2:#37314b;--surface:#37314b;--ink:#ece8f2;--muted:#c2b8d4;--faint:#a99abb;--fill:#c1b4e7;--on-fill:#211b32;--blue:#c9bbea;--blue-soft:#42365b;--line:#c7b7e238;--pg:#171728;--frame:#171728;--soft-card:#29263beb;--grad-brand:linear-gradient(125deg,#8973aa,#53456f)}
+.hw-biome-scene{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0;isolation:isolate}.hw-biome-scene[hidden]{display:none!important}.hw-biome-scene i{position:absolute;inset:0}.hw-biome-view{background:var(--biome-art) center/cover no-repeat;opacity:.75;animation:hwr-scene-drift 32s ease-in-out infinite alternate}.hw-biome-fog{inset:40% -30% -10%!important;background:radial-gradient(ellipse at 45% 80%,color-mix(in srgb,var(--biome-glow) 24%,transparent),transparent 58%);animation:hwr-mist 24s ease-in-out infinite alternate}.hw-biome-glints{background-image:radial-gradient(circle at 13% 37%,#fff8 0 1px,transparent 2px),radial-gradient(circle at 73% 65%,#fff5 0 1px,transparent 2px),radial-gradient(circle at 47% 19%,#fff6 0 1px,transparent 2px);background-size:170px 190px;animation:hwr-glints 8s ease-in-out infinite alternate}
+/* 25 ต.ค. 69 · เจ้าของ: "ให้ธีม Dutchman · Jack'o Lantern · Vampire Mansion · Eternal Graveyard มีปุ่มทั้งหมดคล้ายธีมหลัก
+   เปลี่ยนสีกับพื้นหลัง พวก UI ทำให้เหมือนให้หมด" — ถอดการแต่งคอมโพเนนต์ออก (การ์ดไล่สีมืดทับ · ปุ่มเริ่มทำแบบเฉพาะ · แถบล่าง
+   · ช่องถามแบน · ไทล์หน้าแรก · โคมไฟโปรไฟล์ · การ์ดในจองาน) และกฎที่มีไว้ชดเชยการทาการ์ดนั้น (สีหัวการ์ด · เม็ดนาที)
+   เหลือ: โทเคนสี · ฉาก · กฎอ่านออกบนฉาก (เงาตัวหนังสือ · รองพื้นสีจาง) · ชิ้นเฉพาะธีม (ชุดมาสคอต · ของรางวัล) */
+:root[data-theme^="hw-"] .phone{isolation:isolate;background:var(--scr)}:root[data-theme^="hw-"] .screens{position:relative;z-index:1;background:transparent}:root[data-theme^="hw-"] .screen{background:transparent}:root[data-theme^="hw-"] :is(.fx,.starfield){display:none!important}
+:root[data-theme^="hw-"] .runbar,:root[data-theme^="hw-"] .runbar :is(.rb-timer,.rb-stop){color:#15211e}
+/* ช่องสีในที่เลือกธีม (ทุกธีมเห็น · ไม่ผูกกับธีมที่ใช้อยู่) — 25 ต.ค. 69 อัปเดตตามสีหลักใหม่ของแต่ละธีม
+   ครึ่งมืด = พื้นกลางคืนของธีม · แถบสว่าง = สีหลัก · แถบเล็ก = สีรองที่เป็นตัวตน (ม่วงแม่มด · เทียนส้ม · ทองเหลือง ฯลฯ)
+   Halloween กับ Moon & Candle เคยอยู่ใน theme-main.css / theme-moonlight.css แล้วหลุดไปตอนถอดกฎแต่งคอมโพเนนต์ (ช่องว่างเปล่า) จึงย้ายมารวมที่นี่ */
+.sw-halloween{background:linear-gradient(135deg,#1b1426 44%,#F59A45 45% 72%,#8B4FB0 73%);border:1px solid #F59A4588}
+.sw-moonlight{background:linear-gradient(135deg,#170B36 44%,#7DD3FF 45% 74%,#FF9A3D 75%);border:1px solid #A487FF88}
+.sw-hw-ghostship{background:linear-gradient(135deg,#10222a 44%,#6FEFC4 45% 76%,#B89A62 77%)}
+.sw-hw-jackhollow{background:linear-gradient(135deg,#21151c 44%,#FF9A3C 45% 76%,#FFD27A 77%)}
+.sw-hw-vampire{background:linear-gradient(135deg,#1b1425 44%,#F2708C 45% 76%,#7A1E3A 77%)}
+.sw-hw-graveyard{background:linear-gradient(135deg,#171728 44%,#A8E27C 45% 76%,#9C8FC8 77%)}
+/* ชื่อธีมสองบรรทัด (Vampire Mansion · Eternal Graveyard) ถูกจัดกลางในปุ่ม ขณะที่ชื่อบรรทัดเดียวดูชิดซ้าย → ชิดซ้ายเท่ากันทุกปุ่ม */
+#themePick button .nm{text-align:left}
+.hw-relic-inspect,.hw-reward-fx{position:absolute;inset:0;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:25px;color:#f0e7dc;text-align:center;background:radial-gradient(ellipse at 50% 40%,#3b2b4388,#10101bed 75%);backdrop-filter:blur(9px)}.hw-reward-close{position:absolute;right:15px;top:15px;z-index:5;background:#30273ee0;color:#e5d7e8;border:1px solid #c9a4c866;border-radius:10px;padding:8px 13px;font:inherit;cursor:pointer}.hw-reward-eyebrow{font:11px Georgia,serif;letter-spacing:.12em;color:#b9dfd2}.hw-relic-ring{width:min(90%,430px);aspect-ratio:1;position:relative;background:radial-gradient(ellipse,#90c3c826,transparent 67%)}.hw-relic-ring img{width:100%;height:100%;object-fit:contain;animation:hwr-relic-float 7s ease-in-out infinite}.hw-relic-inspect h2{font-size:clamp(20px,4vw,32px);margin:5px 0}.hw-relic-inspect p{font-size:12px;color:#c3b8cd;max-width:380px}.hw-room-item{pointer-events:none}.hw-fx-object{width:min(80%,450px);aspect-ratio:1;object-fit:contain;z-index:2;animation:hwr-reveal 4.2s ease-in-out both}.hw-fx-aura{position:absolute;width:130%;aspect-ratio:1;background:radial-gradient(ellipse,var(--reward-color),transparent 65%);opacity:0;animation:hwr-aura 4.2s ease both}.hw-fx-ring{position:absolute;left:50%;top:43%;width:min(65%,380px);aspect-ratio:1;border:1px solid var(--reward-color);border-radius:50%;box-shadow:0 0 35px color-mix(in srgb,var(--reward-color) 20%,transparent);animation:hwr-ring 4.2s ease-in-out both;translate:-50% -50%}.hw-fx-caption{z-index:3;animation:hwr-caption 4.2s ease both}.hw-fx-caption small{font:11px Georgia,serif;letter-spacing:.16em;color:var(--reward-color)}.hw-fx-caption h2{margin:8px 0;font-size:23px}.hw-fx-caption>span{font-size:12px;color:#cfc2d4}.hw-fx-particles{position:absolute;left:50%;top:43%}.hw-fx-particles i{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--reward-color);box-shadow:0 0 12px var(--reward-color);rotate:var(--angle);animation:hwr-particle 3.2s .4s ease-out both}.hw-reward-fx.legendary .hw-fx-object{animation-duration:6.2s;width:min(94%,560px)}.hw-reward-fx.legendary .hw-fx-ring{border-style:dashed;border-width:3px;animation-duration:6.2s}.hw-reward-fx.legendary .hw-fx-aura,.hw-reward-fx.legendary .hw-fx-caption{animation-duration:6.2s}.fx-arrival .hw-fx-object{animation-name:hwr-ship-arrive}.fx-verdict .hw-fx-object{animation-name:hwr-axe-strike}.fx-eclipse .hw-fx-ring{background:radial-gradient(ellipse,#d698a166,transparent 70%)}.fx-gate .hw-fx-object{animation-name:hwr-gate-open}.fx-wake .hw-fx-ring{scale:1 .35}.fx-bats .hw-fx-object{animation-name:hwr-flight}.fx-bloom .hw-fx-object{animation-name:hwr-bloom}.hw-reward-fx.still *{animation:none!important}.hw-reward-fx.still .hw-fx-aura{opacity:.12}.hw-reward-fx.still .hw-fx-particles{display:none}
+@keyframes hwr-scene-drift{from{transform:scale(1.04) translateX(-.7%)}to{transform:scale(1.08) translateX(.7%)}}@keyframes hwr-mist{from{transform:translateX(-5%);opacity:.5}to{transform:translateX(5%);opacity:.9}}@keyframes hwr-glints{from{opacity:.2;transform:translateY(8px)}to{opacity:.7;transform:translateY(-8px)}}@keyframes hwr-relic-float{50%{transform:translateY(-9px) rotate(1deg)}}@keyframes hwr-reveal{0%{opacity:0;transform:scale(.6) translateY(20px)}18%,70%{opacity:1;transform:scale(1) translateY(0)}100%{opacity:0;transform:scale(1.05) translateY(-15px)}}@keyframes hwr-aura{0%,100%{opacity:0;transform:scale(.3)}35%,65%{opacity:.17;transform:scale(1)}}@keyframes hwr-ring{0%{opacity:0;transform:scale(.3) rotate(-20deg)}30%,70%{opacity:.7;transform:scale(1) rotate(10deg)}100%{opacity:0;transform:scale(1.5) rotate(45deg)}}@keyframes hwr-caption{0%,15%{opacity:0;transform:translateY(15px)}25%,85%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8px)}}@keyframes hwr-particle{0%{opacity:0;transform:translateX(0) scale(.2)}20%{opacity:1}100%{opacity:0;transform:translateX(var(--travel)) scale(.2)}}@keyframes hwr-ship-arrive{0%{opacity:0;transform:translateX(-90%) scale(.7)}30%,65%{opacity:1;transform:translateX(0) scale(1)}100%{opacity:0;transform:translateX(90%) scale(.8)}}@keyframes hwr-axe-strike{0%,12%{opacity:0;transform:rotate(-80deg) scale(.7)}30%,65%{opacity:1;transform:rotate(8deg) scale(1)}100%{opacity:0;transform:rotate(12deg) scale(1.08)}}@keyframes hwr-gate-open{0%{opacity:0;transform:scale(.7)}32%,65%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.25)}}@keyframes hwr-flight{0%{opacity:0;transform:translate(-45px,50px) scale(.5)}35%,65%{opacity:1;transform:translate(0) scale(1)}100%{opacity:0;transform:translate(80px,-100px) scale(.6)}}@keyframes hwr-bloom{0%{opacity:0;transform:rotate(-35deg) scale(.2)}30%,65%{opacity:1;transform:rotate(0) scale(1)}100%{opacity:0;transform:rotate(15deg) scale(1.1)}}
+html[data-quality="low"] .hw-biome-scene{display:none}html[data-lite="1"] .hw-biome-scene *,html[data-hw-motion="still"] .hw-biome-scene *{animation:none!important}@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-biome-scene *, .hw-relic-ring img{animation:none!important}}@media(max-width:599px){.hw-fx-caption h2{font-size:20px}}
+img[data-hw-costume-preview]{object-fit:contain!important;background:#1c1425;border-radius:inherit}.hw-biome-scene[hidden]{display:none!important}
+
+
+.hw-costume-picker{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--card2);color:var(--ink)}.hw-costume-picker h3{font-family:inherit;font-weight:700;font-size:13px;line-height:1.5;margin:0 0 10px}.hw-costume-picker>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.hw-costume-picker button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px;cursor:pointer;font:inherit}.hw-costume-picker button[data-hw-costume]{display:flex;flex-direction:column;align-items:center;gap:8px}.hw-costume-picker button img{width:100%;height:110px;object-fit:contain}.hw-costume-picker button span{font-size:11px;line-height:1.5}.hw-costume-picker button.active{box-shadow:inset 0 0 0 2px var(--blue);border-color:var(--blue)}.hw-costume-picker .hw-costume-reset{display:block;width:100%;font-size:11px;margin-top:10px;color:var(--muted)}.hw-effect-icon{width:100%;height:100%;object-fit:contain}.hw-native-room-item{pointer-events:none}
+img[src*="halloween/rewards/theme-assets/sai-witch.webp"],img[src*="halloween/rewards/theme-assets/hook-mummy.webp"]{object-fit:contain}
+
+/* 23 ต.ค. 69 · textcheck: ธีมชีวนิเวศเป็นโทนมืดแต่ยังใช้ป้ายความสำคัญของธีมสว่าง
+   (แดงเข้ม #A8281D บนการ์ดมืด = 1.7:1 มองไม่เห็น · บั๊กเดียวกับ Metaverse/Glitch ใน 1B98 ของ alt.css)
+   ใช้ชุดเดียวกับธีมมืดอื่น: พื้นโปร่ง ตัวอักษรสว่าง
+   รวม --gold-* ด้วย (ไม่มี = ทองเข้ม #8A6206 บนการ์ดมืด: ยอดโทเคน · "รับเลย" เช็คอินรายวัน ได้ 2.2–2.6:1) */
+:root[data-theme^="hw-"]{--pri-red-soft:rgba(255,107,124,.28);--pri-red-text:#FF9AA6;--pri-yellow-soft:rgba(240,185,10,.28);--pri-yellow-text:#F3C64B;--pri-green-soft:rgba(52,211,153,.28);--pri-green-text:#5BDC93;--gold-soft:rgba(240,193,74,.26);--gold-text:#F0C14A}
+/* แท็บโหมดที่ไม่ได้เลือก (.tk-mode) ใช้ --faint บนรางกระจกที่มีแสงขาวด้านบน = 3.3:1 → --muted (ยังเป็นระดับรอง) */
+:root[data-theme^="hw-"] .tk-mode:not(.on){color:var(--muted)}
+/* ป้ายใต้ไทล์หน้าแรกจาง .78 นั่งบนภาพฉาก (เรือผีใบเรือสว่าง) = 2.8:1 → ไม่จาง */
+:root[data-theme^="hw-"] #menuBody .tg-lb2{opacity:1}
+/* เรือผี (Dutchman) ฉากสว่างที่สุดในสี่ชีวนิเวศ — ใบเรือขาวกับจันทร์ดวงใหญ่อยู่หลังเนื้อหาพอดี
+   ขอบนุ่มบาง (1/6/12px) ยังเหลือใบเรือลอดช่องระหว่างตัวอักษร (2.8:1 · 3.5:1) → ขอบนุ่มแน่นชิดตัวอักษรขึ้น เฉพาะธีมนี้ */
+:root[data-theme="hw-ghostship"] .phone :is(.dayrow-due,#menuBody .tg-lb2){text-shadow:0 0 2px var(--scr),0 0 3px var(--scr),0 0 6px var(--scr),0 0 10px var(--scr),0 0 16px var(--scr)}
+/* 23 ต.ค. 69 · textcheck: ทางเข้าอีเวนต์บนแท็บ "ฉัน" เคยย่อคำอธิบายกับ "ห้องลอง →" เหลือ 10px บนมือถือ (ต่ำกว่า 11px ของ DESIGN.md ข้อ 3)
+   ถอดการย่อออก ใช้ 11px เท่าจอใหญ่ · วัดที่ 375px: คำอธิบายยังสองบรรทัด การ์ดสูงขึ้น 2px (90→92 · แท็บ "ฉัน" เลื่อนได้อยู่แล้ว) */
+/* ชิป "ยังไม่ล็อกอิน" (แท็บฉัน) — alt.css ฝังส้มเข้ม #C2410C ไว้สำหรับธีมสว่าง · ธีมมืดต้องแก้เอง (dark กับ Moon & Candle แก้แล้ว)
+   ชีวนิเวศไม่ได้แก้ = ส้มเข้มบนการ์ดมืด 3.0:1 → ใช้ --warn ของธีมแบบเดียวกับ Moon & Candle */
+:root[data-theme^="hw-"] .ig-id>i.ig-off{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,var(--card));box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn) 30%,transparent)}
+:root[data-theme^="hw-"] .ig-id>i.ig-off::before{background:var(--warn);box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 22%,transparent)}
+/* พื้นโปร่งบนภาพฉาก: กล่อง "ไม่ทัน" ในจอวันนี้ (.dayvd.bad · แดงจาง ~10%) กับเม็ดค่าในแท็บฉัน (.pe-v) ปล่อยฉากสว่างลอดขึ้นมาใต้ตัวหนังสือ
+   (เรือผี 4.0:1 · แวมไพร์ 4.4:1) → รองพื้นการ์ดทึบไว้ใต้สีจางเดิม หน้าตาเหมือนเดิม แต่ฉากไม่ลอดแล้ว */
+:root[data-theme^="hw-"] .dayvd.bad{background:linear-gradient(var(--alert-soft),var(--alert-soft)),var(--card)}
+:root[data-theme^="hw-"] .phone .pe:not(.pe-daily) .pe-v:not(:empty){background:var(--card2)}
+/* เหรียญตราที่ได้แล้ว (.an-bd.got) พื้นเป็นทองจางโปร่งล้วน — บนฉากสว่าง (เรือผี · แวมไพร์) ตัวทองจมเหลือ 1.9:1
+   → รองพื้นการ์ดทึบใต้ทองจางเดิม (สูตรเดียวกับกล่อง "ไม่ทัน" ข้างบน) */
+:root[data-theme^="hw-"] .an-bd.got{background:linear-gradient(var(--gold-soft),var(--gold-soft)),var(--card)}
+
+
+/* 25 ต.ค. 69 · พอธีมเหล่านี้ใช้คอมโพเนนต์ของธีมหลัก โทเคนทุกตัวที่ธีมหลักอ่านจึงโผล่ให้เห็น
+   บล็อกฐาน hw- (บรรทัด 19) ตั้งค่าเป็นสีฟ้าอมเขียวของเรือผีไว้ และธีมย่อยสามตัวไม่ได้ตั้งทับ: --glass (แถบบน · หัวจอ)
+   · --grad-hero (การ์ดใหญ่) · --tint · --blue-deep · --on-accent → ฟักทอง/แวมไพร์/สุสานได้ชิ้นสีฟ้าโผล่กลางธีม
+   --glass-line ไม่ได้ตั้งเลย (ได้ค่าธีมสว่าง rgba(15,27,45,.08) มองไม่เห็นบนพื้นมืด) → ใช้ --line ของธีม */
+:root[data-theme^="hw-"]{--glass-line:var(--line)}
+:root[data-theme="hw-jackhollow"]{--glass:#35232ae8;--grad-hero:linear-gradient(140deg,#4a2e2c,#21151c);--tint:#573a32;--blue-deep:#f0cfa6;--on-accent:#301c24}
+:root[data-theme="hw-vampire"]{--glass:#302031e8;--grad-hero:linear-gradient(140deg,#4a2a44,#1b1425);--tint:#56324b;--blue-deep:#ecc6dc;--on-accent:#2d182b}
+:root[data-theme="hw-graveyard"]{--glass:#29263be8;--grad-hero:linear-gradient(140deg,#3b3358,#171728);--tint:#42365b;--blue-deep:#d6cbf2;--on-accent:#211b32}
+
+/* 25 ต.ค. 69 · เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้ · ปรับพวกสี UI ให้เข้ากว่านี้ แต่อย่าให้รกตา"
+   สีหลักเดิมเป็นพาสเทลจาง (มิ้นต์ · น้ำตาลอ่อน · ชมพูหวาน · ลาเวนเดอร์) อ่านเป็นแอปน่ารักมากกว่าคืนฮาโลวีน
+   → สีเดียวกันแต่ "เข้มข้นแบบผี": เรือผีเขียววิญญาณเรืองแสง · ฟักทองส้มสด · แวมไพร์แดงกุหลาบเลือด · สุสานเขียวแม่มดบนคืนม่วง
+   เปลี่ยนเฉพาะโทเคน (--fill · --on-fill · --blue · --grad-brand) ทุกชิ้นตามเอง · ตัวบนปุ่มยังเข้มบนสีสว่าง */
+:root[data-theme="hw-ghostship"]{--fill:#6FEFC4;--on-fill:#06231B;--fill-on:#06231B;--on-accent:#06231B;--blue:#8FF2D2;--grad-brand:linear-gradient(125deg,#2E8F78,#1B5A55)}
+:root[data-theme="hw-jackhollow"]{--fill:#FF9A3C;--on-fill:#2A1206;--fill-on:#2A1206;--on-accent:#2A1206;--blue:#FFC27A;--grad-brand:linear-gradient(125deg,#D2691E,#7A3412)}
+:root[data-theme="hw-vampire"]{--fill:#F2708C;--on-fill:#2A0B16;--fill-on:#2A0B16;--on-accent:#2A0B16;--blue:#F5A9BF;--grad-brand:linear-gradient(125deg,#B3264A,#5C1530)}
+:root[data-theme="hw-graveyard"]{--fill:#A8E27C;--on-fill:#15220C;--fill-on:#15220C;--on-accent:#15220C;--blue:#C9BBEA;--grad-brand:linear-gradient(125deg,#5E8E3A,#3B3060)}

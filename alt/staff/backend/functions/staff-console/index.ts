@@ -57,7 +57,9 @@ Deno.serve(
     ) => {
       const reportActions = ["bugs", "issues", "triage", "bug_triage", "report_trash", "report_restore"];
       const moderation = ['users','deduct','ban','unban'].includes(action);
-      const { data, error } = await db.rpc(action === 'push_status' ? 'staff_push_dashboard' : moderation ? 'staff_moderation_command' : reportActions.includes(action) ? "staff_report_command" : "staff_command", {
+      const insights = ['insights', 'people', 'person'].includes(action);
+      const sending = ['audience', 'sends', 'send', 'cancel_send'].includes(action);
+      const { data, error } = await db.rpc(insights ? 'staff_insights' : sending ? 'staff_send_command' : action === 'push_status' ? 'staff_push_dashboard' : moderation ? 'staff_moderation_command' : reportActions.includes(action) ? "staff_report_command" : "staff_command", {
         p_actor: actor.id,
         p_login: actor.login,
         p_action: action,
@@ -68,6 +70,8 @@ Deno.serve(
           400,
           moderation
             ? (action === 'deduct' ? 'หักโทเคนไม่ได้ ตรวจจำนวนและยอดบนคลาวด์อีกครั้ง' : 'ทำรายการบัญชีไม่ได้ ตรวจผู้รับ เหตุผล และระยะเวลา ห้ามแบนบัญชีแอดมินที่กำลังใช้อยู่')
+            : action === "send"
+            ? "ส่งข่าวไม่ได้ ตรวจกลุ่มผู้รับ (ต้องมีอย่างน้อย 1 คน) เวลาส่ง และเวลาหมดอายุอีกครั้ง"
             : action === "grant"
             ? "เพิ่มโทเคนไม่ได้ ตรวจว่าผู้รับเคยซิงก์ข้อมูล จำนวนถูกต้อง และยอดต่อวันยังไม่เกินกำหนด"
             : "ทำรายการไม่ได้ กรุณาตรวจข้อมูลหรือการติดตั้งฐานข้อมูล",

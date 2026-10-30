@@ -1,6 +1,9 @@
 import { renderIssues, renderBugs } from './report-ui.mjs';
 import { createStaffSessionStorage, STAFF_AUTH_KEY } from './staff-auth.mjs';
 import { pushStatusHTML } from './push-status-ui.mjs';
+import { demoInsights } from './insights-demo.mjs';
+import { sendsHTML, sendSummary, audienceLabel, FILTER_TO_AUDIENCE } from './send-ui.mjs';
+import { overviewHTML, usageHTML, outcomesHTML, peopleRowsHTML, peopleChipsHTML, personHTML } from './insights-ui.mjs';
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? "").replace(
@@ -21,7 +24,9 @@ const when = (v) =>
     : "ยังไม่มีข้อมูล";
 const titles = {
   overview: "ภาพรวม",
-  users: "ผู้ใช้งาน",
+  usage: "การใช้งาน",
+  outcomes: "ผลของแอป",
+  users: "ผู้ใช้",
   tokens: "โทเคนและการแบน",
   notices: "ข่าวสารและแจ้งเตือน",
   issues: "รายงานและปัญหาแอป",
@@ -58,6 +63,11 @@ let pending = null;
 let pushPage=0,pushLoadSeq=0;
 let staffAuth, authEpoch = 0;
 let bugPage = 0, issuePage = 0, reportBucket = 'pending', reportLoadSeq = 0;
+let days = 7, peopleFilter = 'all', person = null, personSeq = 0, insightSeq = 0;
+let picked = [], audSeq = 0, audTimer = 0, lastAud = null;
+// Renderers are looked up when a page loads, not at module start.
+const insightViews = { overview: 'overviewBody', usage: 'usageBody', outcomes: 'outcomesBody' };
+const renderInsight = (name, r) => (name === 'usage' ? usageHTML : name === 'outcomes' ? outcomesHTML : overviewHTML)(r);
 const data = { users: [], notices: [], issues: [], audit: [] };
 const demoUsers = Array.from({ length: 12 }, (_, i) => ({
   id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, "0")}`,
@@ -75,6 +85,10 @@ let demoNotices = [
     created_at: new Date().toISOString(),
     push_requested: false,
   },
+];
+let demoSends = [
+  { id: "00000000-0000-4000-8000-0000000000a1", title: "ภารกิจฮาโลวีนเหลือ 2 วัน", body: "ทำงานให้เสร็จ 3 ชิ้นวันนี้ รับของตกแต่งธีมฟักทองฟรี", audience: "ทุกคน", public: true, recipients: 0, status: "scheduled", scheduled_at: new Date(Date.now() + 5 * 3600000).toISOString(), push: true, push_total: 0, push_accepted: 0, push_failed: 0 },
+  { id: "00000000-0000-4000-8000-0000000000a2", title: "คิดถึงนะ กลับมาดูงานที่ค้างไว้", body: "มีงานใกล้ส่ง 2 ชิ้น เปิดแอปดูได้เลย", audience: "หายไปเกิน 3 วัน", public: false, recipients: 5, status: "published", published_at: new Date(Date.now() - 86400000).toISOString(), push: true, push_total: 2, push_accepted: 2, push_failed: 0 },
 ];
 let demoIssues = [
   {
@@ -151,6 +165,11 @@ async function api(action, payload = {}) {
   return body;
 }
 async function demoApi(action, p) {
+  if (['insights', 'people', 'person'].includes(action)) return demoInsights(action, p);
+  if (action === 'audience') { const n = { all: 24, active: 14, gone: 5, new: 3, old: 3, stuck: 1, grade: 10, pick: p.audience.ids?.length || 0 }[p.audience.kind]; return { recipients: n, push_ready: Math.round(n * 0.3) }; }
+  if (action === 'sends') return { items: demoSends };
+  if (action === 'send') { demoSends.unshift({ id: crypto.randomUUID(), title: p.title, body: p.body, audience: p.label, public: p.audience.kind === 'all', recipients: p.audience.kind === 'all' ? 0 : 5, status: p.at ? 'scheduled' : 'published', scheduled_at: p.at, published_at: p.at ? null : new Date().toISOString(), until_at: p.until, push: p.push, push_total: p.push && !p.at ? 2 : 0, push_accepted: 0, push_failed: 0 }); demoLog('send', p.title + ' · ' + p.label); return { id: p.request_id }; }
+  if (action === 'cancel_send') { const x = demoSends.find(y => y.id === p.batch_id); if (x) x.status = 'withdrawn'; demoLog('cancel_send', x?.title || ''); return { ok: true }; }
   if(action==='push_status') return {metrics:{pending:0,sending:0,accepted_24h:0,failed:0},items:[],generated_at:new Date().toISOString(),has_more:false};
   if (action === "session")
     return { login: "demo_developer", repo: "Nadokagenou/studentos-ai" };
@@ -319,36 +338,26 @@ async function refreshAfterReportSave(result) {
 }
 async function load() {
   if(view==='push_status') return loadPushStatus();
-  if (view === "overview") {
-    const r = await api("overview");
-    $("metrics").innerHTML = [
-      ["บัญชีที่เคยซิงก์", r.users, "ยังไม่นับผู้ใช้แบบไม่ล็อกอิน"],
-      ["ซิงก์ใน 24 ชั่วโมง", r.synced_24h, "นับเวลาซิงก์ล่าสุด"],
-      ["รายงานเนื้อหาที่ยังไม่ปิด", r.open_reports, "รับเรื่องและติดตามต่อได้"],
-      ["เพิ่มโทเคนวันนี้", r.tokens_today, "ยอดรวมจากรายการแอดมิน"],
-    ]
-      .map(
-        ([l, n, s]) =>
-          `<article class="metric"><span>${esc(l)}</span><b>${fmt(n)}</b><small>${esc(s)}</small></article>`,
-      )
-      .join("");
-    $("overviewIssues").innerHTML = issuesHTML(r.issues || [], true);
-    $("overviewAudit").innerHTML = auditHTML(r.audit || []);
+  if (insightViews[view]) {
+    const id = insightViews[view], seq = ++insightSeq, shown = view;
+    if (!$(id).innerHTML) $(id).innerHTML = empty("กำลังคำนวณตัวเลข…");
+    const r = await api("insights", { days });
+    if (seq !== insightSeq || view !== shown) return;
+    $(id).innerHTML = renderInsight(shown, r);
+    $("updatedAt").textContent = "อัปเดต " + when(r.generated_at);
   }
   if (view === "users") {
-    const r = await api("users", {
+    const r = await api("people", {
+      filter: peopleFilter,
       query: $("userQuery").value.trim(),
-      offset: page * 20,
+      offset: page * 50,
     });
     data.users = r.items || [];
-    $("usersRows").innerHTML = data.users.length
-      ? data.users
-          .map(
-            (x) =>
-              `<tr><td><b>${esc(x.display_name || "ยังไม่มีชื่อ")}</b><small>@${esc(x.handle || x.id.slice(0, 8))}</small>${x.banned ? `<small>แบน${x.ban_until ? 'ถึง ' + esc(when(x.ban_until)) : 'ถาวร'}</small>` : ''}</td><td>${esc(when(x.last_sync))}</td><td>${fmt(x.balance)}</td><td><button data-target="${esc(x.id)}">จัดการบัญชี</button></td></tr>`,
-          )
-          .join("")
-      : '<tr><td colspan="4">ไม่พบผู้ใช้</td></tr>';
+    data.today = r.today || new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+    $("peopleChips").innerHTML = peopleChipsHTML(r.counts, peopleFilter);
+    $("messageGroup").dataset.messageGroup = peopleFilter;
+    $("messageGroup").hidden = !FILTER_TO_AUDIENCE[peopleFilter];
+    $("usersRows").innerHTML = peopleRowsHTML(data.users, data.today);
     $("usersPage").textContent = `หน้า ${page + 1}`;
     $("usersPrev").disabled = page === 0;
     $("usersNext").disabled = !r.has_more;
@@ -361,7 +370,12 @@ async function load() {
     await loadReports();
   }
   if (view === "notices") {
-    data.notices = (await api("notices")).items || [];
+    const [notices, sends] = await Promise.allSettled([api("notices"), api("sends")]);
+    $("sendList").innerHTML = sends.status === "fulfilled" ? sendsHTML(sends.value.items || []) : empty("ยังโหลดรายการข่าวที่ส่งไม่ได้ กดรีเฟรชเพื่อลองใหม่");
+    if (notices.status === "rejected") throw notices.reason;
+    // Sends made from the new form are listed above; keep this list for drafts and older notices.
+    data.notices = (notices.value.items || []).filter((x) => !x.batch_id);
+    refreshAudience();
     $("noticeList").innerHTML = data.notices.length
       ? data.notices
           .map(
@@ -369,12 +383,32 @@ async function load() {
               `<div class="item"><h3>${esc(x.title)} <span class="tag ${x.status === "draft" ? "dim" : ""}">${esc({ draft: "ร่าง", published: "เผยแพร่แล้ว", withdrawn: "ถอนแล้ว" }[x.status] || x.status)}</span></h3><p>${esc(x.body)}</p><p>${esc(when(x.published_at || x.created_at))}${x.push_status ? " · " + esc(x.push_status) : ""}</p><div class="actions">${x.status === "draft" ? `<button data-publish="${esc(x.id)}">เผยแพร่เป็นข่าวในแอป</button><button data-push="${esc(x.id)}">เผยแพร่พร้อมแจ้งเตือน Push</button>` : ""}${x.status !== "withdrawn" ? `<button data-withdraw="${esc(x.id)}">ถอนประกาศ</button>` : ""}</div></div>`,
           )
           .join("")
-      : empty("ยังไม่มีประกาศ เริ่มจากบันทึกเป็นร่าง");
+      : empty("ยังไม่มีร่างหรือประกาศแบบเดิม");
   }
+}
+async function openPerson(id) {
+  const seq = ++personSeq;
+  $("personBody").innerHTML = empty("กำลังโหลด…");
+  $("personDrawer").hidden = false;
+  try {
+    const p = await api("person", { id });
+    if (seq !== personSeq) return;
+    person = p;
+    $("personBody").innerHTML = personHTML(p, data.today);
+  } catch (e) {
+    if (seq === personSeq) $("personBody").innerHTML = empty(e.message);
+  }
+}
+function closePerson() {
+  ++personSeq;
+  $("personDrawer").hidden = true;
 }
 async function show(next) {
   if (!titles[next]) return;
   view = next;
+  closePerson();
+  $("range").hidden = !insightViews[next];
+  if (!insightViews[next]) $("updatedAt").textContent = "";
   document
     .querySelectorAll(".view")
     .forEach((e) => (e.hidden = e.id !== `view-${next}`));
@@ -432,8 +466,43 @@ async function mutate(action, payload, success) {
   }
 }
 document.addEventListener("click", async (e) => {
+  if (e.target.id === "personDrawer") return closePerson();
+  const row = e.target.closest("tr[data-person]");
+  if (row) return openPerson(row.dataset.person);
   const b = e.target.closest("button");
   if (!b) return;
+  if (b.dataset.closePerson !== undefined) return closePerson();
+  if (b.dataset.messagePerson) {
+    const p = person?.id === b.dataset.messagePerson ? person : data.users.find((x) => x.id === b.dataset.messagePerson);
+    if (p && !picked.some((x) => x.id === p.id)) picked.push({ id: p.id, name: p.display_name || "@" + (p.handle || p.id.slice(0, 8)) });
+    await show("notices");
+    document.querySelector('input[name="aud"][value="pick"]').checked = true;
+    return refreshAudience();
+  }
+  if (b.dataset.messageGroup) {
+    await show("notices");
+    const input = document.querySelector(`input[name="aud"][value="${FILTER_TO_AUDIENCE[b.dataset.messageGroup] || "all"}"]`);
+    if (input) input.checked = true;
+    return refreshAudience();
+  }
+  if (b.dataset.cancelSend) {
+    const scheduled = b.textContent.includes("ยกเลิก");
+    if (!(await confirm(scheduled ? "ยกเลิกข่าวที่ตั้งเวลาไว้?" : "ถอนข่าวนี้?",
+      scheduled ? "ข่าวนี้จะไม่ถูกส่ง" : "ข่าวจะหายจากแอปของผู้รับ และยกเลิกแจ้งเตือนที่ยังไม่ได้ส่ง แจ้งเตือนที่เด้งไปแล้วเรียกคืนไม่ได้",
+      scheduled ? "ยกเลิกการตั้งเวลา" : "ถอนข่าว"))) return;
+    if (await mutate("cancel_send", { batch_id: b.dataset.cancelSend }, scheduled ? "ยกเลิกแล้ว" : "ถอนข่าวแล้ว")) await reloadData();
+    return;
+  }
+  if (b.dataset.days) {
+    days = Number(b.dataset.days);
+    document.querySelectorAll("[data-days]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    return show(insightViews[view] ? view : "overview");
+  }
+  if (b.dataset.peopleFilter) {
+    peopleFilter = b.dataset.peopleFilter;
+    page = 0;
+    return show("users");
+  }
   if (b.dataset.view || b.dataset.jump)
     return show(b.dataset.view || b.dataset.jump);
   if (b.dataset.reportBucket) {
@@ -458,7 +527,8 @@ document.addEventListener("click", async (e) => {
   }
   if (b.dataset.target) {
     if (busy) return;
-    target = data.users.find((x) => x.id === b.dataset.target);
+    target = data.users.find((x) => x.id === b.dataset.target) || (person?.id === b.dataset.target ? person : null);
+    if (!target) return;
     $("grantTarget").value =
       `${target.display_name || ""} · @${target.handle || target.id}`;
     $('banCurrent').textContent = `${target.display_name || ''} · @${target.handle || target.id} · ${target.banned ? (target.ban_until ? 'แบนถึง ' + when(target.ban_until) : 'แบนถาวร') : 'ใช้งานปกติ'}`;
@@ -511,6 +581,11 @@ document.addEventListener("click", async (e) => {
     else if (result) await reloadData();
     return;
   }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !$("personDrawer").hidden) closePerson();
+  const row = e.target.closest?.("tr[data-person]");
+  if (row && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openPerson(row.dataset.person); }
 });
 document.addEventListener('submit', async (e) => {
   const form = e.target.closest('[data-bug-form]');
@@ -597,26 +672,67 @@ $('banForm').addEventListener('submit', async e => {
     $('banReason').value = ''; $('banAction').value = target.banned ? 'unban' : '1d';
   }
 });
-$("noticeForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const payload = {
+function currentAudience() {
+  const kind = document.querySelector('input[name="aud"]:checked')?.value || "all";
+  if (kind === "grade") return { kind, grade: $("audGrade").value };
+  if (kind === "pick") return { kind, ids: picked.map((x) => x.id) };
+  return { kind };
+}
+// Datetime inputs are read as Thai wall-clock time whatever the device's own time zone is.
+const thaiTime = (v) => (v ? new Date(v + ":00+07:00").toISOString() : null);
+function refreshAudience() {
+  clearTimeout(audTimer);
+  const aud = currentAudience(), seq = ++audSeq;
+  $("pickedNames").textContent = picked.length ? picked.map((x) => x.name).join(", ") : 'เลือกจากหน้าผู้ใช้ → กดชื่อ → "ส่งข่าวหาคนนี้"';
+  if (aud.kind === "pick" && !picked.length) { lastAud = null; $("audCount").textContent = "ยังไม่ได้เลือกใคร"; return; }
+  $("audCount").textContent = "กำลังนับผู้รับ…";
+  audTimer = setTimeout(async () => {
+    try {
+      const r = await api("audience", { audience: aud });
+      if (seq !== audSeq) return;
+      lastAud = { key: JSON.stringify(aud), ...r };
+      $("audCount").textContent = `จะถึง ${fmt(r.recipients)} คน · ในนั้นเด้งบนมือถือได้ ${fmt(r.push_ready)} คน`;
+    } catch (e) {
+      if (seq === audSeq) $("audCount").textContent = "นับผู้รับไม่ได้: " + e.message;
+    }
+  }, 250);
+}
+function sendDraftPayload() {
+  return {
     title: $("noticeTitle").value.trim(),
     body: $("noticeBody").value.trim(),
-    until: $("noticeUntil").value
-      ? new Date($("noticeUntil").value).toISOString()
-      : null,
+    until: thaiTime($("noticeUntil").value),
   };
-  if (payload.title.length < 4 || !payload.body) {
-    message("กรอกหัวข้อและข้อความให้ครบ", true);
-    return;
-  }
-  if (await mutate("draft", payload, "บันทึกร่างแล้ว ยังไม่ได้ส่งให้ผู้ใช้")) {
-    e.target.reset();
-    preview();
-    await load();
-  }
+}
+function resetCompose() {
+  $("noticeForm").reset(); picked = []; preview(); refreshAudience(); $("sendAtWrap").hidden = true;
+}
+$("noticeForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const base = sendDraftPayload(), aud = currentAudience();
+  if (base.title.length < 4 || !base.body) return message("กรอกหัวข้อ (อย่างน้อย 4 ตัวอักษร) และข้อความให้ครบ", true);
+  if (aud.kind === "pick" && !picked.length) return message("ยังไม่ได้เลือกผู้รับ เลือกจากหน้าผู้ใช้ก่อนครับ", true);
+  const later = $("sendWhen").value === "later";
+  const at = later ? thaiTime($("sendAt").value) : null;
+  if (later && !at) return message("เลือกวันเวลาที่จะส่ง", true);
+  const label = audienceLabel(aud, picked), push = $("sendPush").checked;
+  const counts = lastAud?.key === JSON.stringify(aud) ? lastAud : {};
+  if (!(await confirm(later ? "ตรวจข่าวก่อนตั้งเวลา" : "ตรวจข่าวก่อนส่ง",
+    sendSummary({ ...base, aud, label, recipients: counts.recipients, pushReady: counts.push_ready, at, push }),
+    later ? "ตั้งเวลาส่ง" : "ส่งเลย"))) return;
+  const r = await mutate("send", { ...base, at, push, audience: aud, label },
+    later ? "ตั้งเวลาแล้ว ข่าวจะออกตามเวลาที่เลือก" : "ส่งข่าวแล้ว");
+  if (r) { resetCompose(); await load(); }
 });
+$("draftBtn").onclick = async () => {
+  const payload = sendDraftPayload();
+  if (payload.title.length < 4 || !payload.body) return message("กรอกหัวข้อและข้อความให้ครบ", true);
+  if (await mutate("draft", payload, "บันทึกร่างแล้ว ยังไม่ได้ส่งให้ผู้ใช้ · ร่างส่งได้ถึงทุกคนเท่านั้น")) { resetCompose(); await load(); }
+};
+$("audience").addEventListener("change", refreshAudience);
+$("sendWhen").onchange = () => { $("sendAtWrap").hidden = $("sendWhen").value !== "later"; };
 function preview() {
+  $("bodyCount").textContent = `${$("noticeBody").value.length}/280`;
   $("previewTitle").textContent = $("noticeTitle").value || "หัวข้อประกาศ";
   $("previewBody").textContent =
     $("noticeBody").value || "ข้อความที่เขียนจะแสดงตรงนี้";
@@ -652,7 +768,9 @@ function adoptSession(next) {
     target = null; pending = null;
     for(const id of ['pushMetrics','pushRows','pushUpdated','pushHint']) $(id).textContent='';
     for (const key of Object.keys(data)) data[key] = [];
-    for (const id of ['identity', 'metrics', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList', 'overviewIssues', 'overviewAudit']) $(id).innerHTML = '';
+    person = null; ++personSeq; ++insightSeq; $('personDrawer').hidden = true;
+    picked = []; lastAud = null; ++audSeq;
+    for (const id of ['identity', 'sendList', 'audCount', 'overviewBody', 'usageBody', 'outcomesBody', 'peopleChips', 'personBody', 'updatedAt', 'usersRows', 'noticeList', 'bugIssueList', 'issueList', 'auditList']) $(id).innerHTML = '';
     document.querySelectorAll('form input, form textarea').forEach(el => el.value = '');
     gate('บัญชีเปลี่ยนแล้ว กรุณาเปิด Control Room อีกครั้ง');
   }

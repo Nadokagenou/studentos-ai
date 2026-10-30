@@ -184,7 +184,7 @@ function renderFxPick() {
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
   }
   const tr = document.getElementById('fxTry');
-  if (mode && (window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship')) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>';
+  if (mode && (window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship')) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>'+(window.CursedShip?.motionControlsHTML(cur)||'');
   if (tr) { tr.hidden = cur === 'confetti'; tr.textContent = window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship' ? 'ดูตัวอย่างฉากฉลอง' : 'ลองเล่นดู'; }
 }
 

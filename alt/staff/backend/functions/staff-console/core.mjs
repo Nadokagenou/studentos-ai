@@ -1,6 +1,23 @@
 const UUID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const READ = new Set(["overview", "users", "notices", "issues", "audit", "bugs", "reports", "push_status"]);
+const INSIGHT_DAYS = [1, 7, 30, 90];
+const PEOPLE_FILTERS = ["all", "today", "gone", "new", "stuck", "nopush", "old", "banned"];
+const AUDIENCES = ["all", "active", "gone", "new", "old", "stuck", "grade", "pick"];
+function audience(input) {
+  if (!input || typeof input !== "object" || Array.isArray(input) || !AUDIENCES.includes(input.kind))
+    throw new HttpError(400, "เลือกกลุ่มผู้รับอีกครั้ง");
+  if (input.kind === "grade") {
+    if (typeof input.grade !== "string" || !input.grade.trim() || input.grade.length > 12) throw new HttpError(400, "ระบุชั้นปี");
+    return { kind: "grade", grade: input.grade.trim() };
+  }
+  if (input.kind === "pick") {
+    if (!Array.isArray(input.ids) || !input.ids.length || input.ids.length > 500 || !input.ids.every(id => UUID.test(id)))
+      throw new HttpError(400, "เลือกผู้รับ 1–500 คน");
+    return { kind: "pick", ids: [...new Set(input.ids.map(id => id.toLowerCase()))] };
+  }
+  return { kind: input.kind };
+}
 const WRITE = new Set(["grant", "deduct", "ban", "unban", "draft", "publish", "withdraw", "triage", "bug_triage", "report_trash", "report_restore"]);
 const REPORT_WRITE = new Set(["triage", "bug_triage", "report_trash", "report_restore"]);
 const offset = value => Math.max(0, Math.min(100000, Math.floor(Number(value) || 0)));
@@ -35,6 +52,42 @@ export function validate(input) {
     const status=input.status??'all';
     if (!['all','pending','sending','accepted','failed','cancelled'].includes(status)) throw new HttpError(400,'ไม่พบหมวดแจ้งเตือน');
     return {action,payload:{status,offset:offset(input.offset)}};
+  }
+  if (action === "insights")
+    return { action, payload: { days: INSIGHT_DAYS.includes(input.days) ? input.days : 7 } };
+  if (action === "people") {
+    const filter = input.filter ?? "all";
+    if (!PEOPLE_FILTERS.includes(filter)) throw new HttpError(400, "ไม่พบกลุ่มผู้ใช้");
+    return { action, payload: { filter, query: String(input.query || "").slice(0, 100), offset: offset(input.offset) } };
+  }
+  if (action === "audience") return { action, payload: { audience: audience(input.audience) } };
+  if (action === "sends") return { action, payload: {} };
+  if (action === "send" || action === "cancel_send") {
+    if (!UUID.test(input.request_id || "")) throw new HttpError(400, "ต้องมีรหัสรายการ");
+    if (action === "cancel_send") {
+      if (!UUID.test(input.batch_id || "")) throw new HttpError(400, "รหัสข่าวไม่ถูกต้อง");
+      return { action, payload: { request_id: input.request_id, batch_id: input.batch_id.toLowerCase() } };
+    }
+    const title = typeof input.title === "string" ? input.title.trim() : "";
+    const body = typeof input.body === "string" ? input.body.trim() : "";
+    if (title.length < 4 || title.length > 60 || !body || body.length > 280)
+      throw new HttpError(400, "หัวข้อ 4–60 ตัวอักษร และข้อความไม่เกิน 280 ตัวอักษร");
+    const time = (v, msg) => {
+      if (v == null || v === "") return null;
+      if (typeof v !== "string" || !Number.isFinite(Date.parse(v))) throw new HttpError(400, msg);
+      return new Date(v).toISOString();
+    };
+    const at = time(input.at, "เวลาส่งไม่ถูกต้อง"), until = time(input.until, "เวลาหมดอายุไม่ถูกต้อง");
+    if (at && (Date.parse(at) < Date.now() + 60000 || Date.parse(at) > Date.now() + 60 * 86400000))
+      throw new HttpError(400, "ตั้งเวลาส่งได้ตั้งแต่ 1 นาทีถึง 60 วันข้างหน้า");
+    if (until && Date.parse(until) <= (at ? Date.parse(at) : Date.now())) throw new HttpError(400, "เวลาหมดอายุต้องอยู่หลังเวลาส่ง");
+    if (typeof input.push !== "boolean") throw new HttpError(400, "ระบุว่าจะเด้งแจ้งเตือนหรือไม่");
+    return { action, payload: { request_id: input.request_id, title, body, at, until, push: input.push,
+      audience: audience(input.audience), label: String(input.label || "").slice(0, 80) } };
+  }
+  if (action === "person") {
+    if (!UUID.test(input.id || "")) throw new HttpError(400, "รหัสผู้ใช้ไม่ถูกต้อง");
+    return { action, payload: { id: input.id.toLowerCase() } };
   }
   if (!READ.has(action) && !WRITE.has(action))
     throw new HttpError(400, "ไม่พบคำสั่ง");

@@ -28,7 +28,7 @@ test('sidebar preference is separate from existing application data and tolerate
 test('phones and narrow tablets do not load desktop controls; resizing loads them once',()=>{
  const source=fs.readFileSync(new URL('../desktop-entry.js',import.meta.url),'utf8');
  const created=[],listeners=[],media={matches:false,addEventListener:(event,fn)=>listeners.push(fn)};
- vm.runInNewContext(source,{matchMedia:query=>{assert.equal(query,'(min-width:1024px) and (hover:hover) and (pointer:fine)');return media;},document:{createElement:()=>({}),body:{appendChild:node=>created.push(node)}}});
+ vm.runInNewContext(source,{matchMedia:query=>{assert.equal(query,'(min-width:1025px) and (hover:hover) and (pointer:fine)');return media;},document:{createElement:()=>({}),body:{appendChild:node=>created.push(node)}}});
  assert.equal(created.length,0);listeners[0]();assert.equal(created.length,0);
  media.matches=true;listeners[0]();assert.equal(created.length,1);assert.equal(created[0].type,'module');assert.match(created[0].src,/^desktop\.js/);
  media.matches=false;listeners[0]();media.matches=true;listeners[0]();assert.equal(created.length,1);
@@ -37,9 +37,9 @@ test('wide touch-only screens also fail the desktop loading gate',()=>{
  const source=fs.readFileSync(new URL('../desktop-entry.js',import.meta.url),'utf8');
  for(const device of [{width:375,hover:false,fine:false},{width:768,hover:false,fine:false},{width:1366,hover:false,fine:false},{width:1280,hover:true,fine:true}]){
   const created=[];
-  vm.runInNewContext(source,{matchMedia:query=>({matches:device.width>=1024&&device.hover&&device.fine,addEventListener:()=>{}}),document:{createElement:()=>({}),body:{appendChild:node=>created.push(node)}}});
-  assert.equal(created.length,device.width>=1024&&device.hover&&device.fine?1:0);
+  vm.runInNewContext(source,{matchMedia:query=>({matches:device.width>=1025&&device.hover&&device.fine,addEventListener:()=>{}}),document:{createElement:()=>({}),body:{appendChild:node=>created.push(node)}}});
+  assert.equal(created.length,device.width>=1025&&device.hover&&device.fine?1:0);
  }
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
- assert.match(html,/<link[^>]+href="desktop\.css"[^>]+media="\(min-width:1024px\) and \(hover:hover\) and \(pointer:fine\)"/);
+ assert.match(html,/<link[^>]+href="desktop\.css(?:\?[^"]*)?"[^>]+media="\(min-width:1025px\) and \(hover:hover\) and \(pointer:fine\)"/);
 });

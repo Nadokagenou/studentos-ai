@@ -7,10 +7,11 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <title>Student OS · Control Room</title>
-    <link rel="stylesheet" href="staff.css?v=20261016-moderation" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="staff.css?v=20261029-insights" />
   </head>
   <body>
     <main id="gate" class="gate">
@@ -35,13 +36,19 @@
           <div><b>Student OS</b><span>Control Room</span></div>
         </div>
         <nav aria-label="เมนูแอดมิน">
-          <button data-view="overview" class="selected">ภาพรวม</button
-          ><button data-view="users">ผู้ใช้งาน</button
-          ><button data-view="tokens">โทเคนและการแบน</button
-          ><button data-view="notices">ข่าวสารและแจ้งเตือน</button
-          ><button data-view="issues">รายงานและปัญหาแอป</button
-          ><button data-view="push_status">สถานะแจ้งเตือน</button
-          ><button data-view="audit">ประวัติการจัดการ</button>
+          <p class="nav-group">ดูข้อมูล</p>
+          <button data-view="overview" class="selected">ภาพรวม</button>
+          <button data-view="usage">การใช้งาน</button>
+          <button data-view="outcomes">ผลของแอป</button>
+          <p class="nav-group">คน</p>
+          <button data-view="users">ผู้ใช้</button>
+          <p class="nav-group">สั่งการ</p>
+          <button data-view="notices">ข่าวสารและแจ้งเตือน</button>
+          <button data-view="tokens">โทเคนและการแบน</button>
+          <p class="nav-group">ดูแล</p>
+          <button data-view="issues">รายงานและปัญหาแอป</button>
+          <button data-view="push_status">สถานะแจ้งเตือน</button>
+          <button data-view="audit">ประวัติการจัดการ</button>
         </nav>
         <div class="side-bottom">
           <span id="identity"></span><button id="signOut">ออกจากระบบ</button>
@@ -49,11 +56,17 @@
       </aside>
       <main class="workspace">
         <header class="top">
-          <div>
-            <p class="eyebrow">STUDENT OS · ADMIN</p>
+          <div class="top-title">
             <h1 id="pageTitle">ภาพรวม</h1>
+            <p id="updatedAt" class="footnote"></p>
           </div>
           <div class="top-status">
+            <div class="range" id="range" role="group" aria-label="ช่วงเวลา">
+              <button data-days="1" aria-pressed="false">วันนี้</button
+              ><button data-days="7" aria-pressed="true">7 วัน</button
+              ><button data-days="30" aria-pressed="false">30 วัน</button
+              ><button data-days="90" aria-pressed="false">90 วัน</button>
+            </div>
             <span id="modeBadge">เชื่อมต่อระบบจริง</span
             ><button id="refresh">รีเฟรช</button>
           </div>
@@ -64,61 +77,34 @@
           <a href="https://nadokagenou.github.io/studentos-ai/alt/staff/">เปิด Control Room จริง</a>
         </div>
         <p id="message" class="message" role="status" hidden></p>
-        <section id="view-overview" class="view">
-          <div class="welcome">
-            <div>
-              <p class="eyebrow">วันนี้ทีมควรดูอะไร</p>
-              <h2>ดูแลแอปจากที่เดียว</h2>
-              <p>เห็นข้อมูลที่จำเป็น และตรวจย้อนหลังได้ทุกครั้งที่แก้ไข</p>
-            </div>
-            <span class="welcome-symbol">◎</span>
-          </div>
-          <div id="metrics" class="metrics"></div>
-          <div class="two-col">
-            <article class="panel">
-              <div class="panel-head">
-                <h2>สิ่งที่รอตรวจ</h2>
-                <button data-jump="issues">เปิดรายการ</button>
-              </div>
-              <div id="overviewIssues"></div>
-            </article>
-            <article class="panel">
-              <div class="panel-head">
-                <h2>การจัดการล่าสุด</h2>
-                <button data-jump="audit">ดูประวัติ</button>
-              </div>
-              <div id="overviewAudit"></div>
-            </article>
-          </div>
-          <p class="footnote">
-            จำนวนผู้ใช้ในหน้านี้นับบัญชีที่เคยซิงก์ข้อมูล
-            คนที่ใช้แบบไม่ล็อกอินยังนับรายคนไม่ได้
-          </p>
-        </section>
+        <section id="view-overview" class="view"><div id="overviewBody" class="grid" aria-live="polite"></div></section>
+        <section id="view-usage" class="view" hidden><div id="usageBody" class="grid"></div></section>
+        <section id="view-outcomes" class="view" hidden><div id="outcomesBody" class="grid"></div></section>
         <section id="view-users" class="view" hidden>
-          <article class="panel">
-            <div class="panel-head">
-              <div>
-                <h2>บัญชีที่เคยซิงก์</h2>
-                <p>แสดงชื่อผู้ใช้ เวลาซิงก์ล่าสุด และยอดโทเคนที่ซิงก์ไว้</p>
-              </div>
-            </div>
+          <article class="card">
             <form id="searchUsers" class="search">
               <input
                 id="userQuery"
+                type="search"
                 aria-label="ค้นหาผู้ใช้"
                 placeholder="ค้นหา @ชื่อผู้ใช้ ชื่อ หรือรหัสบัญชี"
                 maxlength="100"
-              /><button type="submit">ค้นหา</button>
+              /><button type="submit">ค้นหา</button
+              ><button type="button" id="messageGroup" class="primary" data-message-group="all">ส่งข่าวถึงกลุ่มนี้</button>
             </form>
+            <div id="peopleChips" class="chips" role="group" aria-label="กลุ่มผู้ใช้"></div>
             <div class="table-scroll">
-              <table>
+              <table class="people">
                 <thead>
                   <tr>
                     <th>ผู้ใช้</th>
-                    <th>ซิงก์ล่าสุด</th>
-                    <th>โทเคนบนคลาวด์</th>
-                    <th></th>
+                    <th>ใช้ล่าสุด</th>
+                    <th>14 วันล่าสุด</th>
+                    <th>ใช้มา</th>
+                    <th>เสร็จ / สร้าง</th>
+                    <th>ก่อนกำหนด</th>
+                    <th>อุปกรณ์</th>
+                    <th>โทเคน</th>
                   </tr>
                 </thead>
                 <tbody id="usersRows"></tbody>
@@ -128,6 +114,7 @@
               <button id="usersPrev">ก่อนหน้า</button
               ><span id="usersPage"></span><button id="usersNext">ถัดไป</button>
             </div>
+            <p class="footnote">กดแถวเพื่อดูรายคน · ไม่แสดงชื่องาน การบ้าน อีเมล หรือข้อความแชท</p>
           </article>
         </section>
         <section id="view-tokens" class="view" hidden>
@@ -195,47 +182,54 @@
           </article>
         </section>
         <section id="view-notices" class="view" hidden>
-          <div class="two-col">
-            <article class="panel">
-              <h2>เขียนข่าวสาร</h2>
+          <div class="grid g32">
+            <article class="card">
+              <h2>เขียนข่าว</h2>
               <form id="noticeForm" class="stack">
-                <label
-                  >หัวข้อ<input
-                    id="noticeTitle"
-                    minlength="4"
-                    maxlength="60"
-                    required
-                    placeholder="ข่าวอะไรที่ผู้ใช้ต้องรู้" /></label
-                ><label
-                  >ข้อความ<textarea
-                    id="noticeBody"
-                    maxlength="280"
-                    required
-                    placeholder="อธิบายให้สั้น ชัด และตรงกับสิ่งที่เกิดขึ้นจริง"
-                  ></textarea></label
-                ><label
-                  >หมดอายุเมื่อใด (ไม่บังคับ)<input
-                    id="noticeUntil"
-                    type="datetime-local" /></label
-                ><button type="submit">บันทึกเป็นร่าง</button>
+                <label>หัวข้อ<input id="noticeTitle" minlength="4" maxlength="60" required placeholder="ข่าวอะไรที่ผู้ใช้ต้องรู้" /></label>
+                <label>ข้อความ <small id="bodyCount" class="footnote">0/280</small><textarea id="noticeBody" maxlength="280" required placeholder="อธิบายให้สั้น ชัด และตรงกับสิ่งที่เกิดขึ้นจริง"></textarea></label>
+                <fieldset class="aud" id="audience">
+                  <legend>ส่งถึงใคร</legend>
+                  <label class="opt"><input type="radio" name="aud" value="all" checked /><span>ทุกคน<small>ขึ้นในหน้าข่าวสารของทุกคน รวมคนที่ไม่ได้ล็อกอิน</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="active" /><span>ใช้ใน 7 วัน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="gone" /><span>หายไปเกิน 3 วัน<small>เหมาะกับข่าวชวนกลับ</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="new" /><span>คนใหม่ 7 วัน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="old" /><span>ใช้แอปรุ่นเก่า<small>เหมาะกับข่าวให้อัปเดต</small></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="stuck" /><span>ยังไม่สร้างงาน</span></label>
+                  <label class="opt"><input type="radio" name="aud" value="grade" /><span>ตามชั้นปี <select id="audGrade" aria-label="ชั้นปี"><option>ม.1</option><option>ม.2</option><option>ม.3</option><option selected>ม.4</option><option>ม.5</option><option>ม.6</option></select></span></label>
+                  <label class="opt"><input type="radio" name="aud" value="pick" /><span>เลือกเอง<small id="pickedNames">เลือกจากหน้าผู้ใช้ → กดชื่อ → "ส่งข่าวหาคนนี้"</small></span></label>
+                </fieldset>
+                <p id="audCount" class="footnote" aria-live="polite"></p>
+                <div class="two-col tight">
+                  <label>ส่งเมื่อไหร่<select id="sendWhen"><option value="now">ส่งทันที</option><option value="later">ตั้งเวลา</option></select></label>
+                  <label id="sendAtWrap" hidden>วันเวลาที่ส่ง (เวลาไทย)<input id="sendAt" type="datetime-local" /></label>
+                </div>
+                <label>หายจากแอปเมื่อ (ไม่บังคับ)<input id="noticeUntil" type="datetime-local" /></label>
+                <label class="check"><input id="sendPush" type="checkbox" checked /> เด้งแจ้งเตือนบนมือถือด้วย</label>
+                <div class="actions">
+                  <button type="submit" class="primary">ตรวจแล้วส่ง</button>
+                  <button type="button" id="draftBtn">บันทึกร่าง (ทุกคน)</button>
+                </div>
               </form>
             </article>
-            <article class="panel soft">
-              <p class="eyebrow">ตัวอย่างที่ผู้ใช้จะเห็น</p>
-              <div class="notice-preview">
-                <span class="tag">ข่าวจากทีม Student OS</span>
-                <h2 id="previewTitle">หัวข้อประกาศ</h2>
-                <p id="previewBody">ข้อความที่เขียนจะแสดงตรงนี้</p>
-              </div>
-              <p class="footnote">
-                บันทึกร่างก่อน แล้วกดเผยแพร่จากรายการด้านล่าง
-                การแจ้งเตือนนอกแอปส่งเฉพาะเครื่องที่อนุญาตไว้ และพักช่วง
-                22:00–07:00 น.
-              </p>
-            </article>
+            <div class="grid">
+              <article class="card soft">
+                <p class="eyebrow">ตัวอย่างที่ผู้ใช้จะเห็น</p>
+                <div class="notice-preview">
+                  <span class="tag">ข่าวจากทีม Student OS</span>
+                  <h2 id="previewTitle">หัวข้อประกาศ</h2>
+                  <p id="previewBody">ข้อความที่เขียนจะแสดงตรงนี้</p>
+                </div>
+                <p class="footnote">ส่งถึงทุกคน = ขึ้นในหน้าข่าวสาร · ส่งถึงกลุ่ม = ขึ้นในกระดิ่งของคนในกลุ่มเท่านั้น · แจ้งเตือนนอกแอปส่งเฉพาะเครื่องที่อนุญาตไว้ และพักช่วง 22:00–07:00 น.</p>
+              </article>
+            </div>
           </div>
-          <article class="panel">
-            <h2>ร่างและประกาศที่เผยแพร่</h2>
+          <article class="card">
+            <div class="card-h"><h2>ข่าวที่ส่งและที่ตั้งเวลาไว้</h2></div>
+            <div id="sendList"></div>
+          </article>
+          <article class="card">
+            <h2>ร่างและประกาศแบบเดิม</h2>
             <div id="noticeList"></div>
           </article>
         </section>
@@ -282,6 +276,9 @@
         </section>
       </main>
     </div>
+    <div id="personDrawer" class="drawer" hidden>
+      <div id="personBody" class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="personName"></div>
+    </div>
     <dialog id="confirmDialog">
       <form method="dialog">
         <h2 id="confirmTitle"></h2>
@@ -296,6 +293,6 @@
     </dialog>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.min.js"></script>
     <script src="../config.js"></script>
-    <script type="module" src="staff.js?v=20261017-push-status"></script>
+    <script type="module" src="staff.js?v=20261029-insights"></script>
   </body>
 </html>

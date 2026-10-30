@@ -1,0 +1,33 @@
+.hw-badge-section {margin:0 0 20px;padding:17px;border:1px solid var(--line);border-radius:18px;background:var(--card);color:var(--ink)}
+.hw-badge-heading {display:flex;justify-content:space-between;align-items:center;gap:8px}
+.hw-badge-heading small {font-size:9px;letter-spacing:.12em;color:var(--muted)}
+.hw-badge-heading h2 {font-size:20px;margin:4px 0 0;line-height:1.4}
+.hw-badge-count {font-size:11px;white-space:nowrap;color:var(--muted)}
+.hw-badge-state {font-size:11px;line-height:1.7;color:var(--muted);margin:9px 0 13px}
+.hw-badge-list {display:grid;gap:11px}
+.hw-badge-card {position:relative;isolation:isolate;display:flex;align-items:center;gap:10px;width:100%;overflow:hidden;text-align:left;font:inherit;color:var(--ink);background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer}
+.hw-badge-art {display:grid;place-items:center;width:80px;height:104px;flex:none;border-radius:10px;background:radial-gradient(ellipse,#a490b912,transparent 73%)}
+.hw-badge-art img {display:block;width:100%;height:100%;object-fit:contain;filter:grayscale(.8);opacity:.6}
+.hw-badge-card.earned .hw-badge-art img,.hw-badge-card.preview .hw-badge-art img {filter:none;opacity:1}
+.hw-badge-copy {min-width:0;display:flex;flex-direction:column;gap:5px}
+.hw-badge-copy small {font-size:9px;letter-spacing:.025em;color:var(--muted)}
+.hw-badge-copy strong {font-size:14px;line-height:1.5}
+.hw-badge-copy>span {font-size:10px;line-height:1.7;color:var(--muted)}
+.hw-badge-copy em {font-style:normal;font-size:10px;color:var(--blue);margin-top:3px}
+.hw-badge-card.earned {border-color:color-mix(in srgb,#cba964 45%,var(--line))}
+.hw-badge-card.earned::before {content:"";position:absolute;inset:-100%;z-index:-1;background:conic-gradient(transparent 10%,#d7ba8020,transparent 35%);animation:hw-badge-aura 18s linear infinite}
+.hw-badge-refresh {display:block;min-height:44px;margin:10px 0 -6px;padding:7px 0;background:none;border:0;color:var(--blue);font-family:inherit;font-size:11px;cursor:pointer}
+.hw-badge-refresh[hidden] {display:none}
+.hw-badge-card:focus-visible,.hw-badge-refresh:focus-visible {outline:2px solid var(--blue);outline-offset:3px}
+.hw-badge-detail {position:fixed;inset:0;margin:auto;width:min(90vw,370px);max-height:85vh;overflow:auto;border:1px solid #695374;border-radius:22px;padding:30px 24px 24px;background:#181422;color:#eee3ef;text-align:center;font-family:inherit;box-shadow:0 30px 100px #0008}
+.hw-badge-detail::backdrop {background:#080610c9}
+.hw-badge-detail>small {display:block;font-size:11px;color:#c7afcc;padding:0 24px}
+.hw-badge-detail>img {display:block;width:min(100%,230px);height:230px;object-fit:contain;margin:4px auto 0}
+.hw-badge-detail h2 {font-size:20px;line-height:1.5;margin:0 0 10px}
+.hw-badge-detail p,.hw-badge-condition {font-size:12px;line-height:1.8;color:#c8b9ce}
+.hw-badge-condition {border-top:1px solid #ffffff18;margin-top:15px;padding-top:15px}
+.hw-badge-close {position:absolute;top:10px;right:10px;display:grid;place-items:center;width:44px;height:44px;background:#30273b;color:#e5d4eb;border:1px solid #ffffff25;border-radius:50%;font-family:inherit;font-size:24px;line-height:1;cursor:pointer}
+@keyframes hw-badge-aura {to{transform:rotate(360deg)}}
+:root[data-lite="1"] .hw-badge-card::before,:root[data-hw-motion="still"] .hw-badge-card::before {animation:none}
+@media(prefers-reduced-motion:reduce){.hw-badge-card::before {animation:none}}
+@media(max-width:350px){.hw-badge-section {padding:12px}.hw-badge-card {padding:9px;gap:8px}.hw-badge-art {width:65px;height:98px}.hw-badge-copy strong {font-size:13px}}

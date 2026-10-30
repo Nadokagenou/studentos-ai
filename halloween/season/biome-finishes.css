@@ -1,0 +1,34 @@
+/* Small, disposable actors. The saved task is already complete before this scene. */
+.csf-actor{position:absolute;pointer-events:none;opacity:0;transform:translate(-50%,-50%);will-change:transform,opacity}
+.csf-actor svg{display:block;width:100%;height:100%;overflow:visible}
+.csf-ghost{filter:drop-shadow(0 0 11px #9ACFC440)}
+.csf-specter,.csf-specter-hand{filter:drop-shadow(0 0 9px #9ACFC42B)}
+.csf-specter img,.csf-specter-hand img{display:block;width:100%;height:100%;object-fit:contain}
+.csf-specter-hand.left{clip-path:inset(38% 76% 39% 0);mask-image:linear-gradient(90deg,#000 0 17%,transparent 24%)}
+.csf-specter-hand.right{clip-path:inset(38% 0 39% 76%);mask-image:linear-gradient(270deg,#000 0 17%,transparent 24%)}
+.csf-hands{filter:drop-shadow(0 0 4px #D8ECDD66)}
+.csf-water-ring{border:2px solid #A3DCD366;border-radius:50%;box-shadow:0 3px 10px #010B1380,inset 0 0 10px #7BBFB722;background:radial-gradient(ellipse,#041A2066,transparent 65%)}
+.csf-mote{border-radius:50%;box-shadow:0 0 6px currentColor}
+.csf-flame{filter:drop-shadow(0 0 7px #B96B3055);transform-origin:center bottom;mix-blend-mode:screen}
+.csf-heat{border-radius:50%;background:radial-gradient(ellipse,#FFDCA55C,#A13C2D33 38%,transparent 70%)}
+.csf-bat{filter:drop-shadow(0 4px 5px #02030B90)}
+.csf-wing{transform-box:fill-box;animation:csfWing .18s ease-in-out var(--csf-flap-delay,0s) infinite alternate}
+.csf-wing.left{transform-origin:100% 65%}.csf-wing.right{transform-origin:0 65%}
+@keyframes csfWing{from{transform:scaleX(.4) scaleY(.8)}to{transform:scaleX(1) scaleY(1.06)}}
+.csf-flower{filter:drop-shadow(0 0 8px #C2A5D633)}
+.csf-stem{transform-origin:center bottom}
+.csf-fragment{pointer-events:none;box-shadow:none!important;animation:none!important;will-change:transform,opacity;z-index:2!important}
+.csf-fragment .cs-seal{animation:none!important;opacity:1;transform:translateY(-50%) rotate(-8deg)}
+.csf-fragment::after{animation:none!important;opacity:0!important}
+.csf-blade{filter:drop-shadow(0 9px 6px #100A1380)}
+.csf-cut{border-radius:50%;background:linear-gradient(90deg,transparent,#E3BD77 18%,#FFF0CE 50%,#E3BD77 82%,transparent);box-shadow:0 0 12px #D8AA6055}
+.csf-eclipse{border-radius:50%;background:radial-gradient(circle at 40% 30%,#08050D,#020105 70%);box-shadow:0 0 18px 12px #020105}
+.csf-corona{border-radius:50%;border:2px solid #D098A155;box-shadow:0 0 15px 4px #7E263655,inset 0 0 14px #CA758B66;background:radial-gradient(circle,transparent 58%,#C8929622 69%,transparent 72%)}
+.csf-portal{border-radius:50%;border:2px solid #B79ACC66;background:radial-gradient(ellipse,#03030B 25%,#150E2780 55%,#A28CB62B 68%,transparent 73%);box-shadow:0 0 28px #A68ACB44,inset 0 0 24px #B8A1CC55}
+.csf-portal>i{position:absolute;inset:3%;border-radius:50%;background:conic-gradient(from 20deg,transparent,#D4C0E135,transparent 25%,#A487C233,transparent 50%,#D4C0E126,transparent 80%);mask:radial-gradient(ellipse,transparent 48%,#000 67%,transparent 74%);animation:csfPortal 2.1s linear infinite}
+@keyframes csfPortal{to{transform:rotate(360deg)}}
+.csf-cage{filter:drop-shadow(0 6px 7px #08050C99)}
+.cs-ov[data-finish="eclipse"] .cs-blood{display:none}
+.cs-ov[data-finish="undertow"] .cs-cap{top:6%}
+.cs-ov[data-finish] .cs-skip{z-index:12;min-height:44px}
+@media(prefers-reduced-motion:reduce){:root:not([data-cs-preview-motion="full"]):not([data-cs-motion="full"]) .csf-actor *{animation:none!important}}

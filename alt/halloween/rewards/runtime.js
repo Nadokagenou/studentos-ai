@@ -1,7 +1,7 @@
 /* Permanent reward presentation. Acquisition belongs to the removable event. */
 (() => {
  'use strict';
- const C=window.StudentOSHalloweenRewards;if(!C)return;
+ const C=window.StudentOSHalloweenRewards;if(!C)return;const mainEntry=window.StudentOSMainEntry===true;
  const root=document.documentElement,base=new URL('.',document.currentScript.src),asset=item=>new URL(item.asset||'assets/'+item.id+'.svg',base).href;
  let current=null,scene,fxTimer=0,lastRequest=null,queued=false,effectSession=null;
  const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -47,7 +47,7 @@
    // Turning the event off in config.json, or passing endsAt, takes the skin off as well.
    if(!config?.enabled||(Number.isFinite(end)&&end<=Date.now()))root.classList.remove('hw-season');
    if(!config?.enabled)return;
-   const destination=new URL('../event/index.html',base);if(preview)destination.searchParams.set('preview','1');destination.searchParams.set('rev','launch-20261024');
+   const destination=new URL('../event/index.html',base);if(preview&&!mainEntry)destination.searchParams.set('preview','1');if(mainEntry)destination.searchParams.set('entry','main');destination.searchParams.set('rev','launch-20261024');
    const eventDir=new URL('../event/',base),card=config.card||{};
    window.HalloweenEventEntry=Object.freeze({name:config.name||'Halloween',tagline:config.tagline||'',blurb:config.blurb||'',href:destination.href,preview,
     // Home event card art, resolved against event/ so removing event/ takes the art with it

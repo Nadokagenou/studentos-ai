@@ -9,7 +9,8 @@
  const active=()=>{const q=read().studyPacts?.active;return P.valid(q,owner(),Date.now())?q:null;};
  function recommendation(){if(!ready()||typeof studyPlan!=='function')return null;const key=String(typeof stateRev==='undefined'?0:stateRev)+':'+Math.floor(Date.now()/60000);if(key!==memoKey){memoKey=key;try{const q=studyPlan(state,new Date()).now?.task;memo=P.eligible(q)?q:null;}catch{memo=null;}}return memo;}
  async function account(){if(!owner()||typeof sb==='undefined'||!sb||typeof currentUser==='undefined'||!currentUser)throw Error('เข้าสู่ระบบ StudentOS ก่อนรับพันธสัญญา');if(!cloud)cloud=window.HalloweenAccount.create({client:sb});if(!cloud.ready())await cloud.refresh();return cloud;}
- const link=()=>new URL('halloween/event/'+(preview?'?preview=1':'')+'#tasks',location.href).href;
+ const eventBase=new URL('event/',document.currentScript.src),mainEntry=window.StudentOSMainEntry===true;
+ const link=()=>{const u=new URL(eventBase);if(preview)u.searchParams.set('preview','1');if(mainEntry)u.searchParams.set('entry','main');u.hash='tasks';return u.href;};
  async function accept(){if(busy)return;busy=true;try{const t=recommendation();if(!t)throw Error('ยังไม่มีงานที่แอปแนะนำ เพิ่มงานจริงของเธอก่อน');
    if(preview){const data=P.read(localStorage,owner());P.enroll(data.event,t,owner(),Date.now(),crypto.randomUUID());P.write(localStorage,data);}
    else {if(typeof pushToCloud==='function')await pushToCloud(true);await(await account()).dispatch({type:'study-enroll',taskId:t.id});}

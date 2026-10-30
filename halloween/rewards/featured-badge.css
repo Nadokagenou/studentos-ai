@@ -1,0 +1,147 @@
+.hw-featured-slot {display:block;max-width:100%;margin-top:7px}
+.hw-featured-slot:empty {display:none}
+.hw-featured-chip,.hw-featured-empty {display:inline-flex;align-items:center;gap:8px;max-width:100%;min-height:44px;padding:5px 11px 5px 5px;border:1px solid var(--line);border-radius:13px;background:var(--card2);color:var(--ink);font-family:inherit;font-size:11px;text-align:left;cursor:pointer}
+.hw-featured-chip img {width:34px;height:38px;object-fit:contain;flex:none}
+.hw-featured-chip span {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hw-featured-chip i {font-style:normal;color:var(--muted);padding-left:4px}
+.hw-featured-empty {padding:8px 12px;font-size:11px;color:var(--muted);background:transparent;border-style:dashed}
+.hw-featured-chip.compact {min-height:30px;padding:2px 8px 2px 2px;gap:5px;font-size:9px;border-radius:9px}
+.hw-featured-chip.compact img {width:23px;height:25px}
+.hw-featured-demo .hw-featured-chip::after {content:"ตัวอย่าง";font-size:8px;color:var(--muted);white-space:nowrap}
+.hw-featured-picker {position:fixed;inset:0;margin:auto;width:min(92vw,420px);max-height:86vh;overflow:auto;border:1px solid #675270;border-radius:22px;padding:29px 19px 19px;background:#181422;color:#efe6f1;font-family:inherit;box-shadow:0 30px 90px #0008}
+.hw-featured-picker::backdrop {background:#080610c9}
+.hw-featured-picker>small {display:block;font-size:9px;letter-spacing:.1em;color:#bfa3c7;padding-right:40px}
+.hw-featured-picker h2 {font-size:23px;margin:7px 0 9px}
+.hw-featured-message {min-height:34px;font-size:11px;line-height:1.7;color:#c2b1ca;margin:0 0 13px}
+.hw-featured-options {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hw-featured-choice {min-width:0;display:flex;flex-direction:column;align-items:center;text-align:center;font-family:inherit;color:#eee3ee;background:#252031;border:1px solid #57465d;border-radius:14px;padding:12px 9px;cursor:pointer}
+.hw-featured-choice img {width:100%;height:130px;object-fit:contain}
+.hw-featured-choice strong {font-size:12px;line-height:1.6;min-height:38px;margin:7px 0 5px}
+.hw-featured-choice small {font-size:9px;color:#c1adc8;line-height:1.6}
+.hw-featured-choice.chosen {border-color:#d4bb88;box-shadow:inset 0 0 0 1px #d4bb8840;background:#30273a}
+.hw-featured-choice:disabled {cursor:default;opacity:.55}
+.hw-featured-choice:disabled img {filter:grayscale(.7)}
+.hw-featured-actions {display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.hw-featured-actions button {min-height:44px;flex:1;padding:8px 12px;border:1px solid #6f5779;border-radius:11px;background:#30263c;color:#e2d0e7;font-family:inherit;font-size:11px;cursor:pointer}
+.hw-featured-actions button[hidden] {display:none}
+.hw-featured-actions button:disabled {opacity:.5;cursor:default}
+.hw-featured-chip:focus-visible,.hw-featured-empty:focus-visible,.hw-featured-picker button:focus-visible {outline:2px solid #bba5d3;outline-offset:3px}
+@media(max-height:650px){.hw-featured-picker {padding-top:25px}.hw-featured-choice img {height:100px}.hw-featured-picker h2 {font-size:20px}.hw-featured-message {min-height:0}.hw-featured-choice strong {font-size:11px}}
+
+.hw-featured-options h3 {grid-column:1/-1;margin:10px 0 0;font-size:12px;color:#cfbfda;text-align:left}
+.hw-featured-choice img {height:100px}
+.hw-featured-choice strong {font-size:11px}
+.hw-featured-actions {position:sticky;bottom:-19px;background:#181422;padding:12px 0 8px;border-top:1px solid #57465d}
+.phone .bg-row .bg-mark.hw-core-art,.phone .an-bd .ab-mark.hw-core-art {background:transparent;box-shadow:none;border-radius:0;overflow:visible;animation:none}
+.phone .bg-row .bg-mark.hw-core-art {width:62px;height:75px}
+.phone .bg-mark.hw-core-art::before,.phone .bg-mark.hw-core-art::after {display:none}
+.phone .hw-core-art img {display:block;width:100%;height:100%;object-fit:contain}
+.phone .bg-row:not(.on) .hw-core-art img {opacity:.5}
+.phone .an-bd .hw-core-art img {height:52px;width:46px}
+
+.phone .an-bd .ab-mark.hw-core-art {width:46px;height:52px}
+
+/* ============================================================
+   แผ่นเลือกตราโปรไฟล์ · ปรับหน้าตา — 26 ต.ค. 69 · เจ้าของ (ภาพแผ่นนี้ในธีม Vampire): "ปรับหน้านี้หน่อย"
+   ที่เห็นในภาพ: ① หัวแผ่นเลื่อนหายไปกับรายการ (ข้อความ "เข้าสู่ระบบเพื่อเลือก…" โดนขอบบนตัดครึ่ง) — ปุ่มล่าง sticky แต่หัวไม่
+     ② แถบเลื่อนของเบราว์เซอร์โผล่ (สีเทามีลูกศร) · ③ สีทั้งแผ่นฝังตายตัว (#181422 · #252031) เป็นเทาม่วงเหมือนกันทุกธีม
+     ④ ตัวหนังสือ 9px (เล็กกว่าขั้นต่ำ 11px ของแอป) จาง · ⑤ ตรา Challenger Deep เป็นภาพฉากมีพื้น ส่วนตราอื่นพื้นใส → ดูไม่เป็นชุด
+   แก้: หัวแผ่น (featured-badge.js ห่อด้วย .hw-featured-head) ค้างบนแบบเดียวกับปุ่มล่าง · ซ่อนแถบเลื่อน (ยังเลื่อนได้)
+     · ใช้โทเคนของธีม (--card · --ink · --muted · --fill · --line) · ตราทุกอันนั่งบนแผ่นรองเดียวกัน · ตัวหนังสือ ≥ 11px
+   ============================================================ */
+.phone .hw-featured-picker {
+  width: min(92vw, 440px); max-height: 88vh; padding: 0 16px; border-radius: 24px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--fill) 8%, var(--card)), var(--card));
+  border: 1px solid color-mix(in srgb, var(--fill) 32%, var(--line));
+  color: var(--ink); scrollbar-width: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 30px 80px -20px rgba(0,0,0,.7);
+}
+.phone .hw-featured-picker::-webkit-scrollbar { display: none; }
+.phone .hw-featured-picker::backdrop { background: color-mix(in srgb, var(--scr, #000) 70%, transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.phone .hw-featured-head {
+  position: sticky; top: 0; z-index: 2; margin: 0 -16px; padding: 22px 56px 10px 18px;
+  background: color-mix(in srgb, var(--fill) 8%, var(--card));
+}
+.phone .hw-featured-head .hw-badge-close {
+  position: absolute; top: 14px; right: 14px; width: 38px; height: 38px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 22px; line-height: 1; cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 8%, transparent); color: var(--ink); border: 1px solid var(--line);
+}
+.phone .hw-featured-head > small { display: block; font-size: 11px; font-weight: 700; letter-spacing: .1em; color: color-mix(in srgb, var(--fill) 70%, var(--ink)); }
+.phone .hw-featured-head h2 { font-size: 22px; margin: 4px 0 6px; color: var(--ink); }
+.phone .hw-featured-message { min-height: 0; margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); }
+.phone .hw-featured-message:empty { display: none; }
+.phone .hw-featured-options { gap: 10px; padding-top: 6px; }
+/* หัวกลุ่มตรา (ตรา Student OS · ตราอีเวนต์ Halloween) — 26 ต.ค. 69 · เจ้าของ: "เพิ่มขนาดกับความชัดให้คำว่าตรา อย่าให้มันเลื่อนตามไปด้วย"
+   ใหญ่ขึ้น (12.5 → 15px) หนาขึ้น สีหมึกเต็ม มีขีดสีธีมนำหน้า · ค้างใต้หัวแผ่นตอนเลื่อน จนหัวกลุ่มถัดไปมาดันออก
+   --fh = ความสูงหัวแผ่น (featured-badge.js วัดตอนเปิดแผ่น · ResizeObserver วัดใหม่เมื่อข้อความในหัวเปลี่ยน) · พื้นทึบกันการ์ดลอดข้างหลัง */
+.phone .hw-featured-options h3 {
+  position: sticky; top: var(--fh, 104px); z-index: 1;
+  display: flex; align-items: center; gap: 8px;
+  margin: 8px -16px 2px; padding: 9px 16px;
+  font-size: 15px; font-weight: 800; letter-spacing: -.01em; color: var(--ink);
+  background: color-mix(in srgb, var(--fill) 8%, var(--card));
+  border-bottom: 1px solid color-mix(in srgb, var(--fill) 22%, var(--line));
+}
+.phone .hw-featured-options h3::before {
+  content: ""; flex: none; width: 4px; height: 18px; border-radius: 2px; background: var(--fill);
+  box-shadow: 0 0 10px -1px color-mix(in srgb, var(--fill) 70%, transparent);
+}
+.phone .hw-featured-choice {
+  padding: 10px 8px 12px; border-radius: 16px; color: var(--ink);
+  background: color-mix(in srgb, var(--card2, var(--card)) 85%, transparent); border: 1px solid var(--line);
+}
+.phone .hw-featured-choice img {
+  height: 104px; padding: 6px; border-radius: 12px;
+  background: radial-gradient(70% 70% at 50% 40%, color-mix(in srgb, var(--fill) 14%, transparent), transparent 75%);
+}
+.phone .hw-featured-choice strong { font-size: 12.5px; line-height: 1.45; min-height: 36px; margin: 8px 0 4px; color: var(--ink); text-wrap: balance; }   /* ไม่ให้ "ๆ" ตกบรรทัดเดี่ยว */
+.phone .hw-featured-choice small { font-size: 11px; color: var(--muted); }
+.phone .hw-featured-choice.chosen {
+  border-color: var(--fill); background: color-mix(in srgb, var(--fill) 14%, var(--card));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent), 0 10px 22px -12px color-mix(in srgb, var(--fill) 70%, transparent);
+}
+.phone .hw-featured-choice.chosen small { color: color-mix(in srgb, var(--fill) 70%, var(--ink)); font-weight: 700; }
+/* ยังเลือกไม่ได้ (ยังไม่ได้รับ / รอตรวจบัญชี) — ภาพจางลง แต่ชื่อกับสถานะยังอ่านได้ (เดิมทั้งปุ่มจาง .55 รวมตัวหนังสือ) */
+.phone .hw-featured-choice:disabled { opacity: 1; }
+.phone .hw-featured-choice:disabled img { opacity: .5; filter: grayscale(.6); }
+.phone .hw-featured-choice:disabled strong { color: color-mix(in srgb, var(--ink) 75%, var(--muted)); }
+.phone .hw-featured-actions {
+  bottom: 0; margin: 12px -16px 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  background: linear-gradient(0deg, var(--card) 80%, transparent); border-top: 1px solid var(--line);
+}
+.phone .hw-featured-actions button {
+  font-size: 13px; font-weight: 700; border-radius: 13px; color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 6%, transparent); border: 1px solid var(--line);
+}
+.phone .hw-featured-actions button[data-feature-login] { background: var(--fill); color: var(--on-fill); border-color: transparent; }
+.phone .hw-featured-picker button:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+
+/* ============================================================
+   26 ต.ค. 69 รอบสาม · เจ้าของ (ภาพหัวแผ่น ข้อความ "เข้าสู่ระบบเพื่อเลือก…" ยังโดนตัดครึ่ง): "อย่าทำให้มันขยับ"
+   ต้นเหตุ: ทั้งแผ่นยังเป็นกล่องเลื่อนกล่องเดียว แล้วเอาของสองชั้นมาค้างด้วย sticky (หัวแผ่น + หัวกลุ่ม)
+   ตอนเลื่อน ของเลยไหลซ้อนกันและเว้นช่องตามความสูงหัวที่เปลี่ยนได้ — ตาเห็นว่าหัวขยับ/โดนตัด
+   แก้ที่โครง: แผ่นแบ่งสามส่วนตายตัว — หัว (นิ่งสนิท ไม่อยู่ในส่วนที่เลื่อน) · รายการตรา (เลื่อนได้ส่วนเดียว) · ปุ่มล่าง (นิ่ง)
+   หัวกลุ่ม "ตรา Student OS" ค้างที่ขอบบนของรายการเอง (ไม่ต้องรู้ความสูงหัวแผ่นอีกแล้ว)
+   ============================================================ */
+.phone .hw-featured-picker[open] { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+.phone .hw-featured-head { position: static; flex: none; margin: 0; padding: 22px 56px 12px 18px;
+  border-bottom: 1px solid color-mix(in srgb, var(--fill) 18%, var(--line)); }
+.phone .hw-featured-options { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: none; padding: 0 16px 14px; align-content: start; }
+.phone .hw-featured-options::-webkit-scrollbar { display: none; }
+.phone .hw-featured-options h3 { top: 0; margin: 0 -16px 2px; }
+.phone .hw-featured-options h3 ~ h3 { margin-top: 10px; }
+.phone .hw-featured-actions { position: static; flex: none; margin: 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--card); }
+
+/* ปุ่ม "✧ เลือกตราโปรไฟล์" บนแท็บฉัน — 26 ต.ค. 69 · เจ้าของ (ภาพปุ่มนี้ธีมสว่าง): "ปรับความชัดหน่อย"
+   เดิม 11px สีรอง (--muted) บนพื้นใส ขอบประจาง → คอนทราสต์ 4.0 (ตัววัดฟ้องไว้แล้ว) และดูเหมือนปุ่มที่กดไม่ได้
+   ยังเป็นปุ่มรอง (ขอบประ · พื้นสีธีมจาง) แต่ตัวหนังสือใหญ่ หนา สีเข้มขึ้น · ✧ เป็นสีธีม */
+.phone .hw-featured-empty {
+  min-height: 40px; padding: 8px 14px; gap: 6px;
+  font-size: 13px; font-weight: 700; color: color-mix(in srgb, var(--fill) 45%, var(--ink));
+  background: color-mix(in srgb, var(--fill) 9%, var(--card));   /* ทึบ — พื้นใสเคยให้ฉากข้างหลัง (จันทร์ใน Moon & Candle) ลอดขึ้นมา 3.8 */
+  border: 1.5px dashed color-mix(in srgb, var(--fill) 55%, transparent);
+}
+.phone .hw-featured-empty:active { background: color-mix(in srgb, var(--fill) 16%, var(--card)); }

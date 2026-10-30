@@ -15,9 +15,9 @@
 // กติกาที่ตั้งใจ (อย่าแก้โดยไม่รู้เหตุผล):
 //   • งานถูกบันทึกว่าเสร็จก่อนฉากนี้เริ่ม (finishFocus / toggleDone ใน app.js) — ฉากเป็นแค่ฉลอง
 //     ไฟล์นี้ไม่แตะ state ไม่แตะสถิติ ตัวเลขบนใบคืออ่านจากงานจริงด้วยสูตรเดียวกับจอ "เสร็จแล้ว"
-//   • ทั้งฉาก 3.2 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onClose เรียกครั้งเดียวเสมอ
+//   • ทั้งฉาก 6 วิ แตะตรงไหนก็ข้าม · Esc/ปุ่มย้อนกลับ = ข้าม · onClose เรียกครั้งเดียวเสมอ
 //   • ลดการเคลื่อนไหว (ระบบ) · ภาพนิ่งฮาโลวีน (data-hw-motion="still") · กราฟิกน้อย · ภาพยังโหลดไม่ครบ
-//     = ไม่เล่นฉาก (doneFxActive ตอบ false) แต่จอ "เสร็จแล้ว" ของโหมดโฟกัสยังเป็นฉบับเรือผี (ช่อง 12)
+//     = ใช้ภาพนิ่งตามค่าเริ่มต้น ผู้ใช้เปิดเฉพาะฉากรางวัลได้ที่ตัวเลือกเอฟเฟกต์ โดยจอ "เสร็จแล้ว" ของโหมดโฟกัสยังเป็นฉบับเรือผี (ช่อง 12)
 //   • ไม่มีเสียง — ฉากไม่พึ่งเสียง จึงไม่มีอะไรพังตอนปิดเสียง/ไม่มีไฟล์
 // ============================================================
 (function () {
@@ -49,15 +49,41 @@
   const root = document.documentElement;
   const DONEFX = 'studentos.alt.doneFx';   // คีย์เดียวกับ DONEFX_KEY ใน hoop.js (อ่านอย่างเดียว)
   const selected = () => { try { return localStorage.getItem(DONEFX) === ID; } catch (_) { return false; } };
+  // Only reward cinematics opt in; OS, theme motion and graphics settings stay unchanged.
+  const MOTION_KEY = 'studentos.alt.cinematicMotion';
+  const motionValues = ['system','full','still'];
+  let motionChoice = 'system';
+  try { const saved=localStorage.getItem(MOTION_KEY);if(motionValues.includes(saved))motionChoice=saved; } catch (_) {}
+  root.dataset.csMotion=motionChoice;
+  const motionPreference = () => motionChoice;
+  function setMotionPreference(value) {
+    if(!motionValues.includes(value))return false;
+    motionChoice=value;root.dataset.csMotion=value;
+    try { localStorage.setItem(MOTION_KEY,value); } catch (_) {}
+    if(!motionAllowed()&&active())stop();
+    if(typeof renderFxPick==='function')renderFxPick();
+    return true;
+  }
 
   // เล่นฉากได้ไหม — แยกเป็นฟังก์ชันล้วนให้เทสต์ได้โดยไม่ต้องมี DOM
   function motionOk(o) { return !o.reduced && !o.still && o.quality !== 'low'; }
-  function env() {
+  function env(preview=false) {
+    const full=motionChoice==='full'||(preview&&root.dataset.csPreviewMotion==='full');
     return {
-      reduced: !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches),
-      still: root.dataset.hwMotion === 'still',
-      quality: root.dataset.quality || '',
+      reduced: !full&&!!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches),
+      still: !full&&(motionChoice==='still'||root.dataset.hwMotion === 'still'),
+      quality: full?'':root.dataset.quality || '',
     };
+  }
+  const motionAllowed=()=>motionOk(env());
+  function motionControlsHTML(id) {
+    if(id!==ID&&!Object.hasOwn(variants,id))return '';
+    const options=[['system','ตามการตั้งค่าเครื่อง'],['full','เปิดฉากรางวัล'],['still','ภาพนิ่ง']];
+    const hint=motionChoice==='full'?'เปิดเฉพาะฉากรางวัล ไม่เปลี่ยนธีมหรือค่าทั้งเครื่อง':motionAllowed()?'ฉากพร้อมเคลื่อนไหว · กดข้ามได้ตลอด':'ฉากเป็นภาพนิ่งอยู่ เลือก “เปิดฉากรางวัล” เพื่อชมได้';
+    return '<div class="cs-motion-control"><label>การเคลื่อนไหวฉากรางวัล<select aria-label="การเคลื่อนไหวฉากรางวัล" onchange="CursedShip.setMotionPreference(this.value)">'+options.map(([value,label])=>'<option value="'+value+'"'+(value===motionChoice?' selected':'')+'>'+label+'</option>').join('')+'</select></label><p role="status">'+hint+'</p></div>';
+  }
+  function offerMotion(replay) {
+    if(typeof window.showToast==='function')window.showToast({title:'ฉากรางวัลเป็นภาพนิ่งอยู่',body:'เปิดเฉพาะฉากรางวัลได้ ไม่ต้องเปลี่ยนธีมหรือค่าทั้งเครื่อง',action:{label:'เปิดฉากรางวัล',fn:()=>{setMotionPreference('full');replay();}}});
   }
 
   // ---------- ภาพ: โหลดล่วงหน้าตอนว่าง (~150KB ทั้งชุด) เฉพาะคนที่เลือกเอฟเฟกต์นี้ ----------
@@ -150,7 +176,7 @@
   function playVariant(item,onClose,title,preview=false) {
     const canonical=window.StudentOSHalloweenRewards?.find(item?.id);
     if(!canonical||!variants[canonical.id]||!document.querySelector('.phone')){if(typeof onClose==='function')onClose();return false;}preload();const loading=preloadVariant(canonical);
-    if(!motionOk(env()))return stillVariant(canonical,title,onClose);
+    if(!motionOk(env(preview))){if(preview){offerMotion(()=>playVariant(canonical,null,title,true));if(typeof onClose==='function')onClose();return false;}return stillVariant(canonical,title,onClose);}
     if(!variantReady(canonical)){
       if(!preview)return stillVariant(canonical,title,onClose);
       let settled=false;const finishLoad=ok=>{if(settled)return;settled=true;clearTimeout(timeout);if(ok)playFx(title,onClose,preview,canonical);else stillVariant(canonical,title,onClose);};
@@ -199,14 +225,13 @@
     const host = document.querySelector('.phone');
     preload();
     // ปุ่ม "ลองเล่นดู" กดทันทีหลังเลือก — ภาพอาจยังโหลดไม่เสร็จ รอได้ไม่เกิน 3 วิ (งานจริงไม่รอ: doneFxActive กันไว้แล้ว)
-    if (preview && host && motionOk(env()) && !usable() && !failed && !(preview > 25)) {
+    if (preview && host && motionOk(env(preview)) && !usable() && !failed && !(preview > 25)) {
       setTimeout(() => playFx(title, onClose, (typeof preview === 'number' ? preview : 0) + 1, variant), 120);
       return;
     }
-    if (!host || !motionOk(env()) || !usable()) {
-      if (preview && typeof window.showToast === 'function') window.showToast(!motionOk(env())
-        ? { title: 'ปิดการเคลื่อนไหวอยู่', body: 'เครื่องนี้ขอลดการเคลื่อนไหว ฉากเรือผีจึงไม่เล่น' }
-        : { title: 'กำลังโหลดภาพเรือผี', body: 'ลองกดอีกครั้งในอีกสักครู่' });
+    if (!host || !motionOk(env(preview)) || !usable()) {
+      if(preview&&!motionOk(env(preview)))offerMotion(()=>playFx(title,null,true,variant));
+      else if(preview&&typeof window.showToast==='function')window.showToast({title:'กำลังโหลดภาพฉาก',body:'ลองกดอีกครั้งในอีกสักครู่'});
       if (typeof onClose === 'function') onClose();
       return;
     }
@@ -396,12 +421,12 @@
   const ICON = `<img class="hw-effect-icon" src="${BASE}seal.webp" alt="">`;
   if (typeof FX_SHOP !== 'undefined' && !FX_SHOP[ID]) {
     FX_SHOP[ID] = { cost: 0, name: 'The Cursed Ship', desc: 'เรือผีมารับงาน ตราประทับคำสาป แล้วแล่นหายในหมอก', emoji: '⚓', halloween: true, free: true, icon: ICON };
-    if (typeof renderFxPick === 'function') try { renderFxPick(); } catch (_) {}
   }
 
   window.CursedShip = Object.freeze({
-    ID, TOTAL, FILES, CLIP, motionOk, ready, preload, canPlay, stats,
+    ID, TOTAL, FILES, CLIP, motionOk, motionAllowed, motionPreference, setMotionPreference, motionControlsHTML, ready, preload, canPlay, stats,
     skinOn, scene, playFx, playVariant, variants, preloadVariant, skip, stop, active,
   });
+  if (typeof renderFxPick === 'function') try { renderFxPick(); } catch (_) {}
   try{const saved=localStorage.getItem(DONEFX);if(variants[saved]){preload();preloadVariant({id:saved});}}catch{}
 })();

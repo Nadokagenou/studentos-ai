@@ -1,0 +1,24 @@
+#scr-classrooms [hidden]{display:none!important}
+#scr-classrooms .class-body{max-width:780px;margin:auto;padding-bottom:110px;gap:14px}
+#classMessage:empty{display:none}
+#classRefresh{align-self:flex-end}
+#scr-classrooms .class-panel{padding:18px;border:1px solid var(--line,#dce3ed);border-radius:18px;background:var(--card,#fff);margin:14px 0}
+#scr-classrooms label{display:grid;gap:6px;margin:12px 0}
+#scr-classrooms input,#scr-classrooms textarea,#scr-classrooms select{box-sizing:border-box;width:100%;min-height:44px;padding:10px;border:1px solid var(--line,#cbd5e1);border-radius:10px;background:var(--card2,#f8fafc);color:var(--ink,inherit);font:inherit}
+#scr-classrooms button{font:inherit;cursor:pointer;min-height:44px}
+#scr-classrooms button:disabled{opacity:.5;cursor:default}
+#scr-classrooms .class-button{border:1px solid var(--line,#cbd5e1);border-radius:12px;background:var(--card,#fff);color:inherit;padding:10px 14px}
+#scr-classrooms .class-primary{background:var(--fill,#3862d6);color:var(--on-fill,#fff);border-color:transparent}
+#scr-classrooms .class-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#scr-classrooms .class-room-card{display:grid;text-align:left;width:100%;gap:8px;border:1px solid var(--line,#dce3ed);border-radius:16px;padding:16px;margin:10px 0;color:inherit;background:var(--card,#fff)}
+#scr-classrooms .class-room-card span,.class-by{font-size:.82rem;color:var(--muted,#526176)}
+#classMessages{max-height:55dvh;min-height:180px;overflow-y:auto;overscroll-behavior:contain;padding:10px 4px}
+.class-bubble{border:1px solid var(--line,#dce3ed);background:var(--card,#fff);border-radius:16px;padding:14px;max-width:92%;margin:12px 0;overflow-wrap:anywhere}
+.class-bubble.class-mine{margin-left:auto;background:var(--card2,#edf2ff)}
+.class-text{white-space:pre-wrap;line-height:1.65;overflow-wrap:anywhere}
+.class-task{padding:12px;border:1px solid var(--line,#cbd5e1);border-radius:12px}
+.class-text-button{border:0;background:transparent;color:var(--muted,#526176);padding:8px}
+#classMessage{min-height:24px;line-height:1.6}.class-error{border-inline-start:3px solid #c2410c;padding-inline-start:10px}
+#classMembers{padding-left:18px}#classMembers li{margin:8px 0;overflow-wrap:anywhere}
+#classInvite{overflow-wrap:anywhere;font-weight:600;line-height:1.7}
+#scr-classrooms :focus-visible{outline:3px solid var(--blue,#3862d6);outline-offset:3px}

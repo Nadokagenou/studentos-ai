@@ -278,6 +278,6 @@
 
 /* ปลอดภัยไว้ก่อน: ถ้าฉากถูกสร้างทั้งที่ระบบขอลดการเคลื่อนไหว (cursed-ship.js กันไว้แล้ว) ก็ไม่มีอะไรขยับ */
 @media (prefers-reduced-motion: reduce) {
-  :root:not([data-cs-preview-motion="full"]) :is(.cs-ov,.cs-ov *,.cs-done.cs-reveal > *,.cs-done.cs-reveal .fw-ring,.cs-mist,.cs-lamp) { animation: none !important; }
+  :root:not([data-cs-preview-motion="full"]):not([data-cs-motion="full"]) :is(.cs-ov,.cs-ov *,.cs-done.cs-reveal > *,.cs-done.cs-reveal .fw-ring,.cs-mist,.cs-lamp) { animation: none !important; }
 }
 :root[data-hw-motion="still"] .cs-mist, :root[data-hw-motion="still"] .cs-lamp { animation: none; }

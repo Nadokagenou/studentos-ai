@@ -33,6 +33,12 @@ test('a real server quest cannot be completed with client focus counters or acce
 });
 function harness(){let doc=null,time=at;const receipts=new Map();const db={async read(){return doc&&{document:structuredClone(doc)};},async receipt(u,s,tx){return receipts.get(tx);},async commit(x){if((doc?.revision||0)!==x.expected)return {committed:false};if(receipts.has(x.tx))return {committed:true,replay:true,result:receipts.get(x.tx).result};doc=structuredClone(x.document);receipts.set(x.tx,{action:x.action,result:x.result});return {committed:true,replay:false,result:x.result};}};const handler=H.create({authority,db,authenticate:async token=>token==='Bearer valid'?uid:null,clock:()=>time+=1000,season:Season});return {handler,db,receipts,read:()=>doc};}
 const request=(action,requestId=crypto.randomUUID(),token='Bearer valid')=>new Request('https://example.test/halloween-event',{method:'POST',headers:{authorization:token,'content-type':'application/json'},body:JSON.stringify({action,requestId})});
+test('a new player can submit Tang through the real HTTP validator with a null optional branch',async()=>{
+ const h=harness();for(const action of [{type:'enter-hub'},{type:'claim-welcome'}])assert.equal((await h.handler(request(action))).status,200);
+ const tx=crypto.randomUUID(),response=await h.handler(request({type:'quest',quest:'dutchman-light-in-darkness',branch:null},tx)),body=await response.json();
+ assert.equal(response.status,200,JSON.stringify(body));assert.equal(body.document.event.quests['dutchman-light-in-darkness'].complete,true);assert.equal(body.document.event.candy,0);assert.equal(body.document.event.inventory['spectral-lantern'],1);
+ const replay=await h.handler(request({type:'quest',quest:'dutchman-light-in-darkness',branch:null},tx));assert.equal(replay.status,200);assert.equal((await replay.json()).replay,true);assert.equal(h.receipts.size,3);
+});
 test('HTTP boundary authenticates first, never accepts client documents and safely replays a lost response',async()=>{
  const h=harness();assert.equal((await h.handler(request({type:'read'},undefined,''))).status,401);
  const tx=crypto.randomUUID(),r=await h.handler(request({type:'enter-hub'},tx));assert.equal(r.status,200);const a=await r.json();assert.equal(a.document.owner,uid);
@@ -42,6 +48,27 @@ test('HTTP boundary authenticates first, never accepts client documents and safe
  assert.equal((await h.handler(new Request('https://example.test',{method:'POST',headers:{origin:'https://evil.test'}}))).status,403);
 });
 test('two simultaneous account requests preserve both committed changes across a CAS retry',async()=>{const h=harness();const responses=await Promise.all([h.handler(request({type:'enter-hub'})),h.handler(request({type:'enter-room',room:'garden'}))]);assert.ok(responses.every(x=>x.status===200));assert.equal(h.read().revision,2);assert.equal(h.receipts.size,2);});
+test('a successful event action returns its committed document without reading the same save again',async()=>{
+ const h=harness();let reads=0;const original=h.db.read;h.db.read=async(...args)=>{reads++;return original(...args);};
+ const response=await h.handler(request({type:'enter-hub'})),data=await response.json();assert.equal(response.status,200);assert.deepEqual(data.document,authority.publicDocument(h.read()));assert.equal(reads,1);
+});
+test('a replay re-reads the current save when its initial snapshot raced an earlier commit',async()=>{
+ const h=harness(),tx=crypto.randomUUID(),action={type:'enter-hub'};await h.handler(request(action,tx));const old=structuredClone(h.read());await h.handler(request({type:'enter-room',room:'garden'}));
+ let reads=0;h.db.read=async()=>({document:structuredClone(reads++===0?old:h.read())});const data=await(await h.handler(request(action,tx))).json();assert.equal(data.replay,true);assert.equal(data.document.revision,2);assert.equal(reads,2);
+});
+test('all 18 prepared quest phases pass the production HTTP validator and authoritative engine',async()=>{
+ let checked=0;
+ for(const q of config.quests)for(let phase=0;phase<q.phases.length;phase++){
+  let doc=authority.initial(uid,at);doc.event.candy=10000;doc.event.totem={biome:q.biome,until:at+Core.HOUR};doc.event.location={kind:'biome',biome:q.biome};
+  for(const item of Object.keys(config.items)){doc.event.inventory[item]=30;doc.event.grown[item]=30;}
+  for(const other of config.quests){doc.event.quests[other.id]={phase:other.phases.length,complete:true,completedAt:at-21*60000,completedCycle:0};for(const step of other.phases){const r=step.requirements;if(r.objective)doc.event.proofs[r.objective.id]={complete:true};if(r.minigame)doc.event.proofs[r.minigame.id||'ghost-ship-hunt']={complete:true,clear:true};}}
+  doc.event.quests[q.id]={phase,complete:false};if(q.rewards.some(r=>r.kind==='upgrade-existing'))doc.rewards['dullahan-scythe']={id:'dullahan-scythe',permanent:true,receipt:'fixture-earned',restriction:{status:'Restricted'}};
+  const db={read:async()=>({document:structuredClone(doc)}),receipt:async()=>null,commit:async x=>{doc=x.document;return {committed:true,replay:false,result:x.result};}};
+  const handler=H.create({authority,db,authenticate:async()=>uid,clock:()=>at,season:Season}),branch=q.phases[phase].requirements.anyOf?.[0]?.id??null,response=await handler(request({type:'quest',quest:q.id,branch})),data=await response.json();
+  assert.equal(response.status,200,q.id+' phase '+phase+' '+JSON.stringify(data));assert.equal(data.document.event.quests[q.id].phase,phase+1);checked++;
+ }
+ assert.equal(checked,18);
+});
 
 test('real shop, crafting and Totem use server inventory and balance; clients cannot supply their own result',()=>{
  let d=authority.initial(uid,at);d.event.candy=500;d.event.location={kind:'room',room:'shop'};

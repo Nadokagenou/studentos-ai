@@ -1,0 +1,26 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createRequire} from 'node:module';
+const require=createRequire(import.meta.url),Core=require('../halloween/event/core.js'),Catalog=require('../halloween/rewards/catalog.js'),Death=require('../halloween/death-quests.js'),Season=require('../halloween/event/season.js'),Brain=require('../halloween/event/brain-games.js'),Authority=require('../alt/halloween/server/authority.cjs'),Playback=require('../halloween/event/game-playback.js');
+const json=n=>JSON.parse(fs.readFileSync(new URL('../halloween/event/data/'+n+'.json',import.meta.url),'utf8')),config=Core.build({materials:json('materials'),chains:['dutchman','jack','vampire','graveyard'].map(n=>json('quests.'+n)),catalog:Catalog,proposals:json('preview-rules'),authoritative:true,season:{startAt:Season.startAt,endAt:Season.endAt,timezone:Season.timezone,claimingEnabled:true}}),at=Date.parse('2026-10-28T01:00:00+07:00'),uid='00000000-0000-4000-8000-000000000001',authority=Authority.create({Core,Death,Season,config,randomSeed:()=>12345678});
+function start(kind){const d=authority.initial(uid,at),pool=['memory','math','math','path','odd','pattern','pattern','balance','balance'];let first=true;Brain.start(d.event,'brain-session',at,()=>{if(first){first=false;return (pool.indexOf(kind)+.1)/pool.length;}return .314159;});return d;}
+function next(g){if(g.kind==='memory')return g.q.sequence[g.q.found.length];if(g.kind==='odd')return g.q.odd;if(g.kind!=='path')return g.q.answer;const todo=[[g.q.path.at(-1)]],seen=new Set(todo[0]);for(const p of todo){if(p.at(-1)===15)return p[1];const n=p.at(-1);for(const m of [n-4,n+4,n-1,n+1])if(m>=0&&m<16&&Math.abs(m%4-n%4)+Math.abs(Math.floor(m/4)-Math.floor(n/4))===1&&!g.q.walls.includes(m)&&!seen.has(m)){seen.add(m);todo.push([...p,m]);}}throw Error('no path');}
+for(const kind of Brain.kinds)test(kind+' plays through locally while only the final batch waits for the server',async()=>{
+ let doc=authority.publicDocument(start(kind)),time=at+5000,calls=0,release;const gate=new Promise(r=>release=r);assert.equal(doc.event.brainGame.playback,2);assert.equal(doc.event.rng,undefined);
+ const controller=Playback.create({brain:true,Core,config,read:()=>doc,now:()=>time,perform:async action=>{calls++;await gate;const x=authority.apply(doc,action,{uid,at:time+1000,receivedAt:time+1000,tx:'save'});doc=x.document;return x.result;}});
+ for(let i=0;i<40&&!controller.state().game.finished;i++){const g=controller.state().game;time=Math.max(time+50,g.q.revealUntil||0);assert.equal(controller.tap(next(g)),true);}
+ assert.equal(controller.state().game.clear,true);assert.equal(doc.event.brainGame.finished,false);assert.equal(calls,1);release();await controller.flush();assert.equal(doc.event.brainGame.clear,true);assert.equal(controller.state().pending,false);assert.equal(doc.event.candy,0);assert.deepEqual(doc.rewards,{});
+});
+test('brain input validation is atomic, protects memory reveal, and rejects future / wrong-session inputs',()=>{
+ const d=start('memory'),snapshot=JSON.stringify(d),send=(inputs,session='brain-session')=>authority.apply(d,{type:'brain-inputs',session,inputs},{uid,at:at+1000,receivedAt:at+1000,tx:'save'});
+ for(const rows of [[],[[d.event.brainGame.q.sequence[0],100]],[[0,2000]],[[0,100],[1,50]],[[true,0]],Array.from({length:97},()=>[0,0])])assert.throws(()=>send(rows));assert.throws(()=>send([[0,0]],'wrong'));assert.equal(JSON.stringify(d),snapshot);
+});
+test('an old unfinished brain round upgrades without replacing its question or history',()=>{
+ const d=start('path'),g=d.event.brainGame;delete g.playback;delete g.questions;const before=JSON.stringify(g.q),history=JSON.stringify(d.event.brainHistory);const x=authority.apply(d,{type:'brain-ready',session:g.session},{uid,at:at+1000,tx:'ready'}).document;assert.equal(JSON.stringify(x.event.brainGame.q),before);assert.equal(JSON.stringify(x.event.brainHistory),history);assert.equal(x.event.brainGame.playback,2);
+});
+test('a partial brain round retries the same input packet after closing and resumes from verified progress',async()=>{
+ let doc=authority.publicDocument(start('path')),fail=true,paints=0;const packets=[];
+ const make=()=>Playback.create({brain:true,Core,config,read:()=>doc,now:()=>at+1000,onChange:()=>paints++,perform:async action=>{packets.push(JSON.stringify(action));if(fail){fail=false;return null;}const x=authority.apply(doc,action,{uid,at:at+2000,tx:'save'});doc=x.document;return x.result;}});
+ const c=make();c.tap(next(c.state().game));await c.flush();assert.ok(c.state().error);const n=paints;await c.close();assert.equal(paints,n);assert.equal(packets[0],packets[1]);assert.equal(doc.event.brainGame.q.path.length,2);assert.equal(make().state().game.q.path.length,2);
+});
+test('reading the latest save adopts the new round session before further input',async()=>{
+ let doc=start('path'),packet;const c=Playback.create({brain:true,Core,config,read:()=>doc,now:()=>at+1000,perform:async action=>{packet=action;return null;}});doc=structuredClone(doc);doc.event.brainGame.session='round-on-another-device';c.reset();assert.equal(c.tap(next(c.state().game)),true);await c.close();assert.equal(packet.session,'round-on-another-device');
+});

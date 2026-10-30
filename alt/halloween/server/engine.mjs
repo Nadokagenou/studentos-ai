@@ -300,7 +300,34 @@ const factories={
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact}) {
+  function preparePlayback(game,event,at) {
+    if(game.playback===2)return;
+    game.playback=2;game.lastInputAt=at;
+    if(game.id==='ghost-ship-hunt'){game.cueIndex=0;game.cues=[game.target,...Array.from({length:8},()=>Math.floor(random(event)*3))];}
+  }
+  // Batches leave the browser after the final tap. Each tap is still judged at its own time;
+  // this only lets the trip to the server finish a round that was won in time.
+  const INPUT_GRACE_MS=5000;
+  function playInputs(document,config,action,now,tx,receivedAt) {
+    const brain=action.type==='brain-inputs',source=brain?document.event.brainGame:document.event.games[action.game];
+    if(!source||source.session!==action.session||source.finished||source.playback!==2)fail('ไม่พบรอบเกมที่กำลังเล่น');
+    if(!Array.isArray(action.inputs)||!action.inputs.length||action.inputs.length>96)fail('ลำดับการเล่นไม่ถูกต้อง');
+    const next=clone(document),arrival=moment(document,receivedAt),game=brain?next.event.brainGame:next.event.games[action.game];let candy=0;
+    for(let i=0;i<action.inputs.length;i++){
+      const row=action.inputs[i];
+      if(!Array.isArray(row)||row.length!==2||!(Number.isSafeInteger(row[0])||['hint','timeout'].includes(row[0]))||!Number.isSafeInteger(row[1])||row[1]<0||row[1]>2*DAY)fail('ลำดับการเล่นไม่ถูกต้อง');
+      const inputAt=game.startAt+row[1];
+      if(inputAt<(game.lastInputAt??game.startAt)||inputAt>arrival)fail('เวลาการเล่นไม่ตรงกับรอบนี้');
+      const deadline=game.deadline;
+      next.event.clock=Math.min(next.event.clock,inputAt);
+      const result=dispatch(next,config,{type:brain?'brain-move':'game-move',...(!brain?{game:action.game}:{}),session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
+      if(game.finished&&game.clear&&deadline&&arrival>=deadline+INPUT_GRACE_MS)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
+      candy+=result.candy||0;game.lastInputAt=inputAt;
+    }
+    Object.assign(document.event,next.event);
+    return {[brain?'brainGame':'game']:clone(game),...(candy?{candy}:{})};
+  }
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact,receivedAt=now}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -549,8 +576,13 @@ const factories={
       result.candy=amount;result.pact=q.id;
     } else if(action.type==='brain-start'){
       requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    }
+    else if(action.type==='brain-ready'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session||g.finished)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.prepare(g,at,()=>random(event)));
+    } else if(action.type==='brain-inputs'){
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if(action.type==='brain-move'){
-      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));g.lastInputAt=at;
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
@@ -568,6 +600,12 @@ const factories={
       addCandy(event,amount,'death-quest',at,tx);event.taskClaims[key]=true;event.taskEarned.push({at,amount});result.candy=amount;
     } else if (action.type === 'studentos-mission'||action.type==='task') {
       requireRules(config);fail('เปลี่ยนเป็นเควสมรณะแล้ว รับเควสและทำงานที่ผูกไว้ก่อน');
+    } else if(action.type==='game-ready') {
+      requireRules(config);const game=event.games[action.game];
+      if(!game||game.session!==action.session||game.finished)fail('ไม่พบรอบเกมที่กำลังเล่น');
+      preparePlayback(game,event,at);result.game=clone(game);
+    } else if(action.type==='game-inputs') {
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if (action.type === 'start-game') {
       requireRules(config);
       const rule = gameDefinition(action.game, config);
@@ -589,7 +627,7 @@ const factories={
       if (action.game === 'catch-all-ghosts' && !event.proofs['grave-digging']?.complete) fail('ขุดหลุมศพให้จบก่อน');
       const previous = event.games[action.game];
       if (previous && !previous.finished) fail('เล่นรอบปัจจุบันให้จบหรือออกจากเกมก่อน');
-      event.games[action.game] = game; result.game = clone(game);
+      preparePlayback(game,event,at);event.games[action.game] = game; result.game = clone(game);
     } else if (action.type === 'game-move') {
       requireRules(config);
       const game = event.games[action.game];
@@ -605,7 +643,7 @@ const factories={
           finishGame(event, game, true, at);result.candy=paid?0:config.proposals.games.shipChestCandy;game.candy=result.candy;
           if(result.candy)addCandy(event,result.candy,'ship-chest',at,tx);
           addItem(event, 'dutchmans-soul-soul-anchor', 1);
-        } else { game.target = Math.floor(random(event)*3); game.deadline = at + config.proposals.games.shipStepSeconds[game.steps]*1000; }
+        } else { game.cueIndex=(game.cueIndex||0)+1;game.target=game.cues?.[game.cueIndex]??Math.floor(random(event)*3);game.deadline=at+config.proposals.games.shipStepSeconds[game.steps]*1000; }
       } else if(game.mode==='memory'&&action.move==='hint'){game.revealUntil=at+4500;}
       else if (game.deadline && at >= game.deadline) finishGame(event, game, false, at);
       else {
@@ -624,7 +662,7 @@ const factories={
         }
         if (game.found.length === game.total) finishGame(event, game, true, at);
       }
-      result.game = clone(game);
+      game.lastInputAt=at;result.game = clone(game);
     } else if (action.type === 'repair') {
       requireRules(config);
       if (!event.repairs) fail('เรือพร้อมอยู่แล้ว');
@@ -633,7 +671,7 @@ const factories={
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, INPUT_GRACE_MS, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
 
 },
@@ -900,16 +938,17 @@ const factories={
   if(g.kind==='odd')return {odd:Math.floor(r()*9),asset:pick(['little-wisp','velvet-bat','crimson-candle','quiet-gravestone'],r)};
   const a=1+Math.floor(r()*12),step=1+Math.floor(r()*5),answer=g.kind==='balance'?a:a+step*4;return g.kind==='balance'?{b:step,sum:a+step,answer,choices:shuffle([a,a+1,a+2,a+3],r)}:{sequence:Array.from({length:4},(_,i)=>a+step*i),step,answer,choices:shuffle([answer,...shuffle([-2,-1,1,2,3,4].map(n=>answer+n).filter(n=>n>=0),r).slice(0,3)],r)};
  }
- function start(event,session,at,r){const recent=event.brainHistory||[],pool=kinds.filter(k=>!recent.slice(-2).includes(k)),weighted=pool.flatMap(k=>['math','balance','pattern'].includes(k)?[k,k]:[k]),kind=pick(weighted,r),g={session,kind,round:0,total:kind==='path'?1:3,startAt:at,finished:false,clear:false,mistakes:0};g.q=question(g,at,r);event.brainHistory=[...recent,kind].slice(-3);event.brainGame=g;return g;}
+ function prepare(g,at,r){if(g.playback===2)return g;g.playback=2;g.lastInputAt=at;g.questions=Array.from({length:g.total},(_,round)=>round<=g.round?null:question({...g,round},0,r));return g;}
+ function start(event,session,at,r){const recent=event.brainHistory||[],pool=kinds.filter(k=>!recent.slice(-2).includes(k)),weighted=pool.flatMap(k=>['math','balance','pattern'].includes(k)?[k,k]:[k]),kind=pick(weighted,r),g={session,kind,round:0,total:kind==='path'?1:3,startAt:at,finished:false,clear:false,mistakes:0};g.q=question(g,at,r);event.brainHistory=[...recent,kind].slice(-3);event.brainGame=g;return prepare(g,at,r);}
  function move(g,value,at,r){if(!g||g.finished)throw Error('เกมพักสมองรอบนี้จบแล้ว');if(value==='abandon'){g.finished=true;g.clear=false;return g;}const q=g.q;let success=false;
   if(g.kind==='memory'&&value==='hint'){q.revealUntil=at+4500;return g;}
   if(!Number.isInteger(value))throw Error('เลือกคำตอบบนหน้าจอ');
   if(g.kind==='memory'){if(at<q.revealUntil)throw Error('จำรูนก่อน แล้วค่อยตอบ');if(value<0||value>5)throw Error('ไม่พบรูน');if(value===q.sequence[q.found.length])q.found.push(value);else{q.found=[];q.revealUntil=at+4500;g.mistakes++;g.message='ดูอีกครั้งได้ ไม่เสียของหรือ Candy';}success=q.found.length===q.sequence.length;}
   else if(g.kind==='path'){const n=q.path.at(-1);if(value<0||value>15||q.walls.includes(value)||Math.abs(value%4-n%4)+Math.abs(Math.floor(value/4)-Math.floor(n/4))!==1)throw Error('เดินไปช่องติดกันที่ไม่ใช่คลื่น');const visited=q.path.indexOf(value);if(visited<0)q.path.push(value);else q.path=q.path.slice(0,visited+1);success=value===q.goal;}
   else {const allowed=g.kind==='odd'?value>=0&&value<9:q.choices.includes(value);if(!allowed)throw Error('ไม่พบตัวเลือก');success=value===(g.kind==='odd'?q.odd:q.answer);if(!success){g.mistakes++;g.message=g.kind==='math'?q.a+' '+q.op+' '+q.b+' = '+q.answer+' · ลองเลือกคำตอบนี้อีกครั้ง':g.kind==='balance'?'สองฝั่งต้องเท่ากัน: '+q.sum+' − '+q.b+' = '+q.answer:g.kind==='pattern'?'เพิ่มทีละ '+q.step+' · จำนวนถัดไปคือ '+q.answer:'ตราที่ต่างถูกหมุนไปอีกมุมหนึ่ง';}}
-  if(success){g.round++;g.message='ถูกแล้ว!';if(g.round===g.total){g.finished=true;g.clear=true;g.endedAt=at;}else g.q=question(g,at,r);}return g;
+  if(success){g.round++;g.message='ถูกแล้ว!';if(g.round===g.total){g.finished=true;g.clear=true;g.endedAt=at;}else {g.q=g.questions?.[g.round]?JSON.parse(JSON.stringify(g.questions[g.round])):question(g,at,r);if(g.kind==='memory')g.q.revealUntil=at+4500;}}return g;
  }
- return Object.freeze({kinds,names,reachable,start,move});
+ return Object.freeze({kinds,names,reachable,start,prepare,move});
 });
 
 },
@@ -989,16 +1028,21 @@ const Attention=require("server/attention.cjs");
 function create({Core,Death,Season,config,randomSeed}) {
  const allowed=new Set(['study-enroll','study-pulse','study-finish','study-claim','brain-start','brain-move','claim-welcome','training-start','training-move','enter-hub','enter-room','enter-biome','story-seen','house','quest','buy','craft','seed-quest','plant','water','harvest','sell-crop','equip-weapon','start-boss','battle-move','claim-final-theme-set','buy-biome-potion','drink-biome-potion','totem','visitor','death-quest-enroll','death-quest-claim','start-game','game-move','repair','focus-pulse','focus-finish']);
  allowed.add('focus-check');allowed.add('study-check');
+ allowed.add('game-ready');allowed.add('game-inputs');allowed.add('brain-ready');allowed.add('brain-inputs');
  const keys=['type','room','biome','house','choice','quest','branch','item','stockEpoch','recipe','quantity','expectedGrown','expectedInventory','weapon','boss','session','move','index','game','taskId','active','pact','checkpoint','answer'];
  const copy=x=>JSON.parse(JSON.stringify(x));
  function clean(input){
   if(!input||typeof input!=='object'||!allowed.has(input.type))throw Error('ไม่รองรับคำสั่งนี้ในกิจกรรมจริง');
-  const a={};for(const key of keys){const v=input[key];if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
+  const a={};for(const key of keys){const v=input[key];if(key==='branch'&&v===null)continue;if(v!==undefined){if(!['string','number','boolean'].includes(typeof v)||typeof v==='string'&&v.length>180||typeof v==='number'&&!Number.isSafeInteger(v))throw Error('รูปแบบคำสั่งไม่ถูกต้อง');a[key]=v;}}
+  if(['game-inputs','brain-inputs'].includes(input.type)){
+   if(!Array.isArray(input.inputs)||!input.inputs.length||input.inputs.length>96||input.inputs.some(r=>!Array.isArray(r)||r.length!==2||!(Number.isSafeInteger(r[0])||['hint','timeout'].includes(r[0]))||!Number.isSafeInteger(r[1])||r[1]<0||r[1]>2*86400000))throw Error('ลำดับการเล่นไม่ถูกต้อง');
+   a.inputs=input.inputs.map(r=>[r[0],r[1]]);
+  }
   return a;
  }
  function publicDocument(document){const d=copy(document);delete d.event.rng;delete d.event._lastActionAt;for(const p of Object.values(d.event.focusProofs||{}))Attention.publicProof(p);Attention.publicProof(d.event.studyPacts?.active?.proof);d.receipts={};return d;}
  function initial(uid,at){const d=Core.initial(config,uid,at,randomSeed());d.event.authoritative=true;return d;}
- function apply(document,input,{uid,at,tx,studyTask}){
+ function apply(document,input,{uid,at,tx,studyTask,receivedAt=at}){
   const action=clean(input);
   if(document.owner!==uid||document.season!==Season.id)throw Error('เซฟไม่ตรงกับบัญชีนี้');
   if(Season.state(at)!=='active')throw Error(Season.state(at)==='upcoming'?'กิจกรรมเปิดวันที่ 28 ตุลาคม':'กิจกรรมจบแล้ว รางวัลที่ได้รับยังอยู่ในบัญชี');
@@ -1037,7 +1081,7 @@ function create({Core,Death,Season,config,randomSeed}) {
    }
    e.focusProofs[q.taskId]=p;result={at,type:action.type,rewards:[],minutes:Math.floor(p.activeMs/60000),...(correct===undefined?{}:{correct})};
   }else{
-   const context={now:at,tx,studentOwner:uid};
+   const context={now:at,tx,studentOwner:uid,receivedAt};
    if(action.type==='death-quest-claim'){
     const q=Object.values(e.deathQuests||{}).find(q=>q.id===action.quest),p=q&&e.focusProofs?.[q.taskId];
     if(!q||!p?.doneAt||p.activeMs<q.minutes*60000)throw Error('ทำเควสและโฟกัสให้ครบก่อนรับ Candy');
@@ -1086,21 +1130,22 @@ function create({authority,db,authenticate,clock=Date.now,season}){
   if(request.method==='OPTIONS')return new Response(null,{status:204,headers});
   if(request.method!=='POST')return reply({error:'ใช้ POST เพื่ออ่านหรือทำรายการ'},405);
   try{
+   const raw=await request.text();if(raw.length>6000)return reply({error:'คำสั่งยาวเกินไป'},413);
+   const receivedAt=clock();
    const uid=await authenticate(request.headers.get('authorization')||'');
    if(!uid)return reply({error:'เข้าสู่ระบบ StudentOS ก่อนเล่นกิจกรรม'},401);
-   const raw=await request.text();if(raw.length>6000)return reply({error:'คำสั่งยาวเกินไป'},413);
    let body;try{body=JSON.parse(raw);}catch{return reply({error:'รูปแบบคำสั่งไม่ถูกต้อง'},400);}
    const snapshot=async()=>{const row=await db.read(uid,season.id);return row?.document||authority.initial(uid,clock());};
    if(body.action?.type==='read')return reply({document:authority.publicDocument(await snapshot()),serverNow:clock(),phase:season.state(clock())});
    if(typeof body.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.requestId))return reply({error:'ไม่มีรหัสธุรกรรมที่ถูกต้อง'},400);
    const action=authority.clean(body.action),tx=body.requestId;
-   const previous=await db.receipt(uid,season.id,tx);
+   const [previous,first]=await Promise.all([db.receipt(uid,season.id,tx),snapshot()]);
    if(previous){if(JSON.stringify(Object.entries(previous.action).sort())!==JSON.stringify(Object.entries(action).sort()))return reply({error:'รหัสธุรกรรมนี้ถูกใช้กับรายการอื่นแล้ว'},409);return reply({result:previous.result,document:authority.publicDocument(await snapshot()),serverNow:clock(),replay:true});}
    const studyTask=action.type==='study-enroll'?await db.studyTask(uid,action.taskId):undefined;
    for(let attempt=0;attempt<4;attempt++){
-    const current=await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx,studyTask});
+    const current=attempt===0?first:await snapshot(),next=authority.apply(current,action,{uid,at:clock(),tx,studyTask,receivedAt});
     const saved=await db.commit({uid,season:season.id,expected:current.revision,tx,action,...next});
-    if(saved.committed)return reply({result:saved.result,document:authority.publicDocument(await snapshot()),serverNow:clock(),replay:saved.replay});
+    if(saved.committed)return reply({result:saved.result,document:authority.publicDocument(saved.replay?await snapshot():next.document),serverNow:clock(),replay:saved.replay});
    }
    return reply({error:'เซฟเปลี่ยนจากอีกเครื่อง กรุณาลองรายการนี้อีกครั้ง'},409);
   }catch(error){return reply({error:error.publicMessage||error.message||'เชื่อมกิจกรรมไม่สำเร็จ ยังไม่ได้ยืนยันรายการ'},error.status||400);}

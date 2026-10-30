@@ -8,8 +8,9 @@ const app = read('../../app.js');
 const hoop = read('../../hoop.js');
 
 // โหลดไฟล์จริงในบริบทจำลอง — มีแค่ของที่ไฟล์แตะตอนโหลดและตอนตัดสินใจ
-function load({ chosen = false, reduced = false, shop = {} } = {}) {
+function load({ chosen = false, reduced = false, shop = {}, preference = 'system', storageFails = false, imagesReady = false } = {}) {
   const store = new Map(chosen ? [['studentos.alt.doneFx', 'cursedship']] : []);
+  store.set('studentos.alt.cinematicMotion',preference);
   const root = { classList: { contains: () => false }, dataset: {} };
   const window = { addEventListener() {} };
   const toasts = [];
@@ -19,11 +20,42 @@ function load({ chosen = false, reduced = false, shop = {} } = {}) {
     matchMedia: () => ({ matches: reduced }),
     liveTasks: () => [{ done: true, doneAt: new Date().toISOString() }, { done: true, doneAt: '2020-01-01T00:00:00Z' }, { done: false }],
     doneCount: () => 146,
-    localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) } };
+    localStorage: { getItem: k => store.has(k) ? store.get(k) : null, setItem: (k, v) => {if(storageFails)throw Error('Storage blocked');store.set(k, String(v));}, removeItem: k => store.delete(k) } };
   window.matchMedia = ctx.matchMedia;
+  if(imagesReady)ctx.Image=class{set src(value){this.onload?.();}};
   vm.runInNewContext(source, ctx);
-  return { api: window.CursedShip, ctx, toasts };
+  return { api: window.CursedShip, ctx, toasts,store,root };
 }
+
+test('earned cinematics have an independent opt-in that keeps system and theme settings untouched',()=>{
+  const {api,ctx,root,store}=load({reduced:true});root.dataset.hwMotion='still';root.dataset.quality='low';
+  assert.equal(api.motionAllowed(),false);assert.equal(api.setMotionPreference('full'),true);
+  assert.equal(api.motionAllowed(),true);assert.equal(api.motionPreference(),'full');
+  assert.equal(root.dataset.hwMotion,'still');assert.equal(root.dataset.quality,'low');assert.equal(ctx.matchMedia('x').matches,true);
+  assert.equal(store.get('studentos.alt.cinematicMotion'),'full');
+  assert.equal(api.setMotionPreference('still'),true);assert.equal(api.motionAllowed(),false);
+  assert.equal(api.setMotionPreference('system'),true);assert.equal(api.motionAllowed(),false);
+  assert.equal(api.setMotionPreference('__proto__'),false);assert.equal(api.motionPreference(),'system');
+});
+test('the explicit choice survives reload and still works for this visit if storage is unavailable',()=>{
+  assert.equal(load({reduced:true,preference:'full'}).api.motionAllowed(),true);
+  const {api}=load({reduced:true,storageFails:true});assert.equal(api.setMotionPreference('full'),true);assert.equal(api.motionAllowed(),true);
+});
+test('opt-in allows the actual completion gate after art is ready and blocked previews offer a direct enable action',()=>{
+  const {api,root,toasts,store}=load({reduced:true,imagesReady:true});root.dataset.hwMotion='still';root.dataset.quality='low';api.preload();
+  assert.equal(api.canPlay(),false);let closed=0;api.playFx('งาน',()=>closed++,true);assert.equal(closed,1);
+  assert.equal(toasts[0].action.label,'เปิดฉากรางวัล');assert.equal(store.get('studentos.alt.cinematicMotion'),'system');
+  toasts[0].action.fn();assert.equal(api.canPlay(),true);assert.equal(root.dataset.hwMotion,'still');assert.equal(root.dataset.quality,'low');
+  api.setMotionPreference('still');assert.equal(api.canPlay(),false);
+});
+test('motion controls belong to the effect picker and never require a Halloween theme',()=>{
+  const {api}=load({reduced:true});for(const id of ['cursedship','fx-soulwake','fx-reaper-gate']){const html=api.motionControlsHTML(id);assert.match(html,/เปิดฉากรางวัล/);assert.match(html,/ตามการตั้งค่าเครื่อง/);assert.match(html,/ภาพนิ่ง/);assert.match(html,/aria-label="การเคลื่อนไหวฉากรางวัล"/);}
+  assert.equal(api.motionControlsHTML('confetti'),'');assert.match(hoop,/CursedShip\?\.motionControlsHTML/);
+});
+test('explicit scene opt-in scopes CSS to the cinematic and the public viewer never replaces matchMedia',()=>{
+  for(const file of ['../season/cursed-ship.css','../season/biome-finishes.css'])assert.match(read(file),/data-cs-motion="full"/);
+  assert.doesNotMatch(read('../rewards/cinematic-preview.html'),/window\.matchMedia\s*=/);
+});
 
 test('registers itself as a free completion effect and refreshes the picker', () => {
   const { ctx } = load();

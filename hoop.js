@@ -39,11 +39,14 @@ const FX_SHOP = {
   glass:   { cost: 10, name: 'ปาแก้ว', desc: 'ปาแก้วใส่กำแพงให้แตกกระจาย', emoji: '🥂' },
 };
 function fxIcon(id) {
+  if (FX_SHOP[id]?.icon) return FX_SHOP[id].icon;   // 25 ต.ค. 69 · เอฟเฟกต์ที่ลงทะเบียนเองพร้อมไอคอน (The Cursed Ship)
+  if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.effectIcon(id);
   if (id === 'hoop') return HOOP_ICON;
   return (typeof FX_ICONS === 'object' && FX_ICONS[id]) || '';
 }
 
-function fxOwned(id) { return (tokenState().fx || []).includes(id); }
+// typeof: เทสต์ของ Halloween (integration.test.mjs) ตัดฟังก์ชันนี้ไปรันเดี่ยว ๆ โดยไม่มี FX_SHOP
+function fxOwned(id) { if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.owns(id); return !!(typeof FX_SHOP === 'object' && FX_SHOP[id]?.free) || (tokenState().fx || []).includes(id); }
 
 // ---------- โหมด 3D (ได้จากการสุ่มเท่านั้น · fx3d.js) ----------
 // มี 3D แต่ยังไม่ได้ซื้อเอฟเฟกต์ปกติ = ยังใช้ไม่ได้ (เจ้าของสั่ง) — ของไม่หาย ซื้อเมื่อไหร่ใช้ได้ทันที
@@ -52,6 +55,7 @@ const DONEFX_3D_KEY = 'studentos.alt.doneFx3d';
 // บัญชีแอดมิน (TOKEN_ADMIN ใน app.js) มี 3D ครบทุกเกม — เจ้าของสั่งไว้ทดสอบบนมือถือ
 // อ่านสดจาก tokenAdmin เหมือนยอด ∞ ไม่เขียนลงข้อมูลจริง ออกจากระบบแล้วกลับเป็นของที่สุ่มได้จริง
 function fx3dOwned(id) {
+  if (window.HalloweenCosmetics?.isEffect(id)) return false;
   if (typeof tokenAdmin !== 'undefined' && tokenAdmin) return true;
   return ((tokenState().fx3d || {})[id] || 0) > 0;
 }
@@ -66,8 +70,8 @@ function setFx3dMode(id, on) {
   list = list.filter(x => x !== id);
   if (on) list.push(id);
   try { localStorage.setItem(DONEFX_3D_KEY, JSON.stringify(list)); } catch (_) {}
+  // 18 ต.ค. 69 · สลับโหมดอย่างเดียว ไม่เล่น — เล่นเมื่อกด "ลองเล่นดู" (ดู setDoneFx)
   renderFxPick();
-  previewFx(id);
 }
 function doneFxPref() {
   let v = 'confetti';
@@ -78,6 +82,9 @@ function doneFxPref() {
 function doneFxActive() {
   const id = doneFxPref();
   if (id === 'confetti') return false;
+  // The Cursed Ship (halloween/season/cursed-ship.js) ตอบเองว่าเล่นได้ไหม — ภาพต้องโหลดครบ และเครื่องไม่ได้ขอลดการเคลื่อนไหว
+  if (id === 'cursedship') return !!window.CursedShip?.canPlay() && !!document.querySelector('.phone');
+  if (window.HalloweenCosmetics?.isEffect(id)) return !!document.querySelector('.phone');
   if (id !== 'hoop' && !(typeof FX_GAMES === 'object' && FX_GAMES[id])) return false;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
   return !!document.querySelector('.phone');
@@ -85,15 +92,22 @@ function doneFxActive() {
 // เปิดเอฟเฟกต์ที่เลือกไว้ · id ระบุเองได้ (ปุ่ม "ลอง")
 function openDoneFx(title, onClose, preview, id) {
   id = id || doneFxPref();
+  if (!preview && id !== 'confetti' && !fxOwned(id)) { if (onClose) onClose(); return false; }
+  if (id === 'cursedship' && window.CursedShip) return window.CursedShip.playFx(title, onClose, preview);
+  if (window.HalloweenCosmetics?.isEffect(id)) return window.HalloweenCosmetics.playEffect(id, onClose, title, preview);
   if (id !== 'confetti' && fx3dMode(id) && fx3dUsable(id) && typeof open3D === 'function') return open3D(id, title, onClose, preview);
   if (id === 'hoop') return openHoop(title, onClose, preview);
   if (typeof FX_GAMES === 'object' && FX_GAMES[id]) return openFxGame(id, title, onClose, preview);
   if (onClose) onClose();
 }
-function previewFx(id) { openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
+// เกมตัวอย่างเปิดอยู่แล้ว = ไม่ทำอะไร — ทุกเกมเปิดผ่าน fxShell ซึ่งปิดของเดิมแล้วสร้างใหม่
+// แตะ "ลองเล่นดู" ซ้ำระหว่างเกมยังโหลด (เครื่องช้า · 3D) เดิมจึงปิด-สร้างวนไปเรื่อย ๆ
+const fxOpenNow = () => !!document.querySelector('.hoop-ov:not(.out), .cs-ov:not(.out)');
+function previewFx(id) { if (fxOpenNow()) return; openDoneFx('ตัวอย่าง · เล่นได้เลย', null, true, id); }
 // ดูตัวอย่าง 3D ได้ทุกคน แม้ยังสุ่มไม่ได้ — แบบเกมที่ให้ลองสกินก่อนสุ่ม (คนเห็นว่าของสวยแค่ไหนถึงอยากได้)
 // เล่นได้ครบ แต่เป็นโหมดตัวอย่าง: ไม่นับงานเสร็จ ไม่ปลดล็อกอะไร · ใช้จริงตอนงานเสร็จยังต้องสุ่มได้ก่อน
 function previewFx3d(id) {
+  if (fxOpenNow()) return;
   if (typeof open3D === 'function' && typeof FX3D_GAMES === 'object' && FX3D_GAMES[id])
     return open3D(id, fx3dUsable(id) ? 'ตัวอย่าง 3D · เล่นได้เลย' : 'ตัวอย่าง 3D · สุ่มได้ในกาชา', null, true);
   previewFx(id);
@@ -102,11 +116,16 @@ function previewFx3d(id) {
 function setDoneFx(id) {
   if (id !== 'confetti' && !fxOwned(id)) return;
   try { localStorage.setItem(DONEFX_KEY, id); } catch (_) {}
+  if (id === 'cursedship' || window.HalloweenCosmetics?.isEffect(id)) {window.CursedShip?.preload();window.CursedShip?.preloadVariant?.({id});}   // ภาพ ~150KB เริ่มโหลดตั้งแต่ตอนเลือก งานถัดไปที่เสร็จจะได้เล่นทันที
+  // 18 ต.ค. 69 · เจ้าของ: "ให้เลือกก่อนแล้วกดเล่น ไม่ใช่กดเลือกแล้วเล่นเลย"
+  // เดิมแตะชื่อทีไรเกมเปิดทันที — ไล่แตะดูหลายตัว = โหลดเกม (3D หนัก) ซ้ำ ๆ เครื่องช้าสะดุด
+  // ตอนนี้แตะ = เลือก (ขอบไฮไลต์ + ชื่อมุมขวาบน) · เล่นด้วยปุ่ม "ลองเล่นดู" · เทสต์: devtools/fxpickcheck.js
+  haptic('tap');
   renderFxPick();
-  if (id !== 'confetti') previewFx(id);
 }
 
 function buyFx(id) {
+  if(window.HalloweenCosmetics?.isEffect(id)){window.HalloweenRewardAccess?.explain();return;}
   if (typeof window !== 'undefined' && window.StudentOSEconomy) return window.StudentOSEconomy.buyFx(id);
   const f = FX_SHOP[id];
   if (!f || fxOwned(id)) return;
@@ -135,6 +154,7 @@ function renderFxPick() {
   sec.hidden = !any;
   if (!any) return;
   const cur = doneFxPref();
+  const previewButton=document.getElementById('fxTry');if(previewButton)previewButton.textContent=window.HalloweenCosmetics?.isEffect(cur)||cur==='cursedship'?'ดูตัวอย่างฉากฉลอง':'ลองเล่นดู';
   // ปุ่มสร้างจากของที่มีจริงทุกครั้ง — ร้านเพิ่มของใหม่แล้วไม่ต้องมาแก้ index.html
   const pick = document.getElementById('fxPick');
   if (pick) pick.innerHTML = ['confetti'].concat(Object.keys(FX_SHOP).filter(fxOwned)).map(id =>
@@ -157,14 +177,15 @@ function renderFxPick() {
         <button type="button" class="${on3 ? 'active' : ''}" onclick="setFx3dMode('${cur}', true)">3D</button>
       </div>` : cur !== 'confetti' ? `<div class="fx-seg" role="group" aria-label="โหมดภาพ">
         <span class="fx-seg-lb">ภาพ</span>
-        <button type="button" class="active" onclick="previewFx('${cur}')">2D</button>
+        <button type="button" class="active" aria-pressed="true">2D</button>
         <button type="button" class="lock" onclick="previewFx3d('${cur}')" aria-label="3D ยังไม่ได้ปลดล็อก ดูตัวอย่าง">${icon('lock')}3D</button>
       </div>
       <p class="fx-wait">3D สุ่มได้ในกาชา (ตัวละ 0.1%)</p>` : '')
       + (waiting.length ? `<p class="fx-wait">มี 3D รอปลดล็อก: ${waiting.map(id => esc(FX_SHOP[id].name)).join(' · ')}</p>` : '');
   }
   const tr = document.getElementById('fxTry');
-  if (tr) tr.hidden = cur === 'confetti';
+  if (mode && (window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship')) mode.innerHTML = '<p class="fx-wait">Halloween · ฉลองงานเสร็จ ข้ามได้ตลอดเวลา</p>'+(window.CursedShip?.motionControlsHTML(cur)||'');
+  if (tr) { tr.hidden = cur === 'confetti'; tr.textContent = window.HalloweenCosmetics?.isEffect(cur) || cur === 'cursedship' ? 'ดูตัวอย่างฉากฉลอง' : 'ลองเล่นดู'; }
 }
 
 // ---------- ตัวเกม ----------

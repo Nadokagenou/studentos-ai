@@ -297,7 +297,34 @@
     const prior = event.proofs[game.id] || {};
     event.proofs[game.id] = {complete:true, clear:prior.clear || clear, at:now, session:game.session};
   }
-  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact}) {
+  function preparePlayback(game,event,at) {
+    if(game.playback===2)return;
+    game.playback=2;game.lastInputAt=at;
+    if(game.id==='ghost-ship-hunt'){game.cueIndex=0;game.cues=[game.target,...Array.from({length:8},()=>Math.floor(random(event)*3))];}
+  }
+  // Batches leave the browser after the final tap. Each tap is still judged at its own time;
+  // this only lets the trip to the server finish a round that was won in time.
+  const INPUT_GRACE_MS=5000;
+  function playInputs(document,config,action,now,tx,receivedAt) {
+    const brain=action.type==='brain-inputs',source=brain?document.event.brainGame:document.event.games[action.game];
+    if(!source||source.session!==action.session||source.finished||source.playback!==2)fail('ไม่พบรอบเกมที่กำลังเล่น');
+    if(!Array.isArray(action.inputs)||!action.inputs.length||action.inputs.length>96)fail('ลำดับการเล่นไม่ถูกต้อง');
+    const next=clone(document),arrival=moment(document,receivedAt),game=brain?next.event.brainGame:next.event.games[action.game];let candy=0;
+    for(let i=0;i<action.inputs.length;i++){
+      const row=action.inputs[i];
+      if(!Array.isArray(row)||row.length!==2||!(Number.isSafeInteger(row[0])||['hint','timeout'].includes(row[0]))||!Number.isSafeInteger(row[1])||row[1]<0||row[1]>2*DAY)fail('ลำดับการเล่นไม่ถูกต้อง');
+      const inputAt=game.startAt+row[1];
+      if(inputAt<(game.lastInputAt??game.startAt)||inputAt>arrival)fail('เวลาการเล่นไม่ตรงกับรอบนี้');
+      const deadline=game.deadline;
+      next.event.clock=Math.min(next.event.clock,inputAt);
+      const result=dispatch(next,config,{type:brain?'brain-move':'game-move',...(!brain?{game:action.game}:{}),session:action.session,move:row[0]},{now:inputAt-next.event.timeOffset,tx:tx+':'+i});
+      if(game.finished&&game.clear&&deadline&&arrival>=deadline+INPUT_GRACE_MS)fail('ผลเกมมาถึงหลังเวลาของรอบนี้หมดแล้ว');
+      candy+=result.candy||0;game.lastInputAt=inputAt;
+    }
+    Object.assign(document.event,next.event);
+    return {[brain?'brainGame':'game']:clone(game),...(candy?{candy}:{})};
+  }
+  function dispatch(document, config, action, {now, tx, studentOS,studentOwner='',studentFocus,studyPact,receivedAt=now}) {
     if (!tx || !Number.isFinite(now)) fail('ธุรกรรมไม่มีเวลาอ้างอิง');
     if (!document.event || document.season !== config.season.id) fail('ไม่พบข้อมูลฤดูกาล');
     const event = document.event, at = moment(document, now);
@@ -546,8 +573,13 @@
       result.candy=amount;result.pact=q.id;
     } else if(action.type==='brain-start'){
       requireRules(config);if(event.brainGame&&!event.brainGame.finished)fail('จบรอบปัจจุบันหรือพักก่อนเริ่มใหม่');result.brainGame=clone(Brain.start(event,tx,at,()=>random(event)));
+    }
+    else if(action.type==='brain-ready'){
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session||g.finished)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.prepare(g,at,()=>random(event)));
+    } else if(action.type==='brain-inputs'){
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if(action.type==='brain-move'){
-      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));
+      requireRules(config);const g=event.brainGame;if(!g||g.session!==action.session)fail('ไม่พบเกมพักสมองรอบนี้');result.brainGame=clone(Brain.move(g,action.move,at,()=>random(event)));g.lastInputAt=at;
     } else if(action.type==='death-quest-enroll'){
       requireRules(config);event.deathQuests||={};const key=Death.day(now),today=event.deathQuests[key];
       const active=Object.values(event.deathQuests).find(q=>!event.taskClaims['death:'+q.taskId]&&now-q.issuedAt<DAY);
@@ -565,6 +597,12 @@
       addCandy(event,amount,'death-quest',at,tx);event.taskClaims[key]=true;event.taskEarned.push({at,amount});result.candy=amount;
     } else if (action.type === 'studentos-mission'||action.type==='task') {
       requireRules(config);fail('เปลี่ยนเป็นเควสมรณะแล้ว รับเควสและทำงานที่ผูกไว้ก่อน');
+    } else if(action.type==='game-ready') {
+      requireRules(config);const game=event.games[action.game];
+      if(!game||game.session!==action.session||game.finished)fail('ไม่พบรอบเกมที่กำลังเล่น');
+      preparePlayback(game,event,at);result.game=clone(game);
+    } else if(action.type==='game-inputs') {
+      requireRules(config);Object.assign(result,playInputs(document,config,action,now,tx,receivedAt));
     } else if (action.type === 'start-game') {
       requireRules(config);
       const rule = gameDefinition(action.game, config);
@@ -586,7 +624,7 @@
       if (action.game === 'catch-all-ghosts' && !event.proofs['grave-digging']?.complete) fail('ขุดหลุมศพให้จบก่อน');
       const previous = event.games[action.game];
       if (previous && !previous.finished) fail('เล่นรอบปัจจุบันให้จบหรือออกจากเกมก่อน');
-      event.games[action.game] = game; result.game = clone(game);
+      preparePlayback(game,event,at);event.games[action.game] = game; result.game = clone(game);
     } else if (action.type === 'game-move') {
       requireRules(config);
       const game = event.games[action.game];
@@ -602,7 +640,7 @@
           finishGame(event, game, true, at);result.candy=paid?0:config.proposals.games.shipChestCandy;game.candy=result.candy;
           if(result.candy)addCandy(event,result.candy,'ship-chest',at,tx);
           addItem(event, 'dutchmans-soul-soul-anchor', 1);
-        } else { game.target = Math.floor(random(event)*3); game.deadline = at + config.proposals.games.shipStepSeconds[game.steps]*1000; }
+        } else { game.cueIndex=(game.cueIndex||0)+1;game.target=game.cues?.[game.cueIndex]??Math.floor(random(event)*3);game.deadline=at+config.proposals.games.shipStepSeconds[game.steps]*1000; }
       } else if(game.mode==='memory'&&action.move==='hint'){game.revealUntil=at+4500;}
       else if (game.deadline && at >= game.deadline) finishGame(event, game, false, at);
       else {
@@ -621,7 +659,7 @@
         }
         if (game.found.length === game.total) finishGame(event, game, true, at);
       }
-      result.game = clone(game);
+      game.lastInputAt=at;result.game = clone(game);
     } else if (action.type === 'repair') {
       requireRules(config);
       if (!event.repairs) fail('เรือพร้อมอยู่แล้ว');
@@ -630,5 +668,5 @@
     event.clock = at;
     return result;
   }
-  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
+  return Object.freeze({BIOMES, SHORT, DAY, HOUR,Rotations, INPUT_GRACE_MS, build, initial, definitions, moment, shopStock, biomeAt, portalStatus, questStatus,questWait,biomeProgress, gardenUnlocked,weaponStatus,bossStatus,resolveRequirements, checkRequirements, questNeeds, houseAvailability,questAidStatus, gameDefinition, dispatch});
 });
