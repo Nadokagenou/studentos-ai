@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { newItems, toEmbed, toMessages } from './news-discord.mjs';
+import { newItems, toEmbed, toMessages, intro } from './news-discord.mjs';
 
 const it = (id, extra = {}) => ({ id, date: '2026-10-15', kind: 'feature', release: '1C57', title: 'T ' + id, body: 'B', evidence: [{ quote: 'x' }], ...extra });
 
@@ -31,4 +31,22 @@ test('embed carries title, body, points and in-app kind name, never evidence', (
 test('splits into messages of at most 10 embeds', () => {
   const msgs = toMessages(Array.from({ length: 23 }, (_, i) => it('x' + i)));
   assert.deepEqual(msgs.map(m => m.embeds.length), [10, 10, 3]);
+});
+
+test('promo becomes the headline and the original title leads the body', () => {
+  const e = toEmbed(it('a', { promo: 'ลองแล้วจะติดใจ' }));
+  assert.equal(e.title, 'ลองแล้วจะติดใจ');
+  assert.equal(e.description, '**T a**\n\nB');
+});
+
+test('image points at the pushed commit so it exists before the site redeploys', () => {
+  const e = toEmbed(it('a', { image: 'img/a.png' }), { GITHUB_REPOSITORY: 'o/r', GITHUB_SHA: 'abc123' });
+  assert.equal(e.image.url, 'https://raw.githubusercontent.com/o/r/abc123/alt/news/img/a.png');
+  assert.equal(toEmbed(it('b'), {}).image, undefined);
+});
+
+test('first message invites testers to try and report back', () => {
+  const m = toMessages([it('a')], {});
+  assert.equal(m[0].content, intro(1));
+  assert.match(m[0].content, /บอกในห้องนี้/);
 });

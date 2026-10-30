@@ -35,26 +35,44 @@ export function newItems(oldDoc, newDoc, now = Date.now()) {
     .filter(it => !(it.until && Date.parse(it.until) < now));
 }
 
-export function toEmbed(it) {
+// รูปอ่านจาก raw.githubusercontent ของคอมมิตที่เพิ่งถูก push — มีทันที ไม่ต้องรอเว็บจริงอัปเดต
+export function imageUrl(it, env = process.env) {
+  if (!it.image) return null;
+  const repo = env.GITHUB_REPOSITORY || 'nadokagenou/studentos-ai';
+  return `https://raw.githubusercontent.com/${repo}/${env.GITHUB_SHA || 'main'}/alt/news/${it.image}`;
+}
+
+export function toEmbed(it, env = process.env) {
   const [name, color] = KIND[it.kind] || ['ข่าวสาร', 0x64748b];
   const points = (it.points || []).map(p => '• ' + p).join('\n');
   const from = it.kind === 'notice' ? 'จาก' + (it.by || 'ทีม StudentOS') : 'รุ่น ' + (it.release || '');
-  return {
-    title: it.title.slice(0, 256),
+  // มี promo = พาดหัวชวนลองเป็นหัวใหญ่ แล้วหัวข้อเดิมเป็นบรรทัดหนาแรก
+  const head = it.promo ? '**' + it.title + '**' : '';
+  const e = {
+    title: (it.promo || it.title).slice(0, 256),
     url: APP_URL,
-    description: [it.body, points].filter(Boolean).join('\n\n').slice(0, 4000),
+    description: [head, it.body, points].filter(Boolean).join('\n\n').slice(0, 4000),
     color,
     // evidence ไม่ส่ง — เป็นของสำหรับตรวจ ไม่ใช่ของสำหรับอ่าน
     footer: { text: `${name} · ${from}` },
     timestamp: new Date(it.date).toISOString(),
   };
+  const img = imageUrl(it, env);
+  if (img) e.image = { url: img };
+  return e;
+}
+
+// ข้อความนำ — ชวนเปิดแอปและชวนแจ้งบั๊ก ไม่อ้างอะไรเกินข่าวที่ตรวจแล้ว
+export function intro(n) {
+  return `🚀 **StudentOS อัปเดตใหม่ ${n} เรื่อง!** เปิดแอปแล้วลองเลย 👉 ${APP_URL}\n` +
+    'ลองแล้วเจอบั๊ก หรือชอบ/ไม่ชอบตรงไหน บอกในห้องนี้ได้เลย ทีมอ่านทุกข้อความ 🙏';
 }
 
 // Discord รับได้ 10 embed ต่อข้อความ
-export function toMessages(items) {
+export function toMessages(items, env = process.env) {
   const out = [];
   for (let i = 0; i < items.length; i += 10) {
-    out.push({ username: 'StudentOS', content: i ? '' : `มีอัปเดตใหม่ ${items.length} เรื่อง · เปิดแอป ${APP_URL}`, embeds: items.slice(i, i + 10).map(toEmbed) });
+    out.push({ username: 'StudentOS', content: i ? '' : intro(items.length), embeds: items.slice(i, i + 10).map(it => toEmbed(it, env)) });
   }
   return out;
 }

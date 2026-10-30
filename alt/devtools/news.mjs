@@ -17,7 +17,7 @@
 // โมเดลภาษาเขียนประโยคที่ฟังดูจริงได้เก่งพอ ๆ กับประโยคที่จริง
 // ด่านเดียวที่กันได้คือบังคับให้ทุกประโยคชี้กลับไปที่ของที่เกิดขึ้นแล้ว แล้วให้เครื่องเช็ค
 // ============================================================
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -173,6 +173,15 @@ function check(only) {
       if (!Array.isArray(points) || points.length > 5 || points.some(p => typeof p !== 'string' || !p.trim() || p.length > 120)) {
         bad('points เป็นรายการข้อความ ไม่เกิน 5 ข้อ ข้อละไม่เกิน 120 ตัวอักษร');
       }
+      // promo = พาดหัวชวนลองสำหรับ Discord ของ tester (แอปไม่แสดง) — โปรโมทได้ แต่ต้องมีหลักฐานเหมือนช่องอื่น
+      if (it.promo != null && (typeof it.promo !== 'string' || it.promo.length < 4 || it.promo.length > 100)) bad('promo 4–100 ตัวอักษร');
+      // image = รูปประกอบ อยู่ใน alt/news/img/ (ส่งไป Discord · แอปไม่แสดง)
+      if (it.image != null) {
+        const f = join(ALT, 'news', String(it.image));
+        if (!/^img\/[a-z0-9][a-z0-9._-]*\.(png|jpe?g|webp|gif)$/.test(it.image)) bad('image ต้องเป็น img/<ชื่อไฟล์>.png|jpg|webp|gif (a-z 0-9 . _ -)');
+        else if (!existsSync(f)) bad(`image ไม่มีไฟล์ alt/news/${it.image}`);
+        else if (statSync(f).size > 2 << 20) bad('image ใหญ่เกิน 2 MB');
+      }
       if (it.action != null) {
         const a = it.action;
         if (!a || typeof a.label !== 'string' || !a.label.trim() || a.label.length > 24) bad('action.label ต้องมี ไม่เกิน 24 ตัวอักษร');
@@ -182,6 +191,7 @@ function check(only) {
 
       // คำที่สัญญาของที่ยังไม่ปล่อย
       const texts = [['title', it.title], ['body', it.body], ...points.map((p, k) => ['points.' + k, p]),
+        ...(it.promo != null ? [['promo', it.promo]] : []),
         ...(it.action ? [['action', it.action.label]] : [])];
       for (const [f, t] of texts) {
         const low = String(t || '').toLowerCase();
