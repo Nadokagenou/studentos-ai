@@ -6284,7 +6284,8 @@ function renderAi() {
   if (newInput && unsent) { newInput.value = unsent; aiInputState(newInput); }
   if (typeof curScreen !== 'undefined' && curScreen === 'scr-ai' && typeof shortcutDraftApply === 'function') shortcutDraftApply('assistant');
   const th = el.querySelector('.ai-thread');
-  if (th) th.scrollTop = stick ? th.scrollHeight : oldTop;
+  // จอว่างเริ่มบนสุด · ถ้าจอว่างเดิมถูกเลื่อน (มีแต่คนเลื่อนเอง เพราะโค้ดไม่เลื่อนจอว่างแล้ว) คืนที่เดิม
+  if (th) th.scrollTop = fresh ? (oldTh && oldTh.querySelector('.at-hello') ? oldTop : 0) : (stick ? th.scrollHeight : oldTop);
   sgaMount();
 }
 
@@ -6347,7 +6348,10 @@ function aiInputState(el) {
 // เลื่อนลงล่างสุดหลังส่งคำถาม — บทสนทนาที่ตอบแล้วแต่ต้องเลื่อนหาเอง อ่านเหมือนไม่ได้ตอบ
 function aiScrollDown() {
   const th = document.querySelector('#aiBody .ai-thread');
-  if (th) th.scrollTop = th.scrollHeight;
+  if (!th) return;
+  // 30 ต.ค. 69 · จอว่าง (ยังไม่เคยคุย) ไม่มีข้อความล่าสุดให้เลื่อนไปหา — เลื่อนลงล่างสุดจะดันหน้าน้องฮูกกับหัวข้อไปอยู่ใต้หัวจอ
+  if (th.querySelector('.at-hello')) { th.scrollTop = 0; return; }
+  th.scrollTop = th.scrollHeight;
 }
 
 // ---------- พูดแทนพิมพ์ในช่องแชท ----------
