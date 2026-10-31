@@ -13083,6 +13083,22 @@ button.df-r:active .df-x { transform: scale(.985); }
 @media (max-width: 768px), (display-mode: standalone) {
   :root:not([data-nav="side"]) .fm-bar { margin-top: var(--tb-under); }
 }
+/* ============================================================
+   จอเพิ่มงาน: ซ่อนแถบเมนูล่าง ปุ่ม "เสร็จ" ติดขอบล่างจอ · 31 ต.ค. 69
+   ------------------------------------------------------------
+   เจ้าของ (ภาพปุ่ม "เสร็จ" ลอยเหนือแถบเมนู): "ปรับให้มันอยู่ข้างล่าง" → เลือก "ซ่อนแถบเมนูตอนกรอก"
+   ตอนกรอกฟอร์มไม่มีใครไปแท็บอื่น (ออกด้วย × มุมซ้ายบน) แถบเมนูจึงเป็นแค่ของกินที่ใต้ปุ่มบันทึก
+   openForm() สลับจอเองไม่ผ่าน go() → จับด้วย :has(#scr-form.on) ไม่ต้องเพิ่มคลาส · ออกจากฟอร์มผ่าน go() = แถบกลับมาเอง
+   เฉพาะตอนเมนูอยู่ล่าง (แถบข้างของจอกว้างไม่แตะ) · เบราว์เซอร์ที่ไม่รู้จัก :has = เหมือนเดิมทุกอย่าง
+   ต้องแก้คู่กันสามที่: ซ่อนแถบ · .screens เลิกยื่นลงใต้แถบ (มือถือ: margin ติดลบเท่าแถบ ไม่งั้นท้ายจอหลุดขอบ)
+   · แถบปุ่มฟอร์มเลิกยกตัวหลบแถบ (มือถือ --tb-under · แท็บเล็ต 90px ใน device-preview-controls.css) ลงไปติดขอบล่าง
+   ============================================================ */
+:root:not([data-nav="side"]) body:has(#scr-form.on) .tabbar { display: none !important; }
+:root:not([data-nav="side"]) body:not(.login-mode):has(#scr-form.on) .screens { margin-bottom: 0; }
+:root:not([data-nav="side"]) body:has(#scr-form.on) #scr-form .fm-bar {
+  bottom: 0; margin-top: 0;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+}
 :is(.stp-b, .ig-av-cam, .st-open-go, .an-grp > button, .ib2-sec > button, .tg, .tl-hint) { position: relative; }
 :is(.stp-b, .ig-av-cam, .st-open-go, .an-grp > button, .ib2-sec > button, .tg)::after {
   content: ''; position: absolute; inset: -9px; border-radius: 12px;
