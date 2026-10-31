@@ -8266,8 +8266,10 @@ button.df-r:active { background: var(--surface); }
 .rw-v::after {
   content: ''; flex: none; width: 7px; height: 7px; margin-right: 2px;
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
-  opacity: .6; transform: rotate(45deg) translate(-1px, -1px); transition: transform .16s ease;
+  /* 31 ต.ค. 69 · หมุนพร้อมกับแถวที่กาง (app.js · FMROW_MS 280 · ease-out ของ React Bits) — เดิม .16s ease จบก่อนแถวกางเสร็จ */
+  opacity: .6; transform: rotate(45deg) translate(-1px, -1px); transition: transform .28s cubic-bezier(.23, 1, .32, 1);
 }
+.rw-l { transition: color .2s ease-out; }
 .fm-row[open] > summary .rw-l { color: var(--blue-deep); }
 .fm-row[open] > summary .rw-v::after { transform: rotate(-135deg) translate(-1px, -1px); }
 .rw-body { display: flex; flex-direction: column; gap: 9px; padding: 2px 0 14px; }
@@ -9896,9 +9898,12 @@ body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
   border: 1px solid color-mix(in srgb, var(--fill) 26%, var(--line));
   box-shadow: 0 18px 40px -16px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18);
   transform-origin: 50% 0; transform: translateY(-6px) scale(.96); opacity: 0;
-  transition: transform .26s cubic-bezier(.34, 1.4, .64, 1), opacity .18s ease;
+  /* 31 ต.ค. 69 · เจ้าของ: "ให้อนิเมชั่นมันสมูดกว่านี้" — เดิมเด้งเกิน (.34,1.4) ทั้งขาเปิดและขาปิด และขาปิดยาว .26s
+     แต่ hselClose() ถอดแผ่นทิ้งที่ 180ms = ท่าถูกตัดกลางทาง · ตอนนี้: ขาปิดสั้น .16s จบก่อนถูกถอด
+     ขาเปิด .3s ease-out ไม่เด้ง (คลังของ React Bits: UI spring ~0.3 วิ ไม่เด้ง) */
+  transition: transform .16s cubic-bezier(.4, 0, 1, 1), opacity .14s ease-in;
 }
-.hsel-pop.on { transform: none; opacity: 1; }
+.hsel-pop.on { transform: none; opacity: 1; transition: transform .3s cubic-bezier(.23, 1, .32, 1), opacity .2s ease-out; }
 .hsel-it {
   display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
   padding: 11px 12px; border: 0; border-radius: 12px; background: none;

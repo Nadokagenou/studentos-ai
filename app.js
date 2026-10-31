@@ -14634,6 +14634,46 @@ document.addEventListener('click', e => {
   hselOpen(sum, c.items, c.cur, c.pick);
 });
 
+// ---------- แถว "รายละเอียด" (details.fm-row) กาง/หุบแบบลื่น · 31 ต.ค. 69 ----------
+// เจ้าของ (ภาพแถวรายละเอียด): "ให้อนิเมชั่นมันสมูดกว่านี้หน่อย" — <details> ของเบราว์เซอร์กาง/หุบวาบเดียว มีแค่ลูกศรหมุน
+// ทำท่าเองด้วย WAAPI (ใช้ได้ทุกเบราว์เซอร์รวม Safari): ความสูงแถวไหลจากเท่าหัวแถว ↔ เท่าเนื้อเต็ม · เนื้อข้างในจาง+เลื่อน 6px
+// เวลา/โค้งตามคลังการเคลื่อนไหวของ React Bits (UI ~0.3 วิ ไม่เด้ง · ease-out .23,1,.32,1)
+// · กดซ้ำกลางท่า = กลับทิศจากความสูงที่อยู่ตอนนั้น ไม่กระตุก · คีย์บอร์ด (e.detail === 0) = สลับทันทีตามกติกาเดียวกัน
+// · ลดการเคลื่อนไหว = จางอย่างเดียว · แถว data-hsel เปิดเมนูของมันเอง (ตัวดักข้างบน) ไม่ยุ่ง
+const FMROW_MS = 280, FMROW_EASE = 'cubic-bezier(.23, 1, .32, 1)';
+document.addEventListener('click', e => {
+  const sum = e.target.closest && e.target.closest('details.fm-row:not([data-hsel]) > summary');
+  if (!sum || e.detail === 0) return;
+  const row = sum.parentElement;
+  const body = row.querySelector(':scope > .rw-body');
+  if (!body || typeof row.animate !== 'function') return;
+  e.preventDefault();
+  const busy = !!row._fmAnim;
+  const opening = busy ? !row._fmWant : !row.open;
+  row._fmWant = opening;
+  const from = row.getBoundingClientRect().height;   // อ่านก่อนยกเลิกท่าเดิม = ความสูงที่ตาเห็นอยู่ตอนนี้
+  if (busy) { row._fmAnim.cancel(); row._fmBody && row._fmBody.cancel(); }
+  const edge = row.offsetHeight - row.clientHeight;   // เส้นคั่นล่างของแถว
+  const shut = sum.offsetHeight + edge;
+  if (opening) row.open = true;
+  const to = opening ? row.offsetHeight : shut;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  row.style.overflow = 'hidden';
+  const a = row.animate({ height: reduce ? [to + 'px', to + 'px'] : [from + 'px', to + 'px'] },
+    { duration: reduce ? 180 : FMROW_MS, easing: FMROW_EASE });
+  const b = body.animate(opening
+    ? { opacity: [0, 1], transform: reduce ? ['none', 'none'] : ['translateY(-6px)', 'none'] }
+    : { opacity: [1, 0], transform: reduce ? ['none', 'none'] : ['none', 'translateY(-6px)'] },
+    { duration: opening ? (reduce ? 180 : FMROW_MS) : (reduce ? 180 : FMROW_MS * .6), easing: FMROW_EASE, fill: 'forwards' });
+  row._fmAnim = a; row._fmBody = b;
+  a.onfinish = () => {
+    if (!row._fmWant) row.open = false;
+    row.style.overflow = '';
+    b.cancel();
+    row._fmAnim = row._fmBody = null;
+  };
+});
+
 // ---------- กำหนดส่ง ----------
 function dateInputValue(d) {
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
