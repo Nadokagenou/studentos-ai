@@ -113,5 +113,27 @@ function loadWorker(registration, selfExtra = {}) {
   const plainClick = await clickRun(null);
   assert.equal(plainClick[0][0], 'nav');
   console.log('PASS แจ้งเตือนทั่วไป (ไม่มีงานติดมา) ยังพาไปหน้าตาม url เหมือนเดิม');
-  console.log('ALT service worker: 12/12');
+  // 31 ต.ค. 69 · นัด "ถึงเวลาทำ" จากเซิร์ฟเวอร์ (tag do-<id>) ได้ปุ่มเริ่มเลย + ค้างบนคอม + รู้ว่างานไหน — โดยไม่ต้อง deploy send-reminders
+  const doShown = [];
+  const doSw = loadWorker({ async showNotification(t, o) { doShown.push(JSON.parse(JSON.stringify(o))); }, async getNotifications() { return []; } });
+  const fireDo = async payload => { const work = []; doSw.handlers.push({ waitUntil(p) { work.push(p); }, data: { json: () => payload } }); await Promise.all(work); };
+  await fireDo({ title: 'ฟิสิกส์ · บทที่ 4', body: 'ถึงเวลาทำแล้ว', tag: 'do-t9', url: './' });
+  await fireDo({ title: 'ฟิสิกส์ · บทที่ 4', body: 'ส่งพรุ่งนี้', tag: 'task-1', url: './' });
+  assert.deepEqual(doShown[0].actions, [{ action: 'start', title: 'เริ่มเลย' }]);
+  assert.equal(doShown[0].requireInteraction, true);
+  assert.equal(doShown[0].data.taskId, 't9');
+  assert.deepEqual(doShown[1].actions, []);
+  assert.equal(doShown[1].requireInteraction, false);
+  assert.equal(doShown[1].data.taskId, undefined);
+  console.log('PASS push นัด "ถึงเวลาทำ" ได้ปุ่มเริ่มเลย + ค้างบนคอม · การเตือนแบบอื่นเหมือนเดิม');
+  const opened = [];
+  const closedSw = loadWorker({ scope: 'https://example.test/studentos-ai/alt/', async getNotifications() { return []; } },
+    { clients: { claim: async () => {}, async matchAll() { return []; }, async openWindow(u) { opened.push(u); } } });
+  const work2 = [];
+  closedSw.handlers.notificationclick({ waitUntil(p) { work2.push(p); }, action: 'start',
+    notification: { close() {}, data: { url: '/studentos-ai/alt/', taskId: 't-42' } } });
+  await Promise.all(work2);
+  assert.equal(opened[0], 'https://example.test/studentos-ai/alt/?do=t-42');
+  console.log('PASS แตะ "เริ่มเลย" ตอนแอปปิดอยู่ = เปิดแอปด้วย ?do=<งาน> ให้แอปเข้าโหมดโฟกัสเอง');
+  console.log('ALT service worker: 14/14');
 })().catch(e => { console.error(e); process.exitCode = 1; });

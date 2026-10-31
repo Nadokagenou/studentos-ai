@@ -621,14 +621,24 @@ function doAtMs(t: any): number {
   return typeof t?.doAt === 'string' ? Date.parse(t.doAt) : NaN;
 }
 
-function doAtCopy(t: any): { title: string; body: string } {
-  const d = thDate(doAtMs(t));
-  const hhmm = String(d.getUTCHours()).padStart(2, '0') + ':' + String(d.getUTCMinutes()).padStart(2, '0');
+// 31 ต.ค. 69 · การ์ดแบบใหม่ (เจ้าของอนุมัติม็อกอัป): บรรทัดแรก = ทำตอนนี้ + ใช้กี่นาที · บรรทัดสอง = ส่งเมื่อไหร่
+// เอาเวลานาฬิกาออก — การ์ดเด้งตรงนาทีนัด และทุกเครื่องขึ้น "ตอนนี้" ให้เอง · ต้องตรงกับ doAtCopy ใน app.js ทุกตัวอักษร
+function doAtCopy(t: any, nowMs = Date.now()): { title: string; body: string } {
   const min = Math.round(Number(t?.estMin) || 0);
+  const due = doAtDueLine(t, nowMs);
   return {
     title: taskName(t),
-    body: `ถึงเวลาทำแล้ว · ${hhmm}` + (min > 0 ? ` · ~${min} นาที` : ''),
+    body: 'ถึงเวลาทำแล้ว' + (min > 0 ? ` · ใช้ราว ${min} นาที` : '') + (due ? '\n' + due : ''),
   };
+}
+
+// "ส่งพรุ่งนี้ 08:00" · "สอบมะรืนนี้" · "เลยกำหนดส่งแล้ว" — doAtDueLine ในแอปใช้สูตรเดียวกัน
+function doAtDueLine(t: any, nowMs: number): string {
+  const ms = Date.parse(t?.due);
+  if (!Number.isFinite(ms)) return '';
+  const exam = isExam(t);
+  if (ms <= nowMs) return exam ? '' : 'เลยกำหนดส่งแล้ว';
+  return (exam ? 'สอบ' : 'ส่ง') + dueLabel(t.due, nowMs) + dueClock(t.due);
 }
 
 async function runDoAt(now: number, errors: string[]): Promise<{ sent: number; due: number }> {

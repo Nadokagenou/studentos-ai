@@ -610,7 +610,9 @@ const doTask = (id, doMs, extra = {}) => hw(id, TH(9, 23, 59), { doAt: iso(doMs)
   const t = rhythm({ tasks: [doTask('a', TH(6, 20, 0)), doTask('b', TH(6, 20, 30)), doTask('c', TH(6, 21, 0))] });
   const r1 = await atBody(TH(6, 20, 0), t, { only: 'doAt' });
   check('doAt: 20:00 fires only the 20:00 task', r1.sent.length === 1 && r1.sent[0].tag === 'do-a', JSON.stringify(r1.sent));
-  check('doAt: card says it is time + clock', /ถึงเวลาทำแล้ว · 20:00/.test(r1.sent[0] && r1.sent[0].body), r1.sent[0] && r1.sent[0].body);
+  // 31 ต.ค. 69 · การ์ดแบบใหม่ (เจ้าของอนุมัติม็อกอัป): บรรทัดแรก = ทำตอนนี้ + ใช้กี่นาที · บรรทัดสอง = ส่งเมื่อไหร่
+  // ไม่มีเวลานาฬิกาแล้ว — เครื่องขึ้น "ตอนนี้" ให้เองทุกระบบ
+  check('doAt: card says it is time + how long + when it is due', (r1.sent[0] && r1.sent[0].body) === 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nส่งวันศุกร์', r1.sent[0] && r1.sent[0].body);
   check('doAt: high urgency, TTL = late window', r1.sent[0] && r1.sent[0].opts.urgency === 'high' && r1.sent[0].opts.TTL === 1800,
     JSON.stringify(r1.sent[0] && r1.sent[0].opts));
   const r1b = await atBody(TH(6, 20, 5), t, { only: 'doAt' });
@@ -628,6 +630,21 @@ const doTask = (id, doMs, extra = {}) => hw(id, TH(9, 23, 59), { doAt: iso(doMs)
   const r = await atBody(TH(6, 20, 2), t, { only: 'doAt' });
   check('doAt: same minute, three tasks -> three pushes', r.sent.length === 3 && new Set(r.sent.map(s => s.tag)).size === 3,
     JSON.stringify(r.sent));
+}
+{
+  // บรรทัดวันส่ง: พรุ่งนี้ + เวลา · เลยกำหนดแล้ว · สอบทั้งวัน (ไม่มีเวลา) · ไม่ได้ประเมินเวลา = ไม่มีส่วน "ใช้ราว"
+  const t = rhythm({ tasks: [
+    doTask('p', TH(6, 20, 0), { due: iso(TH(7, 8, 0)) }),
+    doTask('q', TH(6, 20, 0), { due: iso(TH(6, 9, 0)) }),
+    doTask('r', TH(6, 20, 0), { type: 'exam', due: iso(TH(8, 23, 59)) }),
+    doTask('s', TH(6, 20, 0), { estMin: 0 }),
+  ] });
+  const r = await atBody(TH(6, 20, 1), t, { only: 'doAt' });
+  const by = Object.fromEntries(r.sent.map(x => [x.tag, x.body]));
+  check('doAt: due tomorrow with clock', by['do-p'] === 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nส่งพรุ่งนี้ 08:00', by['do-p']);
+  check('doAt: already overdue says so', by['do-q'] === 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nเลยกำหนดส่งแล้ว', by['do-q']);
+  check('doAt: exam says สอบ, all-day has no clock', by['do-r'] === 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nสอบมะรืนนี้', by['do-r']);
+  check('doAt: no estimate -> no minutes part', by['do-s'] === 'ถึงเวลาทำแล้ว\nส่งวันศุกร์', by['do-s']);
 }
 {
   // ตั้งไว้สามนัดวันนี้ (ส่งไปแล้ว) — การเตือนงานเลยกำหนดต้องยังออกได้ ไม่ติดเพดานวันละ 3 (ทางที่ผ่านด่าน capOk)

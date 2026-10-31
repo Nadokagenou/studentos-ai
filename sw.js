@@ -296,6 +296,8 @@ self.addEventListener('activate', e => {
 // iPhone เติม "from Student OS" ให้ทุกการ์ดของเว็บแอปเองอยู่แล้ว · Android มีแถวชื่อแอปบนสุด
 // เติมเองอีกจึงกลายเป็นชื่อแอปซ้ำ และการ์ดแชทกลายเป็น "Student OS · ชื่อเพื่อน" สามบรรทัด
 const APP_NAME = 'Student OS';
+// ปุ่มบนการ์ด "ถึงเวลาทำ" (tag do-<id>) — ต้องตรงกับ doAtNotifyMore ใน app.js (การ์ดใบเดียวกันที่แอปยิงเองตอนเปิดอยู่)
+const DO_ACTIONS = [{ action: 'start', title: 'เริ่มเลย' }];
 // 31 ต.ค. 69 · เจ้าของ: "แก้แจ้งเตือนให้เหมือนแจ้งเตือนของแอปอื่นๆแบบปกติ ทำทั้งแอนดรอยและ ios"
 // • ไอคอนเล็ก (badge) เดิมใช้ icon-192.png ซึ่งเป็นภาพสีเต็มใบไม่มีส่วนใส — Android วาดไอคอนแถบสถานะจาก "ส่วนใส" อย่างเดียว
 //   ภาพทึบทั้งใบจึงกลายเป็นสี่เหลี่ยมขาวโล่ง · ตอนนี้ใช้ badge-96.png = เงาขาวรูปหนังสือซ้อนเป็นตัว S บนพื้นใส แบบแอปทั่วไป
@@ -313,14 +315,18 @@ self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
   const title = d.title || APP_NAME;
+  // 31 ต.ค. 69 · นัด "ถึงเวลาทำ" จากเซิร์ฟเวอร์ได้ปุ่มเริ่มเลย + ค้างบนคอม + รู้ว่างานไหน (แตะแล้วเริ่มงาน)
+  // อ่านจาก tag ที่ send-reminders ส่งมาอยู่แล้ว — ไม่ต้อง deploy ฟังก์ชันใหม่ก็ได้ของนี้
+  const doId = typeof d.tag === 'string' && d.tag.startsWith('do-') ? d.tag.slice(3) : '';
   e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: 'icon-192.png',
     badge: 'badge-96.png',
     tag: d.tag || 'studentos-reminder',
     renotify: true,
-    requireInteraction: false,
-    data: { url: d.url || './' },
+    requireInteraction: !!doId,
+    actions: doId ? DO_ACTIONS : [],
+    data: Object.assign({ url: d.url || './' }, doId ? { taskId: doId } : {}),
   }).then(syncAppBadge));
 });
 
@@ -343,6 +349,8 @@ self.addEventListener('notificationclick', e => {
           return c.focus();
         }
       }
+      // แอปปิดอยู่ + การ์ดมีงานติดมา = เปิดแอปด้วย ?do=<งาน> ให้แอปเข้าโหมดโฟกัสเอง (ตัวรับอยู่ใต้ BOOT_Q ใน app.js)
+      if (taskId) { const u = new URL(target, self.registration.scope); u.searchParams.set('do', taskId); return self.clients.openWindow(u.href); }
       return self.clients.openWindow(target);
     })
   );

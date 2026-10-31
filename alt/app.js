@@ -17882,15 +17882,16 @@ function toastSwipe(el) {
 // (ต้องตรงกับ APP_NAME ใน sw.js ที่ทำแบบเดียวกันกับ push จากเซิร์ฟเวอร์)
 const NOTIF_BRAND = 'Student OS';
 
-async function notify(title, body, tag, data) {
+async function notify(title, body, tag, more) {
   if (!('Notification' in window) || Notification.permission !== 'granted' || !notifOn()) return false;
   // 1C33 · ไม่เติมชื่อแอปแล้ว — มือถือพิมพ์ชื่อแอปบนการ์ดให้เอง (ตรงกับ sw.js)
   title = title || NOTIF_BRAND;
-  const opt = {
+  // more = ของแต่งเพิ่มต่อการ์ด (ปุ่ม · ค้างบนคอม · งานที่ติดมา — ดู doAtNotifyMore) · data รวมกับ url เสมอ
+  const opt = Object.assign({
     body, tag: tag || 'studentos-alt',
     icon: 'icon-192.png', badge: 'badge-96.png',   // เงาขาวบนพื้นใส — Android วาดไอคอนแถบสถานะจากส่วนใส (ดู sw.js · syncAppBadge)
-    renotify: true, data: Object.assign({ url: location.pathname }, data || {}),
-  };
+    renotify: true,
+  }, more || {}, { data: Object.assign({ url: location.pathname }, (more && more.data) || {}) });
   try {
     if ('serviceWorker' in navigator) {
       const reg = await navigator.serviceWorker.ready;
@@ -17898,7 +17899,8 @@ async function notify(title, body, tag, data) {
       return true;
     }
   } catch (e) { console.warn('[notify] sw failed:', e.message); }
-  try { new Notification(title, opt); return true; }   // เดสก์ท็อปที่ไม่มี SW
+  // new Notification ไม่รับ actions (ปุ่มใช้ได้เฉพาะการ์ดที่ SW แสดง) — ถอดออกก่อน ไม่งั้นโยน TypeError แล้วการ์ดไม่ขึ้นเลย
+  try { const { actions, ...plain } = opt; new Notification(title, plain); return true; }   // เดสก์ท็อปที่ไม่มี SW
   catch (e) { console.warn('[notify] failed:', e.message); return false; }
 }
 
@@ -18079,10 +18081,40 @@ function checkReminders() {
 const DO_LATE_MS = 30 * 60e3;   // ต้องตรงกับ DO_LATE_MS ใน send-reminders — เลยกว่านี้ไม่พูดแล้ว
 let doAwayTimer = null;
 
+// 31 ต.ค. 69 · การ์ดแบบใหม่ (เจ้าของอนุมัติม็อกอัป Android · iPhone · iPad · คอม)
+// บรรทัดแรก = ทำตอนนี้ + ใช้กี่นาที · บรรทัดสอง = ส่งเมื่อไหร่ · เอาเวลานาฬิกาออก (การ์ดเด้งตรงนาทีนัด และทุกเครื่องขึ้น "ตอนนี้" ให้เอง)
+// ยังอยู่ในกรอบ 1C33 ("งานไหน · เมื่อไหร่" ไม่มีคำเชียร์) — เพิ่มแค่ของเจาะจงที่ช่วยตัดสินใจเริ่ม
+// ต้องพูดเหมือน doAtCopy ใน send-reminders ทุกตัวอักษร: การ์ดตอนเปิดแอปกับตอนปิดแอปคือการ์ดใบเดียวกัน
 function doAtCopy(t) {
-  const d = new Date(t.doAt);
   const min = Math.round(+t.estMin || 0);
-  return { title: taskTitleText(t), body: 'ถึงเวลาทำแล้ว · ' + fmtClock(d) + (min > 0 ? ' · ~' + min + ' นาที' : '') };
+  const due = doAtDueLine(t);
+  return { title: taskTitleText(t), body: 'ถึงเวลาทำแล้ว' + (min > 0 ? ' · ใช้ราว ' + min + ' นาที' : '') + (due ? '\n' + due : '') };
+}
+
+// "ส่งพรุ่งนี้ 08:00" · "สอบมะรืนนี้" · "เลยกำหนดส่งแล้ว" — สูตรเดียวกับ isExam + dueLabel + dueClock ใน send-reminders
+function doAtDueLine(t, now = new Date()) {
+  const ms = Date.parse(t.due);
+  if (!Number.isFinite(ms)) return '';
+  const ty = String(t.type || '').toLowerCase();
+  const exam = ty ? ty === 'exam' : /สอบ|ควิซ|quiz|midterm|final/i.test((t.detail || '') + ' ' + (t.subject || ''));
+  if (ms <= now.getTime()) return exam ? '' : 'เลยกำหนดส่งแล้ว';
+  const d = new Date(ms);
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(now)) / 864e5);
+  const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];   // = TH_DAY_FULL ใน send-reminders
+  const when = diff === 0 ? 'วันนี้' : diff === 1 ? 'พรุ่งนี้' : diff === 2 ? 'มะรืนนี้'
+    : 'วัน' + DAYS[d.getDay()] + (diff > 6 ? 'ที่ ' + d.getDate() : '');
+  const clock = d.getHours() === 23 && d.getMinutes() === 59 ? '' : ' ' + fmtClock(d);
+  return (exam ? 'สอบ' : 'ส่ง') + when + clock;
+}
+
+// ของแต่งการ์ด "ถึงเวลาทำ" · 31 ต.ค. 69
+// · ปุ่ม "เริ่มเลย" ขึ้นบน Android · Windows · Mac — iPhone/iPad ไม่แสดงปุ่มบนแจ้งเตือนเว็บ แตะตัวการ์ดแทน (ผลเหมือนกัน)
+// · requireInteraction: คอมไม่ซ่อนการ์ดเองใน 5 วิ — นัดที่ตั้งเองคือนาฬิกาปลุก · ใช้เฉพาะการ์ดนี้ ไม่งั้นคอมเต็มไปด้วยการ์ดค้าง
+// · timestamp = เวลานัด ไม่ใช่เวลาที่ยิง (เครื่องที่ตื่นช้าจะขึ้น "2 นาทีที่แล้ว" ตามจริง)
+// ต้องตรงกับ DO_ACTIONS ใน sw.js — การ์ดใบเดียวกันที่มาจากเซิร์ฟเวอร์ตอนปิดแอป
+function doAtNotifyMore(t) {
+  return { data: { taskId: t.id }, actions: [{ action: 'start', title: 'เริ่มเลย' }], requireInteraction: true, timestamp: Date.parse(t.doAt) || Date.now() };
 }
 
 // แท็กของการ์ดที่ยังค้างอยู่บนเครื่อง — ถามไม่ได้ = เซตว่าง (ถือว่ายังไม่มีใครส่ง)
@@ -18120,7 +18152,7 @@ async function doAtTick() {
         const missed = [];
         for (const t of fresh) {
           const c = doAtCopy(t);
-          if (!(await notify(c.title, c.body, 'do-' + t.id, { taskId: t.id }))) missed.push(t);
+          if (!(await notify(c.title, c.body, 'do-' + t.id, doAtNotifyMore(t)))) missed.push(t);
         }
         if (missed.length) {
           const first = missed[0];
@@ -18141,7 +18173,7 @@ async function doAtTick() {
         for (const t of hit) {
           if (t.doAtShown === t.doAt) continue;
           const c = doAtCopy(t);
-          if (await notify(c.title, c.body, 'do-' + t.id)) { t.doAtShown = t.doAt; any = true; }
+          if (await notify(c.title, c.body, 'do-' + t.id, doAtNotifyMore(t))) { t.doAtShown = t.doAt; any = true; }
         }
         if (any) save();
       }, AWAY_CONFIRM_MS);
@@ -19196,6 +19228,23 @@ function needsOnboard() {
 // ใครอ่านทีหลังจะเจอ URL เปล่า แล้วฟีเจอร์ที่มาทีหลังก็เงียบไปโดยไม่มีใครรู้ว่าทำไม
 const BOOT_Q = (() => {
   try { return new URLSearchParams(location.search); } catch (_) { return new URLSearchParams(); }
+})();
+
+// แตะแจ้งเตือน "ถึงเวลาทำ" ตอนแอปปิดอยู่ — sw.js เปิดแอปด้วย ?do=<งาน> · รอจอโหลดหายก่อนแล้วเข้าโหมดโฟกัส · 31 ต.ค. 69
+// (แอปเปิดค้างอยู่ใช้ทาง start-task ข้าง notify แทน ไม่โหลดหน้าใหม่)
+// ล้าง ?do ทิ้งทันที กันรีเฟรชแล้วเข้าโฟกัสซ้ำ · รอบรีโหลดของ SW ตัวใหม่ (controllerchange) จะทำคำสั่งนี้หาย —
+// ยอมได้: เกิดแค่ครั้งแรกหลังอัปเดต และงานยังรออยู่บนหน้าแรก
+(() => {
+  const id = BOOT_Q.get('do');
+  if (!id) return;
+  try { history.replaceState(null, '', location.pathname); } catch (_) {}
+  let n = 0;
+  (function whenReady() {
+    const boot = document.getElementById('boot');
+    if (boot && !boot.classList.contains('out') && ++n < 40) { setTimeout(whenReady, 250); return; }
+    const t = pendingTasks().find(x => x.id === id);
+    if (t) startFocus(t.id);
+  })();
 })();
 
 // ---------- ลิงก์เข้าร่วมห้องจาก LINE (?join=XXXXXX) ----------

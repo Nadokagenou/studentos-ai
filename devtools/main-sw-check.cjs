@@ -44,5 +44,20 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
   await Promise.all(pending);return JSON.parse(JSON.stringify(log));};
  assert.deepEqual(await clickRun('t-42'),[['msg',{type:'start-task',id:'t-42'}],['focus']]);console.log('PASS tapping a task notification posts start-task to the open page instead of reloading it');
  assert.equal((await clickRun(null))[0][0],'nav');console.log('PASS a plain notification still navigates to its url');
- console.log('Main service worker: 12/12');
+ // 31 Oct 2026 · do-at pushes from the server get the start button, stay on desktop, and carry the task id (no send-reminders deploy needed)
+ {const ds=[],dh={},opened=[];
+  vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+   self:{addEventListener:(event,fn)=>{dh[event]=fn;},skipWaiting:async()=>{},
+    clients:{claim:async()=>{},async matchAll(){return [];},async openWindow(u){opened.push(u);}},
+    registration:{scope:'https://example.test/studentos-ai/',async showNotification(t,o){ds.push(JSON.parse(JSON.stringify(o)));},async getNotifications(){return [];}}}});
+  const fire=async(ev,extra)=>{const pending=[];dh[ev](Object.assign({waitUntil(p){pending.push(p);}},extra));await Promise.all(pending);};
+  await fire('push',{data:{json:()=>({title:'Physics',body:'Time to do it',tag:'do-t9',url:'./'})}});
+  await fire('push',{data:{json:()=>({title:'Physics',body:'Due tomorrow',tag:'task-1',url:'./'})}});
+  assert.deepEqual(ds[0].actions,[{action:'start',title:'เริ่มเลย'}]);assert.equal(ds[0].requireInteraction,true);assert.equal(ds[0].data.taskId,'t9');
+  assert.deepEqual(ds[1].actions,[]);assert.equal(ds[1].requireInteraction,false);assert.equal(ds[1].data.taskId,undefined);
+  console.log('PASS do-at pushes get the start button and stay on desktop; other reminders unchanged');
+  await fire('notificationclick',{action:'start',notification:{close(){},data:{url:'/studentos-ai/',taskId:'t-42'}}});
+  assert.equal(opened[0],'https://example.test/studentos-ai/?do=t-42');
+  console.log('PASS tapping start with the app closed opens it with ?do=<task>');}
+ console.log('Main service worker: 14/14');
 })().catch(error=>{console.error(error);process.exitCode=1;});

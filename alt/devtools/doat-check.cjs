@@ -21,7 +21,7 @@ const lateLine = app.find(l => l.startsWith('const DO_LATE_MS'));
 assert.ok(lateLine, 'ไม่เจอ const DO_LATE_MS');
 
 // สร้างโลกใหม่ทุกเคส: งานที่ถึงเวลาแล้ว · การ์ดที่ค้างในถาด · notify ได้/ไม่ได้ต่องาน
-function world({ tasks, tray = [], canNotify = () => true, inView = true }) {
+function world({ tasks, tray = [], canNotify = () => true, inView = true, push = 'on' }) {
   const w = { notified: [], toasts: [], saves: 0 };
   const ctx = vm.createContext({
     console, Date, Math, JSON, Set, Number, Promise, setTimeout,
@@ -31,14 +31,15 @@ function world({ tasks, tray = [], canNotify = () => true, inView = true }) {
     shownTags: async () => new Set(tray),
     taskTitleText: t => t.title,
     fmtClock: d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'),
-    notify: async (title, body, tag, data) => { const ok = !!canNotify(tag); if (ok) w.notified.push({ title, body, tag, data }); return ok; },
+    // more มาจาก vm คนละ realm — แปลงเป็น JSON ก่อนเก็บ จะได้เทียบด้วย deepEqual ได้
+    notify: async (title, body, tag, more) => { const ok = !!canNotify(tag); if (ok) w.notified.push({ title, body, tag, more: JSON.parse(JSON.stringify(more || {})) }); return ok; },
     showToast: o => { w.toasts.push(o); },
     haptic: () => {},
     startFocus: () => {},
     save: () => { w.saves++; },
-    pushState: 'on', AWAY_CONFIRM_MS: 0,
+    pushState: push, AWAY_CONFIRM_MS: 0,
   });
-  vm.runInContext('var doAwayTimer = null;\n' + lateLine + '\n' + cut('doAtCopy') + '\n' + cut('doAtTick'), ctx);
+  vm.runInContext('var doAwayTimer = null;\n' + lateLine + '\n' + ['doAtDueLine', 'doAtCopy', 'doAtNotifyMore', 'doAtTick'].map(cut).join('\n'), ctx);
   w.tick = () => vm.runInContext('doAtTick()', ctx);
   return w;
 }
@@ -56,8 +57,12 @@ async function check(label, fn) { await fn(); n++; console.log('PASS ' + label);
     assert.equal(w.notified.length, 1);
     assert.equal(w.notified[0].tag, 'do-a');
     assert.equal(w.notified[0].title, 'ใบงานฟิสิกส์');
-    assert.match(w.notified[0].body, /^ถึงเวลาทำแล้ว · \d\d:\d\d · ~30 นาที$/);
-    assert.equal(JSON.stringify(w.notified[0].data), '{"taskId":"a"}');   // แตะแล้ว sw.js รู้ว่าต้องเริ่มงานไหน
+    assert.equal(w.notified[0].body, 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที');   // ไม่มีวันส่ง = บรรทัดเดียว
+    const more = w.notified[0].more;
+    assert.deepEqual(more.data, { taskId: 'a' });   // แตะแล้ว sw.js รู้ว่าต้องเริ่มงานไหน
+    assert.deepEqual(more.actions, [{ action: 'start', title: 'เริ่มเลย' }]);   // ปุ่มบน Android · คอม (iPhone/iPad ไม่แสดงปุ่ม)
+    assert.equal(more.requireInteraction, true);   // คอมไม่ซ่อนการ์ดเองใน 5 วิ — นัดที่ตั้งเองคือนาฬิกาปลุก
+    assert.equal(more.timestamp, Date.parse(t.doAt));
     assert.equal(w.toasts.length, 0);
     assert.equal(t.doAtShown, t.doAt);   // ปักไว้ให้ send-reminders ข้าม — ไม่งั้นได้ push ซ้ำอีกดอก
     assert.ok(w.saves > 0);
@@ -102,6 +107,35 @@ async function check(label, fn) { await fn(); n++; console.log('PASS ' + label);
     const w = world({ tasks: [task('a', 'ฟิสิกส์')] });
     await w.tick(); await w.tick();
     assert.equal(w.notified.length, 1);
+  });
+
+  await check('บรรทัดวันส่งพูดแบบเดียวกับ send-reminders (พรุ่งนี้+เวลา · เลยกำหนด · สอบทั้งวัน · ไม่ประเมินเวลา)', async () => {
+    const at = (days, h, m) => { const d = new Date(); d.setDate(d.getDate() + days); d.setHours(h, m, 0, 0); return d.toISOString(); };
+    const DAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัส', 'ศุกร์', 'เสาร์'];
+    const far = new Date(at(4, 23, 59));
+    const w = world({ tasks: [
+      task('p', 'ฟิสิกส์', { due: at(1, 8, 0) }),
+      task('q', 'เคมี', { due: new Date(Date.now() - 3600e3).toISOString() }),
+      task('r', 'ชีวะ', { type: 'exam', due: at(2, 23, 59) }),
+      task('s', 'อังกฤษ', { estMin: 0, due: far.toISOString() }),
+    ] });
+    await w.tick();
+    const by = Object.fromEntries(w.notified.map(x => [x.tag, x.body]));
+    assert.equal(by['do-p'], 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nส่งพรุ่งนี้ 08:00');
+    assert.equal(by['do-q'], 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nเลยกำหนดส่งแล้ว');
+    assert.equal(by['do-r'], 'ถึงเวลาทำแล้ว · ใช้ราว 30 นาที\nสอบมะรืนนี้');
+    assert.equal(by['do-s'], 'ถึงเวลาทำแล้ว\nส่งวัน' + DAYS[far.getDay()]);
+  });
+
+  await check('แอปซ่อนอยู่ + ไม่มี push = การ์ดที่แอปยิงเองก็มีปุ่มเริ่มเลย + แตะแล้วเริ่มงาน', async () => {
+    const t = task('a', 'ฟิสิกส์');
+    const w = world({ tasks: [t], inView: false, push: 'off' });
+    await w.tick();
+    await new Promise(r => setTimeout(r, 20));
+    assert.equal(w.notified.length, 1);
+    assert.deepEqual(w.notified[0].more.data, { taskId: 'a' });
+    assert.equal(w.notified[0].more.actions[0].action, 'start');
+    assert.equal(t.doAtShown, t.doAt);
   });
 
   await check('เลยเวลานัดเกิน 30 นาที = ไม่พูดแล้ว', async () => {

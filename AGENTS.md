@@ -135,8 +135,9 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | กล่องจดหมาย LINE (linelink.js) | `node alt/devtools/inbox-live-check.cjs` | 18/18 |
 | บริบทที่ส่งให้ AI รีวิวแผน | `node alt/devtools/review-check.cjs` | 3/3 |
 | ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
-| service worker (sw.js) | `node alt/devtools/sw-check.cjs` · รากใช้ `node devtools/main-sw-check.cjs` | 12/12 ทั้งคู่ (31 ต.ค. 69 · รวมเคสแคชติดตั้งห้ามมีชื่อซ้ำ — ซ้ำ = Chrome ไม่ยอมติดตั้ง SW) |
-| นัด "เตือนให้ทำตอน" ตอนเปิดแอป (doAtTick ใน app.js) | `node alt/devtools/doat-check.cjs` · ราก: `… doat-check.cjs .` | 7/7 ทั้งคู่ (31 ต.ค. 69) |
+| service worker (sw.js) | `node alt/devtools/sw-check.cjs` · รากใช้ `node devtools/main-sw-check.cjs` | 14/14 ทั้งคู่ (31 ต.ค. 69 · รวมเคสแคชติดตั้งห้ามมีชื่อซ้ำ — ซ้ำ = Chrome ไม่ยอมติดตั้ง SW · ปุ่มเริ่มเลยของการ์ด do-) |
+| นัด "เตือนให้ทำตอน" ตอนเปิดแอป (doAtTick ใน app.js) | `node alt/devtools/doat-check.cjs` · ราก: `… doat-check.cjs .` | 9/9 ทั้งคู่ (31 ต.ค. 69) |
+| ข้อความแจ้งเตือนจากเซิร์ฟเวอร์ (send-reminders/index.ts) | ทำตาม `supabase/functions/send-reminders/__tests__/README.md` (bundle ใหม่ทุกครั้ง) | 88/104 (31 ต.ค. 69) — **16 เคสตกอยู่ก่อนแล้ว** (แชท · คำขอเพื่อน · การ์ดงานปกติ) ยังไม่ได้ไล่ · เคส doAt ผ่านหมด |
 | วิชาที่เพิ่มเอง (app.js + engine.js) | `node alt/devtools/subjects-check.cjs` · ราก: `… subjects-check.cjs .` | 8/8 ทั้งคู่ (31 ต.ค. 69) |
 | ข่าวสาร (alt/news/) | `node alt/devtools/news.mjs check` | ผ่าน 6 ประกาศ |
 | บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
