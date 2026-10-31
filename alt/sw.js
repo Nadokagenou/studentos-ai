@@ -16,7 +16,10 @@ try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLO
 // (Control Center ฉีดเข้า iframe ตอนรันเอง) การแคชไว้จึงเป็นการส่ง ~50KB ไปให้เด็กทุกคน
 // เพื่อของที่มีคนเดียวได้ใช้ · และที่แย่กว่านั้นคือมันทำให้ปล่อยรุ่นใหม่แล้วหน้าแอดมิน
 // ได้ "หน้าแม่ใหม่ + ตัวแก้ดีไซน์เก่า" ซึ่งอาการคือกดแล้วไม่มีอะไรเกิดขึ้น
-const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
+// 31 ต.ค. 69 · ห่อด้วย Set — Chrome ปฏิเสธ addAll ทั้งก้อนถ้ามีชื่อซ้ำ (InvalidStateError: duplicate requests) = SW ติดตั้งไม่ขึ้น
+// เคยหลุดขึ้นเว็บจริง 25–31 ต.ค.: เรือผี 8 ไฟล์อยู่ทั้งในรายการนี้และใน halloween/cache-manifest.js (คนละทีมดูแล)
+// ผลคือเครื่องใหม่ไม่มี SW เลย (ไม่มีแจ้งเตือน ไม่มีออฟไลน์) และเครื่องเก่าค้าง SW รุ่นเก่า · devtools/sw-check.cjs กันไว้แล้ว
+const SHELL = [...new Set(['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
   'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'contrast.css', 'glass.css', 'notification-policy.mjs',
   'halloween/death-quests.js', 'halloween/death-quest-main.js', 'halloween/death-quest-main.css',
@@ -42,7 +45,7 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   'sai-chibi.webp',
   // น้องฮูก (Hook) — มาสคอตค่าเริ่มต้นตั้งแต่ 9 ต.ค. 69 · ภาพเดียวตัดเป็นสามขนาด สีหน้ามาจาก CSS
   // 24 ต.ค. 69 · เจ้าของ: ใช้น้องฮูกใส่หมวกแม่มดแทนตัวเดิมทุกธีม (ภาพต้นฉบับยังอยู่ — devtools/hook-hat.mjs ใช้สร้าง)
-  'hook-hat-avatar.svg', 'hook-hat-face.svg', 'hook-hat-body.svg'];
+  'hook-hat-avatar.svg', 'hook-hat-face.svg', 'hook-hat-body.svg'])];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -97,10 +100,13 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(syncAppBadge());
   const target = (e.notification.data && e.notification.data.url) || './';
+  const taskId = e.notification.data && e.notification.data.taskId;
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
         if (c.url.includes(self.registration.scope) && !c.url.includes('/staff/') && 'focus' in c) {
+          // แจ้งเตือนจากแอปที่มีงานติดมา (เตือนให้ทำตอน · 31 ต.ค. 69) + แอปเปิดอยู่ = บอกแอปให้เริ่มงานนั้นเลย ไม่โหลดหน้าใหม่
+          if (taskId && 'postMessage' in c) { c.postMessage({ type: 'start-task', id: taskId }); return c.focus(); }
           const next = new URL(target, self.registration.scope);
           if (next.origin === new URL(self.registration.scope).origin && next.href.startsWith(self.registration.scope)) {
             return c.navigate(next.href).then(() => c.focus());

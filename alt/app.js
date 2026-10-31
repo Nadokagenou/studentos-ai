@@ -17882,14 +17882,14 @@ function toastSwipe(el) {
 // (ต้องตรงกับ APP_NAME ใน sw.js ที่ทำแบบเดียวกันกับ push จากเซิร์ฟเวอร์)
 const NOTIF_BRAND = 'Student OS';
 
-async function notify(title, body, tag) {
+async function notify(title, body, tag, data) {
   if (!('Notification' in window) || Notification.permission !== 'granted' || !notifOn()) return false;
   // 1C33 · ไม่เติมชื่อแอปแล้ว — มือถือพิมพ์ชื่อแอปบนการ์ดให้เอง (ตรงกับ sw.js)
   title = title || NOTIF_BRAND;
   const opt = {
     body, tag: tag || 'studentos-alt',
     icon: 'icon-192.png', badge: 'badge-96.png',   // เงาขาวบนพื้นใส — Android วาดไอคอนแถบสถานะจากส่วนใส (ดู sw.js · syncAppBadge)
-    renotify: true, data: { url: location.pathname },
+    renotify: true, data: Object.assign({ url: location.pathname }, data || {}),
   };
   try {
     if ('serviceWorker' in navigator) {
@@ -17901,6 +17901,14 @@ async function notify(title, body, tag) {
   try { new Notification(title, opt); return true; }   // เดสก์ท็อปที่ไม่มี SW
   catch (e) { console.warn('[notify] failed:', e.message); return false; }
 }
+
+// แตะแจ้งเตือน "ถึงเวลาทำ" ตอนแอปเปิดค้างอยู่ — sw.js ไม่โหลดหน้าใหม่ แต่ส่ง start-task มาให้เริ่มงานนั้นเลย · 31 ต.ค. 69
+if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', e => {
+  const m = e.data || {};
+  if (m.type !== 'start-task' || !m.id) return;
+  const t = pendingTasks().find(x => x.id === m.id);
+  if (t) startFocus(t.id);
+});
 
 // เปิดแอป = เห็นแล้ว → ล้างเลขบนไอคอนแอป (sw.js ตั้งตามจำนวนการ์ดที่ค้างในถาด) · เหมือนแอปทั่วไปบน iPhone/Android · 31 ต.ค. 69
 function clearAppBadge() { try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch (_) {} }
@@ -18059,8 +18067,10 @@ function checkReminders() {
 // ไม่มีเพดาน และไม่เว้นกลางดึก — เหมือนนาฬิกาปลุกที่เจ้าตัวตั้งไว้
 //
 // สองท่อ แบ่งกันตามสภาพเครื่อง (กฎ 1C28: คนที่มองแอปอยู่ไม่ต้องได้แจ้งเตือนของระบบ):
-//   · เปิดแอปอยู่            → การ์ดในแอปตรงนาที + ปุ่มเริ่มเลย · ปัก t.doAtShown
+//   · เปิดแอปอยู่            → แจ้งเตือนของเครื่องตรงนาที (แตะ = เริ่มเลย) · ปัก t.doAtShown
 //                              ให้ send-reminders ข้าม (ไม่งั้นได้ push ตามมาอีกดอกในห้านาที)
+//                              ยังไม่อนุญาตแจ้งเตือน = การ์ดในแอป + ปุ่มเริ่มเลยแบบเดิม
+//                              (31 ต.ค. 69 · เจ้าของสั่งเอง — นัดที่ตั้งเองไม่อยู่ใต้กฎ 1C28 แล้ว เหมือนนาฬิกาปลุกที่ดังแม้เปิดจออยู่)
 //   · ซ่อนอยู่ + push 'on'   → ไม่ทำอะไร ปล่อยเซิร์ฟเวอร์ (runDoAt · ช้าไม่เกิน 5 นาที)
 //                              มือถือแช่แข็ง JS ของแอปที่ซ่อนอยู่ ท่อนี้จึงพึ่งไม่ได้
 //   · ซ่อนอยู่ + ไม่มี push  → ยิงเองผ่าน service worker (ได้เท่าที่เครื่องยังไม่แช่แข็งแอป)
@@ -18103,13 +18113,24 @@ async function doAtTick() {
       for (const t of hit) t.doAtShown = t.doAt;
       touched = true;
       if (fresh.length) {
-        const first = fresh[0];
-        showToast({
-          title: fresh.length > 1 ? `ถึงเวลาทำ ${fresh.length} งานแล้ว` : 'ถึงเวลาทำแล้ว',
-          body: taskTitleText(first) + (fresh.length > 1 ? ` · และอีก ${fresh.length - 1} งาน` : ''),
-          action: { label: 'เริ่มเลย', fn: () => startFocus(first.id) },
-        });
-        if (typeof haptic === 'function') haptic('arm');
+        // 31 ต.ค. 69 · เจ้าของ: "มันต้องอยู่เหนือแอปไปกว่านี้เหมือนแจ้งเตือนในโทรศัพท์เลย" → เลือก "แจ้งเตือนของเครื่องจริง"
+        // เปิดแอปอยู่ก็เด้งเป็นแจ้งเตือนของเครื่อง (แบนเนอร์ iPhone/Android ลอยเหนือทุกอย่าง) ทีละงาน แบบเดียวกับตอนแอปซ่อนอยู่
+        // แตะแจ้งเตือน = เริ่มทำงานนั้นเลย (sw.js ส่ง start-task กลับมา · ดูตัวรับข้าง notify) — ปุ่ม "เริ่มเลย" ของการ์ดเดิมไม่หาย
+        // ยังไม่อนุญาต/ปิดแจ้งเตือนไว้ = การ์ดในแอปแบบเดิม (ทางสำรองห้ามถอด)
+        const missed = [];
+        for (const t of fresh) {
+          const c = doAtCopy(t);
+          if (!(await notify(c.title, c.body, 'do-' + t.id, { taskId: t.id }))) missed.push(t);
+        }
+        if (missed.length) {
+          const first = missed[0];
+          showToast({
+            title: missed.length > 1 ? `ถึงเวลาทำ ${missed.length} งานแล้ว` : 'ถึงเวลาทำแล้ว',
+            body: taskTitleText(first) + (missed.length > 1 ? ` · และอีก ${missed.length - 1} งาน` : ''),
+            action: { label: 'เริ่มเลย', fn: () => startFocus(first.id) },
+          });
+          if (typeof haptic === 'function') haptic('arm');
+        }
       }
     } else if (pushState !== 'on' && !doAwayTimer) {
       // รอเช็คซ้ำก่อนยิง — จังหวะปลุกเครื่องขึ้นมา document.hidden ยังเป็น true อยู่ครู่หนึ่ง (ดู notifyAway)

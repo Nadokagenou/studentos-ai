@@ -44,6 +44,11 @@ function loadWorker(registration, selfExtra = {}) {
   }
   for (const f of sw.shell) assert.ok(fs.existsSync(path.join(base, f)), 'SHELL ไม่มีไฟล์: ' + f);
   console.log('PASS ไฟล์ในแคชติดตั้งมีอยู่ครบ');
+  // 31 ต.ค. 69 · Chrome ปฏิเสธ addAll ทั้งก้อนถ้ามีชื่อซ้ำ (InvalidStateError: duplicate requests) = SW ติดตั้งไม่ขึ้นเลย
+  // เคยหลุดขึ้นเว็บจริง: เรือผี 8 ไฟล์อยู่ทั้งในรายการนี้และใน halloween/cache-manifest.js
+  const dupShell = sw.shell.filter((f, i) => sw.shell.indexOf(f) !== i);
+  assert.equal(dupShell.length, 0, 'SHELL มีชื่อซ้ำ — Chrome ปฏิเสธ addAll ทั้งก้อน: ' + dupShell.join(', '));
+  console.log('PASS แคชติดตั้งไม่มีชื่อซ้ำ (ซ้ำ = Chrome ไม่ยอมติดตั้ง SW)');
   await sw.lifeCycle('activate');
   assert.deepEqual(sw.removed, ['studentos-alt-previous']);
   console.log('PASS อัปเดต ALT เก็บแคชเว็บหลักและแอปอื่นไว้');
@@ -90,5 +95,23 @@ function loadWorker(registration, selfExtra = {}) {
   await Promise.all(work);
   assert.equal(shown.length, 2);
   console.log('PASS เบราว์เซอร์ที่ไม่มี Badging API ยังเด้งการ์ดได้ ไม่ล้ม');
-  console.log('ALT service worker: 9/9');
+  // 31 ต.ค. 69 · "ถึงเวลาทำ" เด้งเป็นแจ้งเตือนของเครื่องแม้เปิดแอปอยู่ — แตะแล้วต้องเริ่มงานนั้นในหน้าที่เปิดอยู่ ไม่โหลดหน้าใหม่ทิ้งงานที่กรอกค้าง
+  const clickRun = (taskId) => {
+    const log = [];
+    const win = { url: 'https://example.test/studentos-ai/alt/', postMessage(m) { log.push(['msg', m]); },
+      async focus() { log.push(['focus']); return win; }, async navigate(u) { log.push(['nav', u]); return win; } };
+    const w = loadWorker({ scope: 'https://example.test/studentos-ai/alt/', async getNotifications() { return []; } },
+      { clients: { claim: async () => {}, async matchAll() { return [win]; }, async openWindow(u) { log.push(['open', u]); } } });
+    const work = [];
+    w.handlers.notificationclick({ waitUntil(p) { work.push(p); },
+      notification: { close() {}, data: Object.assign({ url: '/studentos-ai/alt/' }, taskId ? { taskId } : {}) } });
+    return Promise.all(work).then(() => JSON.parse(JSON.stringify(log)));   // วัตถุจาก vm คนละ realm — เทียบแค่ข้อมูล
+  };
+  const withTask = await clickRun('t-42');
+  assert.deepEqual(withTask, [['msg', { type: 'start-task', id: 't-42' }], ['focus']]);
+  console.log('PASS แตะแจ้งเตือนที่มีงานติดมา = ส่ง start-task ให้หน้าที่เปิดอยู่ ไม่โหลดหน้าใหม่');
+  const plainClick = await clickRun(null);
+  assert.equal(plainClick[0][0], 'nav');
+  console.log('PASS แจ้งเตือนทั่วไป (ไม่มีงานติดมา) ยังพาไปหน้าตาม url เหมือนเดิม');
+  console.log('ALT service worker: 12/12');
 })().catch(e => { console.error(e); process.exitCode = 1; });

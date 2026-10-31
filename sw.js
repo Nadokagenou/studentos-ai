@@ -330,12 +330,15 @@ self.addEventListener('notificationclick', e => {
   e.notification.close();
   e.waitUntil(syncAppBadge());
   const target = (e.notification.data && e.notification.data.url) || './';
+  const taskId = e.notification.data && e.notification.data.taskId;
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
       for (const c of list) {
         const next = new URL(target, self.registration.scope);
         const scope = new URL(self.registration.scope);
         if (c.url.startsWith(scope.href) && !c.url.startsWith(scope.href+'alt/') && 'focus' in c) {
+          // แจ้งเตือนจากแอปที่มีงานติดมา (เตือนให้ทำตอน · 31 ต.ค. 69) + แอปเปิดอยู่ = บอกแอปให้เริ่มงานนั้นเลย ไม่โหลดหน้าใหม่
+          if (taskId && 'postMessage' in c) { c.postMessage({ type: 'start-task', id: taskId }); return c.focus(); }
           if (next.origin === scope.origin && next.href.startsWith(scope.href)) return c.navigate(next.href).then(() => c.focus());
           return c.focus();
         }

@@ -135,7 +135,9 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | กล่องจดหมาย LINE (linelink.js) | `node alt/devtools/inbox-live-check.cjs` | 18/18 |
 | บริบทที่ส่งให้ AI รีวิวแผน | `node alt/devtools/review-check.cjs` | 3/3 |
 | ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
-| service worker (sw.js) | `node alt/devtools/sw-check.cjs` | 5/5 (แก้ตัวจำลองแล้ว · รวมเคสเบราว์เซอร์ไม่มี `pushManager`) |
+| service worker (sw.js) | `node alt/devtools/sw-check.cjs` · รากใช้ `node devtools/main-sw-check.cjs` | 12/12 ทั้งคู่ (31 ต.ค. 69 · รวมเคสแคชติดตั้งห้ามมีชื่อซ้ำ — ซ้ำ = Chrome ไม่ยอมติดตั้ง SW) |
+| นัด "เตือนให้ทำตอน" ตอนเปิดแอป (doAtTick ใน app.js) | `node alt/devtools/doat-check.cjs` · ราก: `… doat-check.cjs .` | 7/7 ทั้งคู่ (31 ต.ค. 69) |
+| วิชาที่เพิ่มเอง (app.js + engine.js) | `node alt/devtools/subjects-check.cjs` · ราก: `… subjects-check.cjs .` | 8/8 ทั้งคู่ (31 ต.ค. 69) |
 | ข่าวสาร (alt/news/) | `node alt/devtools/news.mjs check` | ผ่าน 6 ประกาศ |
 | บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
 | ตัวกรองผล read-day (Edge Function) | `node --test supabase/functions/read-day/__tests__/clean.test.mjs` | 6/6 (18 ต.ค. 69) |
