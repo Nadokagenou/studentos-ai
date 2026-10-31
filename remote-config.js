@@ -362,7 +362,13 @@
       signal: ctl ? ctl.signal : undefined,
       cache: 'no-store'
     })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        /* 31 ต.ค. 69 · 402 = Supabase ล็อกทั้งโปรเจกต์ (เกินโควตา) ไม่ใช่เน็ตหลุด
+           จดไว้ให้ initCloud ใน app.js รู้ก่อนสร้างไคลเอนต์ — ไม่งั้นไลบรารีขอต่ออายุ session
+           ได้ 402 แล้วลบ session ในเครื่องทิ้ง คนที่ล็อกอินอยู่ถูกเด้งไปจอล็อกอินที่ใช้ไม่ได้ */
+        window.SOS_CLOUD_DOWN = r.status === 402;
+        return r.ok ? r.json() : null;
+      })
       .then(function (rows) {
         clearTimeout(timer);
         if (!rows || !rows.length || !rows[0].data) return false;
@@ -479,8 +485,9 @@
        และการให้หน้าแม่ยิงซ้ำ ๆ เผื่อไว้ แพงกว่าจับมือกันหนึ่งครั้ง */
     try { window.parent.postMessage({ type: 'sos-preview-ready' }, location.origin); } catch (e) {}
   } else {
-    /* ยิงทันที ไม่รอ DOMContentLoaded — ยิ่งกลับมาเร็ว จอแรกยิ่งมีโอกาสได้ค่าจริง */
-    load();
+    /* ยิงทันที ไม่รอ DOMContentLoaded — ยิ่งกลับมาเร็ว จอแรกยิ่งมีโอกาสได้ค่าจริง
+       เก็บคำขอแรกไว้ให้ initCloud รอดูว่าเซิร์ฟเวอร์ถูกล็อกไหม (SOS_CLOUD_DOWN) โดยไม่ต้องยิงเพิ่ม */
+    window.sosConfigFirst = load();
 
     /* กลับมาเปิดแอปอีกครั้งหลังพับไว้นาน = จังหวะที่ถูกที่สุดในการเช็คค่าใหม่
        ไม่ตั้ง interval เพราะค่าตั้งไม่ได้เปลี่ยนบ่อยพอจะคุ้มกับการยิงทุกนาที */
