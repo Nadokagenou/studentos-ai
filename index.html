@@ -2133,6 +2133,12 @@
               <span class="set-lb">ธีมสี</span>
               <span class="set-val" id="setValTheme"></span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- 31 ต.ค. 69 · เอฟเฟกต์ตอนงานเสร็จ แยกจากธีมสี · ซ่อนจนกว่าจะมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้น (syncSetVals) -->
+            <button type="button" class="set-row go" id="setRowFx" onclick="openSetOpt('fx')" hidden>
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+              <span class="set-lb">เอฟเฟกต์ตอนงานเสร็จ</span>
+              <span class="set-val" id="setValFx"></span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <button type="button" class="set-row go" onclick="openSetOpt('widget')">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-tasks-alt"/></svg></span>
               <span class="set-lb">วิดเจ็ตหน้าแรก</span>
@@ -2349,11 +2355,18 @@
                 <button type="button" class="th-glitch" data-th="glitch" onclick="setTheme('glitch')">
                   <span class="sw sw-glitch"></span><span class="nm">GL!TCH</span></button>
               </div>
-              <!-- เอฟเฟกต์ตอนงานเสร็จ — ของที่ซื้อจากร้านค้า แยกจากตารางธีมสีข้างบน
-                   ซ่อนทั้งส่วนจนกว่าจะมีเอฟเฟกต์อย่างน้อยหนึ่งชิ้น (renderFxPick ใน hoop.js)
-                   ใช้ id #fxPick ไม่ใช่ #themePick — โค้ดธีมเลือกปุ่มด้วย '#themePick button' -->
+            </div>
+
+            <!-- 31 ต.ค. 69 · เจ้าของ (ภาพส่วนเอฟเฟกต์ใต้ตารางธีม): "ให้ย้ายมาอีกหน้าหนึ่งแยกออกจากธีม"
+                 เดิมต่อท้ายตารางธีมสีในหน้าย่อยเดียวกัน · ตอนนี้เป็นหน้าย่อยของตัวเอง (SETOPT.fx ใน app.js · แถว #setRowFx ในจอตั้งค่า)
+                 id ข้างในเหมือนเดิมทุกตัว (#fxSec #fxPick #fxNow #fxMode #fxTry) renderFxPick ใน hoop.js จึงไม่ต้องรู้ว่าย้าย
+                 ใช้ id #fxPick ไม่ใช่ #themePick — โค้ดธีมเลือกปุ่มด้วย '#themePick button' -->
+            <div class="pf-row col" id="setBlkFx">
+              <span class="hd">
+                <span class="tile"><svg viewBox="0 0 24 24"><use href="#lu-sparkles"/></svg></span>
+                <span class="bd"><span class="lb">เอฟเฟกต์ตอนงานเสร็จ</span><span class="sb" id="fxNow"></span></span>
+              </span>
               <div class="fx-sec" id="fxSec" hidden>
-                <div class="fx-hd"><b>เอฟเฟกต์ตอนงานเสร็จ</b><span id="fxNow"></span></div>
                 <!-- ปุ่มสร้างโดย renderFxPick() จากของที่ซื้อแล้ว -->
                 <div class="th-grid" id="fxPick"></div>
                 <div id="fxMode"></div>

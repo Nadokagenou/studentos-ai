@@ -122,6 +122,8 @@ function setDoneFx(id) {
   // ตอนนี้แตะ = เลือก (ขอบไฮไลต์ + ชื่อมุมขวาบน) · เล่นด้วยปุ่ม "ลองเล่นดู" · เทสต์: devtools/fxpickcheck.js
   haptic('tap');
   renderFxPick();
+  // 31 ต.ค. 69 · เอฟเฟกต์มีหน้าย่อยของตัวเองแล้ว — แถวในจอตั้งค่าโชว์ชื่อที่ใช้อยู่ ต้องเปลี่ยนตามตอนกดกลับ
+  if (typeof syncSetVals === 'function') syncSetVals();
 }
 
 function buyFx(id) {

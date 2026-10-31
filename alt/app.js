@@ -939,6 +939,7 @@ function clearUserBg() {
 // จะไปเขียนใส่ตัวที่ไม่ได้อยู่บนจอ — ค่าบนจอจึงค้างอยู่ที่เดิมโดยไม่มี error ให้เห็น
 const SETOPT = {
   theme:  { title: 'ธีมสี', blk: 'setBlkTheme' },
+  fx:     { title: 'เอฟเฟกต์ตอนงานเสร็จ', blk: 'setBlkFx' },   // 31 ต.ค. 69 · แยกออกจากธีมสี
   widget: { title: 'วิดเจ็ตหน้าแรก', blk: 'setBlkWidget' },
   font:   { title: 'ขนาดตัวอักษร', blk: 'setBlkFont' },
   nav:    { title: 'ตำแหน่งแถบเมนู', blk: 'setBlkNav' },
@@ -983,6 +984,16 @@ function syncSetVals() {
   const nav = navPref();
   put('setValNav', nav === 'auto' ? 'อัตโนมัติ · ' + NAV_NAME[navMode()] : (NAV_NAME[nav] || ''));
   put('setValBg', localStorage.getItem(BG_KEY) ? 'ใช้ภาพของคุณ' : 'ยังไม่ได้ตั้ง');
+  // เอฟเฟกต์ตอนงานเสร็จ (หน้าย่อยของตัวเอง) — ยังไม่มีสักชิ้น = ไม่มีอะไรให้เลือก ซ่อนแถวเหมือนที่ส่วนนี้เคยซ่อนในหน้าธีม
+  const fxRow = document.getElementById('setRowFx');
+  if (fxRow) {
+    const anyFx = typeof FX_SHOP === 'object' && typeof fxOwned === 'function' && Object.keys(FX_SHOP).some(fxOwned);
+    fxRow.hidden = !anyFx;
+    if (anyFx && typeof doneFxPref === 'function') {
+      const cur = doneFxPref();
+      put('setValFx', cur === 'confetti' ? 'เศษกระดาษ' : ((FX_SHOP[cur] && FX_SHOP[cur].name) || ''));
+    }
+  }
 }
 // ปุ่ม/ป้ายในแท็บ "ฉัน" ที่เกี่ยวกับหน้าตา — เรียกหลังเปลี่ยนค่าใด ๆ
 function renderAppearance() {

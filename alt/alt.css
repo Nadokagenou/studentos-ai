@@ -6185,6 +6185,8 @@ body.deep-scr .top-friends { display: none; }
 .set-row.go { cursor: pointer; transition: background .14s ease; }
 .set-row.go:active { background: var(--card2); }
 .set-row[hidden] { display: none; }
+/* หน้าย่อยเอฟเฟกต์ตอนงานเสร็จ (31 ต.ค. 69) — เส้นคั่นบนของ .fx-sec มีไว้แยกจากตารางธีมตอนอยู่หน้าเดียวกัน แยกหน้าแล้วไม่ต้องมี */
+#setBlkFx .fx-sec { margin-top: 4px; padding-top: 0; border-top: 0; }
 
 /* ชิปไอคอน — พื้นเรียบ ไม่ใช่สีเน้นทึบแบบ .pe-ic
    จอนี้มีสิบกว่าแถว ถ้าทุกแถวมีชิปสีเน้น สายตาจะไม่รู้ว่าควรมองอันไหนก่อน */
