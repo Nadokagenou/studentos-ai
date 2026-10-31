@@ -14029,16 +14029,21 @@ function renderSubjAdd() {
   const box = document.getElementById('subjAdd');
   if (!box) return;
   const mine = customSubjects();
-  box.innerHTML = `<div class="sa-row">
+  // ช่องชื่อแบบ HaloSearchInput (cult-ui · MIT · พอร์ตเดียวกับช่องถามน้องฮูก/ช่องค้นหากล่องข้อความ) ปุ่ม "เพิ่ม" อยู่ในช่อง
+  // ชิปวิชาของฉันมีจุดสีของวิชานั้น (subjClass) · × เห็นชัดเป็นวงกลม พื้นที่กด 36px
+  box.innerHTML = `<div class="sa-field">
       <input id="subjAddIn" type="text" maxlength="${CUSTOM_SUBJECT_MAX}" autocomplete="off" enterkeyhint="done"
         placeholder="ชื่อวิชา เช่น ชุมนุมหุ่นยนต์" aria-label="ชื่อวิชาใหม่"
         onkeydown="if(event.key==='Enter'){event.preventDefault();subjAddSubmit();}">
       <button type="button" class="sa-go" onclick="subjAddSubmit()">เพิ่ม</button></div>
-    <p class="sa-err" id="subjAddErr" role="status"></p>`
-    + (mine.length ? `<div class="sa-mine"><small>วิชาที่เพิ่มเอง · แตะ × เพื่อลบ (งานเก่าไม่เปลี่ยน)</small><div>`
-      + mine.map(n => `<span class="sa-chip">${esc(n)}<button type="button" data-rm="${esc(n)}"
-          aria-label="ลบวิชา ${esc(n)}" onclick="subjAddRemove(this.dataset.rm)">×</button></span>`).join('')
-      + `</div></div>` : '');
+    <p class="sa-err" id="subjAddErr" role="status"></p>
+    <div class="sa-mine"><small><span>วิชาของฉัน</span><span>${mine.length ? 'แตะ × เพื่อลบ · งานเก่าไม่เปลี่ยน' : ''}</span></small>`
+    + (mine.length
+      ? `<div class="sa-chips">` + mine.map(n => `<span class="sa-chip ${subjClass(n)}"><i class="sa-dot" aria-hidden="true"></i>${esc(n)}`
+        + `<button type="button" data-rm="${esc(n)}" aria-label="ลบวิชา ${esc(n)}" onclick="subjAddRemove(this.dataset.rm)">${icon('x')}</button></span>`).join('')
+        + `</div>`
+      : `<p class="sa-empty">ยังไม่มี · วิชาที่เพิ่มจะตามไปทุกเครื่องที่ล็อกอิน</p>`)
+    + `</div>`;
 }
 function subjAddSubmit() {
   const inp = document.getElementById('subjAddIn');
@@ -14046,6 +14051,9 @@ function subjAddSubmit() {
   if (r.error) {
     const err = document.getElementById('subjAddErr');
     if (err) err.textContent = r.error;
+    // สั่นหนึ่งที (ท่า error ของ Code Slots · React Bits) — บอกว่า "ยังไม่ได้เพิ่ม" โดยไม่ต้องอ่าน
+    const f = inp && inp.closest('.sa-field');
+    if (f) { f.classList.remove('sa-shake'); void f.offsetWidth; f.classList.add('sa-shake'); }
     if (inp) inp.focus();
     return;
   }
@@ -14431,12 +14439,16 @@ function renderSubjRows() {
   const names = subjShowAll
     ? allSubjects().map(s => s.name)
     : recentSubjects().concat(['อื่น ๆ']).filter((n, i, a) => a.indexOf(n) === i);
+  const mine = customSubjects();
+  const addOpen = !(document.getElementById('subjAdd') || { hidden: true }).hidden;
   box.innerHTML = names.map(n =>
     `<button type="button" class="pk${n === cur ? ' on' : ''}" data-k="${esc(n)}" onclick="pickSubject('${esc(n).replace(/'/g, "\\'")}')">`
-    + `<span class="pk-dot"></span>${esc(n)}</button>`).join('')
+    + `<span class="pk-dot"></span>${esc(n)}${mine.includes(n) ? '<span class="pk-s pk-mine">ของฉัน</span>' : ''}</button>`).join('')
     // แถวสุดท้าย: เพิ่มวิชาของตัวเอง (31 ต.ค. 69) · เปิดแผ่น #subjAdd ใต้แถว ไม่ออกจากฟอร์ม
-    + `<button type="button" class="pk pk-add" aria-controls="subjAdd" aria-expanded="false" onclick="toggleSubjAdd()">`
-    + `<span class="pk-plus" aria-hidden="true">+</span>วิชาใหม่</button>`;
+    // วาดแถวใหม่ตอนแผ่นเปิดอยู่ (เลือกวิชาอื่น/ลบวิชา) ต้องคงสถานะ "เปิด" ไว้ ไม่งั้นแถวกับแผ่นหลุดจากกัน
+    + `<button type="button" class="pk pk-add" aria-controls="subjAdd" aria-expanded="${addOpen}" onclick="toggleSubjAdd()">`
+    + `<span class="pk-plus" aria-hidden="true"></span><span class="pk-add-t">เพิ่มวิชาของฉัน</span>`
+    + `<span class="pk-s pk-add-hint">ชุมนุม · ติว · วิชาเลือก</span></button>`;
   if (more) {
     more.hidden = false;
     // วิชาที่เลือกจากเมนูแต่ไม่อยู่ในห้าแถวลัด ขึ้นมาเป็นแถวบนสุดเองอยู่แล้ว (recentSubjects ใส่ค่าปัจจุบันก่อน)

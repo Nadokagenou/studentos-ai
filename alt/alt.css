@@ -8157,34 +8157,6 @@ button.df-r:active { background: var(--surface); }
 .pick-rows .pk.on .pk-dot, .pick-rows .tp.active .pk-dot { border-width: 7px; border-color: var(--blue); }
 .pk-s { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--faint); }
 .pick-rows .pk.on .pk-s { color: var(--blue); }
-/* แถว "+ วิชาใหม่" กับแผ่นเพิ่มวิชา (31 ต.ค. 69 · เทสเตอร์ขอเพิ่มวิชาเอง)
-   แถวเดียวกับแถววิชาทุกอย่าง (สูง 52 · ตาไล่คอลัมน์เดียว) ต่างแค่วงกลมเส้นประมีบวก = ภาษาเดียวกับ "เพิ่ม" ทั้งแอป
-   แผ่นเปิดใต้แถว ไม่เป็นป๊อปอัป — ฟอร์มยาวอยู่แล้ว ป๊อปอัปซ้อนในฟอร์มทำให้หลงว่ากำลังกรอกอะไร */
-.pick-rows .pk-add { color: var(--blue); }
-.pk-plus { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
-  border: 2px dashed color-mix(in srgb, var(--blue) 55%, var(--line)); box-sizing: border-box;
-  font-size: 15px; font-weight: 700; line-height: 1; }
-.subj-add { margin: 2px 0 6px; padding: 12px; border-radius: 14px;
-  background: color-mix(in srgb, var(--blue) 6%, var(--card)); border: 1px solid color-mix(in srgb, var(--blue) 22%, var(--line)); }
-.subj-add[hidden] { display: none; }
-.sa-row { display: flex; gap: 8px; }
-.sa-row input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 12px;
-  border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 15px; }
-.sa-row input:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
-.sa-go { flex: none; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px;
-  background: var(--fill); color: var(--on-fill); font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
-.sa-go:active { transform: scale(.97); }
-.sa-err { margin: 6px 2px 0; min-height: 0; font-size: 12.5px; font-weight: 600; color: var(--alert); }
-.sa-err:empty { display: none; }
-.sa-mine { margin-top: 10px; }
-.sa-mine small { display: block; margin: 0 2px 6px; font-size: 12px; color: var(--muted); }
-.sa-mine > div { display: flex; flex-wrap: wrap; gap: 6px; }
-.sa-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 2px 2px 11px; border-radius: 99px;
-  background: var(--card); border: 1px solid var(--line); font-size: 13.5px; font-weight: 600; color: var(--ink); }
-/* × กดง่าย: ตัวเห็นเล็ก แต่พื้นที่กด 36px */
-.sa-chip button { width: 36px; height: 36px; margin: -4px 0; border: 0; border-radius: 50%; background: none;
-  color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; }
-.sa-chip button:active { background: color-mix(in srgb, var(--alert) 12%, transparent); color: var(--alert); }
 
 /* ปุ่มรองใต้บล็อก (พูด/ถ่ายรูปแทน · ดูวิชาทั้งหมด) */
 .fs-alt {
@@ -10440,6 +10412,147 @@ body.as-open .tab.scan .scan-dot svg { transform: rotate(135deg); }
   #scr-form .pick-rows > button:is(.pk-in, .pk-out)::before,
   #scr-form .pick-rows > button.pk-in .pk-dot, #scr-form .pick-rows > button.pk-in .pk-dot::after { animation: none; }
 }
+
+/* ============================================================
+   เพิ่มวิชาของฉัน (แถวท้ายรายการวิชา + แผ่นใต้แถว) · 31 ต.ค. 69 · รอบสอง
+   ------------------------------------------------------------
+   เจ้าของ (ภาพแถว "+ วิชาใหม่" กับแผ่น): "ปรับใหม่ให้หมดเลย" — รอบแรกแถวเพิ่มได้ทรง FeaturePoll เต็ม ๆ (ขอบเทา พื้นใส)
+   แค่ตัวหนังสือฟ้า บนพื้นมืดเลยดูเหมือนแถวที่กดไม่ได้ · ชิปลบเป็น × ตัวเล็กจาง · แผ่นลอยแยกจากแถวที่เปิดมันขึ้นมา
+   ตอนนี้:
+   • แถว = แถวแบบ FeaturePoll (cult-ui · MIT) ฉบับ "ปุ่มเพิ่ม": ขอบประสีธีม พื้นเจือสีธีม วงกลมทึบมีบวก ป้ายสีหมึก
+     คำใบ้ขวา "ชุมนุม · ติว · วิชาเลือก" · เปิดแล้วบวกหมุนเป็นกากบาท แถวกับแผ่นต่อกันเป็นการ์ดเดียว (มุมรอยต่อ 4px)
+   • ช่องชื่อ = HaloSearchInput (cult-ui · MIT) ฉบับนิ่ง: ขอบไล่สีวงรอบแคปซูล แสงฟุ้งตอนแตะ ปุ่ม "เพิ่ม" อยู่ในช่อง
+     ไม่หมุนตลอด (กติกา: ของขยับไม่หยุดใช้ได้แค่ transform/opacity)
+   • ผิด = แถวแดงมีไอคอน ! + ช่องสั่นหนึ่งที (ท่า error ของ Code Slots · React Bits)
+   • วิชาของฉัน = ชิปมีจุดสีของวิชานั้น · × เป็นวงกลมเห็นชัด 26px พื้นที่กด 36px
+   ท่าเคลื่อนไหวใช้ ease-out (.23,1,.32,1) ตามคลังของ React Bits · ลดการเคลื่อนไหว = จางอย่างเดียว
+   ============================================================ */
+#scr-form .pick-rows > button.pk-add {
+  border-style: dashed; border-color: color-mix(in srgb, var(--blue) 50%, var(--line));
+  background: color-mix(in srgb, var(--blue) 7%, transparent); color: var(--ink);
+}
+#scr-form .pick-rows > button.pk-add::before { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  #scr-form .pick-rows > button.pk-add:not(.on):not(.active):hover {
+    border-color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, transparent);
+  }
+}
+#scr-form .pick-rows > button.pk-add[aria-expanded="true"] {
+  border-style: solid; border-color: var(--blue);
+  border-bottom-left-radius: 4px; border-bottom-right-radius: 4px;
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+}
+.pk-add-t { font-weight: 700; }
+.pk-plus {
+  position: relative; flex: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--blue); color: var(--on-accent, #fff);
+  box-shadow: 0 3px 8px -3px color-mix(in srgb, var(--blue) 80%, transparent);
+  transition: transform .22s cubic-bezier(.23, 1, .32, 1);
+}
+.pk-plus::before, .pk-plus::after {
+  content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 2px; margin: -1px 0 0 -5px;
+  border-radius: 1px; background: currentColor;
+}
+.pk-plus::after { transform: rotate(90deg); }
+#scr-form .pick-rows > button.pk-add[aria-expanded="true"] .pk-plus { transform: rotate(45deg); }
+#scr-form .pick-rows .pk-add .pk-add-hint { font-weight: 600; color: var(--muted); transition: opacity .18s ease-out; }
+#scr-form .pick-rows > button.pk-add[aria-expanded="true"] .pk-add-hint { opacity: 0; }
+/* ป้าย "ของฉัน" ท้ายแถววิชาที่เพิ่มเอง — บอกว่าแถวนี้มาจากไหน (ลบได้ในแผ่นข้างล่าง) */
+#scr-form .pick-rows .pk-mine {
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  color: var(--blue); background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+
+/* แผ่นใต้แถว — ต่อกับแถวเป็นการ์ดเดียว */
+#scr-form .subj-add {
+  margin-top: -7px; padding: 14px 12px 12px;   /* ส่วนนี้เป็น flex มี gap 10px → เหลือรอยต่อกับแถว 3px */
+  border: 1.5px solid var(--blue); border-radius: 4px 4px 16px 16px;
+  background: color-mix(in srgb, var(--blue) 6%, var(--card));
+  box-shadow: 0 10px 24px -18px color-mix(in srgb, var(--blue) 80%, transparent);
+  animation: sa-in .22s cubic-bezier(.23, 1, .32, 1) both;
+}
+#scr-form .subj-add[hidden] { display: none; }
+@keyframes sa-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+/* ช่องชื่อ (HaloSearchInput ฉบับนิ่ง) */
+.sa-field { position: relative; }
+.sa-field input {
+  width: 100%; min-height: 50px; padding: 0 96px 0 18px;
+  border: 2px solid transparent; border-radius: 999px; color: var(--ink);
+  font: inherit; font-size: 15px; font-weight: 600;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from 210deg,
+      color-mix(in srgb, var(--blue) 70%, transparent),
+      color-mix(in srgb, var(--halo-2, var(--blue)) 55%, transparent),
+      color-mix(in srgb, var(--halo-3, var(--blue)) 50%, transparent),
+      color-mix(in srgb, var(--blue) 70%, transparent)) border-box;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--blue) 6%, transparent);
+  transition: box-shadow .25s ease-out;
+}
+.sa-field input::placeholder { color: var(--faint); font-weight: 500; }
+.sa-field input:focus {
+  outline: none;
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--blue) 16%, transparent),
+              0 12px 26px -14px color-mix(in srgb, var(--blue) 75%, transparent);
+}
+.phone #scr-form .sa-field input:focus-visible { outline: none !important; }
+.sa-field .sa-go {
+  position: absolute; top: 6px; right: 6px; bottom: 6px; padding: 0 20px;
+  border: 0; border-radius: 999px; background: var(--fill); color: var(--on-fill);
+  font: inherit; font-size: 14.5px; font-weight: 800; cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.28), 0 4px 12px -6px color-mix(in srgb, var(--fill) 80%, transparent);
+  transition: transform .16s cubic-bezier(.23, 1, .32, 1);
+}
+.sa-field .sa-go:active { transform: scale(.95); }
+.sa-field.sa-shake { animation: sa-shake .38s cubic-bezier(.36, .07, .19, .97); }
+@keyframes sa-shake {
+  0%, 100% { transform: none; } 15% { transform: translateX(-5px); } 30% { transform: translateX(5px); }
+  48% { transform: translateX(-3px); } 66% { transform: translateX(3px); } 84% { transform: translateX(-1px); }
+}
+
+/* ข้อความผิด */
+.sa-err { display: flex; align-items: center; gap: 7px; margin: 9px 6px 0; font-size: 12.5px; font-weight: 700; color: var(--alert); }
+.sa-err:empty { display: none; }
+.sa-err::before {
+  content: "!"; flex: none; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center;
+  background: var(--alert); color: #fff; font-size: 11px; font-weight: 800; line-height: 1;
+}
+
+/* วิชาของฉัน */
+.sa-mine { margin-top: 14px; padding-top: 12px; border-top: 1px dashed color-mix(in srgb, var(--blue) 28%, var(--line)); }
+.sa-mine > small { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px 9px; font-size: 12px; color: var(--muted); }
+.sa-mine > small > span:first-child { font-weight: 800; color: var(--ink); }
+.sa-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.sa-chip {
+  display: inline-flex; align-items: center; gap: 7px; height: 36px; padding: 0 5px 0 12px;
+  border-radius: 999px; border: 1px solid color-mix(in srgb, var(--sj, var(--blue)) 45%, var(--line));
+  background: color-mix(in srgb, var(--sj, var(--blue)) 10%, var(--card));
+  font-size: 13.5px; font-weight: 700; color: var(--ink);
+}
+.sa-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--sj, var(--blue)); }
+/* วิชาที่ยังไม่มีงานยังไม่ได้สีจาก subjIndex (ได้เทาของ "อื่น ๆ") — ในชิปวิชาของฉันใช้สีธีมแทน ไม่งั้นดูเหมือนปิดใช้ */
+.sa-chip.sj-0 { --sj: var(--blue); }
+.sa-chip button {
+  position: relative; flex: none; width: 26px; height: 26px; border: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: color-mix(in srgb, var(--ink) 10%, transparent); color: var(--ink);
+  transition: background-color .15s ease-out, color .15s ease-out, transform .16s cubic-bezier(.23, 1, .32, 1);
+}
+.sa-chip button::after { content: ""; position: absolute; inset: -5px; }   /* พื้นที่กด 36px */
+.sa-chip button svg { width: 14px; height: 14px; }
+.sa-chip button:active { transform: scale(.9); background: color-mix(in srgb, var(--alert) 18%, transparent); color: var(--alert); }
+@media (hover: hover) and (pointer: fine) {
+  .sa-chip button:hover { background: color-mix(in srgb, var(--alert) 14%, transparent); color: var(--alert); }
+}
+.sa-empty { margin: 0 4px; font-size: 12.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-plus, #scr-form .pick-rows .pk-add .pk-add-hint, .sa-field input, .sa-field .sa-go, .sa-chip button { transition: none; }
+  #scr-form .subj-add { animation: sa-fade .2s ease-out both; }
+  .sa-field.sa-shake { animation: none; }
+}
+@keyframes sa-fade { from { opacity: 0; } to { opacity: 1; } }
 
 /* ============================================================
    ปฏิทินเลือกวันในฟอร์มเพิ่มงาน (renderDueCal ใน app.js)
