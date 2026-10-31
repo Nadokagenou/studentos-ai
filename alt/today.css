@@ -1790,15 +1790,14 @@ span.tt-chip { cursor: default; }
 }
 
 /* Keep the complete mobile home above the tab bar, including first-time setup.
-   Compact secondary actions retain a 44px touch target below the primary card. */
+   31 ต.ค. 69 · เจ้าของ (ภาพไทล์หน้าแรกเป็นแถวไอคอนเล็ก ป้ายอยู่ข้าง): "ปรับให้มันเหมือนกับปุ่มที่ใช้ในโทรศัพท์" → เลือก "แบบมือถือ 3×2"
+   เดิมโหมดหน้าแรกใหม่ (home-v2) ย่อไทล์เป็นแถวสูง 44 ไอคอน 30 ป้ายข้าง ๆ เพื่อเผื่อที่ให้การ์ดตั้งค่าเริ่มต้น · ถอดข้อย่อนั้น
+   ไทล์กลับเป็นทรงเดียวกับโหมดปกติและทุกธีมบนมือถือ (กรอบ 60 ชิปขาว ป้ายอยู่ใต้)
+   วัดที่ 375×812: หน้าแรกปกติไม่ต้องเลื่อน · คนใหม่ที่การ์ด "ตั้งค่าเริ่มต้น" ยังค้างเลื่อนราว 59px จนตั้งค่าเสร็จ — เจ้าของเลือกข้อแลกนี้เอง */
 @media (max-width: 600px) and (min-height: 760px) {
   #menuBody.home-v2 .td-tiles { padding-bottom: 0; margin-top: 8px; }
   #menuBody.home-v2 .td-setup { margin-top: 6px; padding-block: 6px; }
   #menuBody.home-v2 > .td-deck { margin-top: 8px; }
   #menuBody.home-v2 .td-railwrap { margin-top: 8px; }
   .phone #menuBody.home-v2 .tg-grid { gap: 8px 6px; }
-  .phone #menuBody.home-v2 .tg-t { min-height: 44px; flex-direction: row; gap: 6px; text-align: left; }
-  .phone #menuBody.home-v2 .tg-ic { flex: 0 0 30px; width: 30px; height: 30px; aspect-ratio: auto; border-radius: 10px; }
-  .phone #menuBody.home-v2 .tg-ic svg { width: 16px; height: 16px; padding: 4px; }
-  .phone #menuBody.home-v2 .tg-lb2 { min-height: 0; font-size: 11px; line-height: 1.25; text-align: left; }
 }
