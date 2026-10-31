@@ -6185,6 +6185,10 @@ body.deep-scr .top-friends { display: none; }
 .set-row.go { cursor: pointer; transition: background .14s ease; }
 .set-row.go:active { background: var(--card2); }
 .set-row[hidden] { display: none; }
+/* 31 ต.ค. 69 · "ออกจากระบบ" เป็นแถวสุดท้ายของการ์ด และแถวข้างบนมันซ่อนได้หมด (ยังไม่ล็อกอิน) — .set-row + .set-row นับแถวที่ซ่อนด้วย
+   เส้นคั่นบนจึงโผล่ทั้งที่เป็นแถวเดียวในการ์ด · ให้มีเส้นเฉพาะเมื่อมีแถวที่เห็นอยู่ข้างบน */
+#setOutRow { border-top: 0; }
+.set-card > .set-row:not([hidden]) ~ #setOutRow { border-top: 1px solid var(--line); }
 /* หน้าย่อยเอฟเฟกต์ตอนงานเสร็จ (31 ต.ค. 69) — เส้นคั่นบนของ .fx-sec มีไว้แยกจากตารางธีมตอนอยู่หน้าเดียวกัน แยกหน้าแล้วไม่ต้องมี */
 #setBlkFx .fx-sec { margin-top: 4px; padding-top: 0; border-top: 0; }
 

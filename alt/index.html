@@ -2239,25 +2239,9 @@
                ในหัวคน: "ฉันจะถอนตัวยังไง" -->
           <div id="accountCard"></div>
           <div class="set-card">
-            <!-- ============================================================
-                 1B94 · แถวบอกว่าตัวกรองมีอยู่ และมันทำอะไรกับของที่เราส่ง
-                 ============================================================
-                 ไม่มีปลายทาง ไม่มีสวิตช์ และตั้งใจให้เป็นแบบนั้น:
-                 - สวิตช์ปิดตัวกรองไม่ควรมีอยู่ในแอปที่ผู้ใช้เป็นผู้เยาว์
-                 - การรายงานเป็นของที่ทำ "บนของชิ้นที่มีปัญหา" (ปุ่ม ··· บนโพสต์/ข้อความ)
-                   ไม่ใช่ของที่ทำจากหน้าตั้งค่า — แถวที่พาไปหน้ารายการรายงานเปล่า ๆ
-                   คือแถวที่กดแล้วต้องย้อนกลับมาทุกครั้ง
-                 สิ่งที่แถวนี้ทำจริงคือตอบคำถาม "มีใครดูแลอยู่ไหม" ซึ่งเป็นคำถามที่
-                 ทั้งนักเรียนและผู้ปกครองถาม และตอนนี้ทั้งแอปไม่มีที่ไหนตอบเลย -->
-            <div class="set-row" id="modInfoRow">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-shield"/></svg></span>
-              <span class="set-lb">การกรองเนื้อหา</span>
-            </div>
-            <!-- 9 ต.ค. 69 · เจ้าของ: "เอามารวมกัน" — แถวการกรองเนื้อหาเคยอยู่การ์ดเดี่ยวของตัวเอง ตอนนี้เป็นแถวแรกของการ์ดล่าง -->
-            <button type="button" class="set-row go" onclick="loadSample()">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-book"/></svg></span>
-              <span class="set-lb">โหลดข้อมูลตัวอย่าง</span>
-              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- 31 ต.ค. 69 · เจ้าของวงสองแถวนี้ทิ้ง: "ปุ่มออกระบบเอาไว้ข้างล่าง ไม่ต้องมีปุ่ม..." —
+                 "การกรองเนื้อหา" (#modInfoRow · แถวบอกข้อมูล ไม่ใช่ปุ่ม · ตัวกรองยังทำงานเหมือนเดิม ถอดแค่แถวบอก)
+                 กับ "โหลดข้อมูลตัวอย่าง" (loadSample() ยังอยู่ใน app.js เรียกจากคอนโซลได้) -->
             <!-- ALT 1A6M3: ล็อกธีมลับกลับ ไว้ลองอีสเตอร์เอกก์ใหม่ -->
             <button type="button" class="set-row go" id="relockBtn" hidden onclick="relockSecrets()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-lock"/></svg></span>
@@ -2274,13 +2258,14 @@
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-shield"/></svg></span>
               <span class="set-lb">เราเก็บอะไรของคุณบ้าง</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
-            <button type="button" class="set-row go danger" id="setOutRow" onclick="logout()">
-              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-logout"/></svg></span>
-              <span class="set-lb">ออกจากระบบ</span>
-              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
             <button type="button" class="set-row go danger" id="setDelRow" hidden onclick="deleteAccount()">
               <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-trash"/></svg></span>
               <span class="set-lb">ลบบัญชีและข้อมูลทั้งหมด</span>
+              <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+            <!-- 31 ต.ค. 69 · เจ้าของ: "ปุ่มออกระบบเอาไว้ข้างล่าง" — แถวสุดท้ายของการ์ดเสมอ (เดิมอยู่เหนือ "ลบบัญชี") -->
+            <button type="button" class="set-row go danger" id="setOutRow" onclick="logout()">
+              <span class="set-ic"><svg viewBox="0 0 24 24"><use href="#lu-logout"/></svg></span>
+              <span class="set-lb">ออกจากระบบ</span>
               <svg class="set-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
           </div>
         </div>
