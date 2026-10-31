@@ -91,3 +91,36 @@ img[src*="halloween/rewards/theme-assets/sai-witch.webp"],img[src*="halloween/re
 :root[data-theme="hw-jackhollow"]{--fill:#FF9A3C;--on-fill:#2A1206;--fill-on:#2A1206;--on-accent:#2A1206;--blue:#FFC27A;--grad-brand:linear-gradient(125deg,#D2691E,#7A3412)}
 :root[data-theme="hw-vampire"]{--fill:#F2708C;--on-fill:#2A0B16;--fill-on:#2A0B16;--on-accent:#2A0B16;--blue:#F5A9BF;--grad-brand:linear-gradient(125deg,#B3264A,#5C1530)}
 :root[data-theme="hw-graveyard"]{--fill:#A8E27C;--on-fill:#15220C;--fill-on:#15220C;--on-accent:#15220C;--blue:#C9BBEA;--grad-brand:linear-gradient(125deg,#5E8E3A,#3B3060)}
+
+/* ============================================================
+   ชุดมาสคอต Halloween — ปุ่มใหม่ · 31 ต.ค. 69 · เจ้าของ (ภาพส่วนนี้ในตั้งค่า): "ปรับปุ่ม"
+   เดิม: การ์ดเป็นกล่องมืดเรียบ เลือกแล้วมีแค่วงฟ้าบาง ๆ · ชุดที่ยังไม่ได้รับเป็นปุ่มเทาเฉย ๆ ไม่บอกเหตุผล
+   · "ใช้ชุดตามธีม" ตัวเทา 11px ในแถบมืดเต็มกว้าง ดูไม่ออกว่าเป็นปุ่ม และไม่บอกว่ากำลังใช้อยู่ไหม
+   ตอนนี้:
+   • การ์ด = แสงฟุ้งสีธีมหลังตัวมาสคอต + เงาใต้ภาพ · ชื่อเป็นแคปซูล · กดยุบ (ease-out ของ React Bits)
+   • เลือกอยู่ = ขอบสีธีม + เงาฟุ้งแบบเปลือก Halo (cult-ui · MIT ชุดเดียวกับการ์ดอื่นในแอป) + ป้าย "ใช้อยู่"
+   • ยังไม่ได้รับ = ภาพจาง + ป้าย "รับจากอีเวนต์" (เหตุผลอยู่บนการ์ดเลย ไม่ต้องเดา)
+   • ใช้ชุดตามธีม = ปุ่มรองทรงแคปซูล ไอคอนย้อนกลับ · ไม่ได้เลือกชุดไหน (ใช้ชุดตามธีมอยู่) = ขอบสีธีม + ไอคอนติ๊ก
+   ไม่ใช้สีทอง (ใส่ชุด ≠ ทำสำเร็จ) · ลดการเคลื่อนไหว = ไม่มีท่า
+   ============================================================ */
+.hw-costume-picker>div{gap:10px}
+.hw-costume-picker button[data-hw-costume]{position:relative;isolation:isolate;overflow:hidden;gap:10px;padding:14px 10px 12px;border-radius:18px;border:1px solid var(--line);background:radial-gradient(80% 70% at 50% 40%,color-mix(in srgb,var(--fill) 18%,transparent),transparent 70%),var(--card);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:transform .16s cubic-bezier(.23,1,.32,1),border-color .2s ease-out,box-shadow .25s ease-out}
+.hw-costume-picker button[data-hw-costume] img{height:118px;filter:drop-shadow(0 10px 14px rgba(0,0,0,.45));transition:transform .3s cubic-bezier(.23,1,.32,1),filter .2s ease-out,opacity .2s ease-out}
+.hw-costume-picker button[data-hw-costume] span{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700;color:var(--ink);background:color-mix(in srgb,var(--ink) 9%,transparent);transition:background-color .2s ease-out,color .2s ease-out}
+@media (hover:hover) and (pointer:fine){.hw-costume-picker button[data-hw-costume]:not(:disabled):hover{border-color:color-mix(in srgb,var(--fill) 55%,var(--line))}.hw-costume-picker button[data-hw-costume]:not(:disabled):hover img{transform:translateY(-3px) scale(1.03)}}
+.hw-costume-picker button[data-hw-costume]:not(:disabled):active{transform:scale(.97)}
+.hw-costume-picker button[data-hw-costume].active{border-color:var(--fill);box-shadow:inset 0 0 0 1px var(--fill),0 10px 26px -14px var(--fill),inset 0 1px 0 rgba(255,255,255,.16)}
+.hw-costume-picker button[data-hw-costume].active span{background:var(--fill);color:var(--on-fill)}
+.hw-costume-picker button[data-hw-costume].active::after,.hw-costume-picker button[data-hw-costume]:disabled::after{position:absolute;top:8px;right:8px;padding:2px 8px;border-radius:999px;font-size:10.5px;line-height:1.6}
+.hw-costume-picker button[data-hw-costume].active::after{content:"ใช้อยู่";font-weight:800;background:var(--fill);color:var(--on-fill)}
+.hw-costume-picker button[data-hw-costume]:disabled{cursor:not-allowed;color:var(--muted)}
+.hw-costume-picker button[data-hw-costume]:disabled img{filter:grayscale(.55) brightness(.9) drop-shadow(0 8px 12px rgba(0,0,0,.35));opacity:.88}
+.hw-costume-picker button[data-hw-costume]:disabled{opacity:1}
+.hw-costume-picker button[data-hw-costume]:disabled span{color:var(--muted)}
+.hw-costume-picker button[data-hw-costume]:disabled::after{content:"รับจากอีเวนต์";font-weight:700;color:var(--muted);background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.hw-costume-picker .hw-costume-reset{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:46px;margin-top:12px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:color-mix(in srgb,var(--ink) 6%,var(--card));color:var(--ink);font-size:13.5px;font-weight:700;transition:transform .16s cubic-bezier(.23,1,.32,1),border-color .2s ease-out,box-shadow .2s ease-out}
+.hw-costume-picker .hw-costume-reset::before{content:"";flex:none;width:17px;height:17px;background:currentColor;-webkit-mask:var(--hw-reset-ic) center/contain no-repeat;mask:var(--hw-reset-ic) center/contain no-repeat;--hw-reset-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8'/%3E%3Cpath d='M3 3v5h5'/%3E%3C/svg%3E")}
+.hw-costume-picker .hw-costume-reset.active{border-color:var(--fill);box-shadow:inset 0 0 0 1px var(--fill)}
+.hw-costume-picker .hw-costume-reset.active::before{color:var(--fill);--hw-reset-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E")}
+.hw-costume-picker .hw-costume-reset:active{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){.hw-costume-picker button,.hw-costume-picker button img,.hw-costume-picker button span{transition:none}}
