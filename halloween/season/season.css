@@ -277,6 +277,9 @@ html:root.hw-season .phone:has(#scr-login.on) {
 html:root.hw-season #scr-login {
   --scr: #120a24; --card: #1d1433; --ink: #f6eefe; --muted: #b9a8d6; --line: rgba(190, 160, 255, .18);
   --fill: #ff8a1f; --on-fill: #fff; --blue: #ffad5c; --blue-soft: rgba(255, 138, 31, .14);
+  /* ชิปข้อความผิดพลาด (.lg-note.bad) ใช้ --ink บน --alert-soft — --ink ตรงนี้สว่าง
+     แต่ --alert-soft ยังเป็นชมพูอ่อนของธีมสว่าง ได้ตัวขาวบนพื้นชมพูอ่านไม่ออก · ใช้คู่ของธีมมืดแทน */
+  --alert: #ff7a94; --alert-soft: rgba(255, 122, 148, .22);
   position: relative; isolation: isolate; color: var(--ink); background: transparent !important;
 }
 html:root.hw-season #scr-login .login-wrap { position: relative; z-index: 1; }

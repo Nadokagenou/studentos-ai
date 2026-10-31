@@ -1464,8 +1464,18 @@ function cloudConfigured() {
   return !!(c.url && c.anonKey) && typeof supabase !== 'undefined';
 }
 
+// 31 ต.ค. 69 · Supabase ล็อกทั้งโปรเจกต์ (402 เกินโควตา) — remote-config.js เป็นคนเห็นก่อน
+// ตอนนั้นห้ามสร้างไคลเอนต์: มันจะขอต่ออายุ session ได้ 402 แล้วลบ session ในเครื่องทิ้งเอง
+// ไม่สร้าง = session ยังอยู่ครบ พอเซิร์ฟเวอร์กลับมา เปิดแอปรอบถัดไปก็ล็อกอินอยู่เหมือนเดิม
+let cloudDown = false;
+
 async function initCloud() {
   if (!cloudConfigured()) return;
+  // คำขอค่าตั้งยิงไปตั้งแต่โหลดสคริปต์ ปกติกลับมาก่อนถึงตรงนี้ · ไม่รอเกิน 3 วิ (ไม่รู้ = ไปต่อตามปกติ)
+  if (window.sosConfigFirst) {
+    await Promise.race([window.sosConfigFirst, new Promise(r => setTimeout(r, 3000))]).catch(() => {});
+  }
+  if (window.SOS_CLOUD_DOWN) { cloudDown = true; console.warn('[cloud] Supabase restricted (402) — local only'); return; }
   // สามค่านี้เป็นค่าเริ่มต้นของไลบรารีอยู่แล้ว แต่เขียนไว้ให้เห็นกับตา เพราะทั้งสามตัว
   // คือเงื่อนไขของ "ล็อกอินรอบเดียวพอ" — ถ้าตัวใดตัวหนึ่งถูกปิดโดยไม่ตั้งใจในอนาคต
   // อาการที่ได้คือผู้ใช้ต้องล็อกอินใหม่เรื่อย ๆ ซึ่งเป็นอาการที่หาสาเหตุยากที่สุดแบบหนึ่ง
@@ -1944,6 +1954,7 @@ function loginWith(provider, retriesLeft = 15) {
   // ตรงนี้ว่า "ยังไม่เปิดใช้งาน" ทั้งที่ไม่จริง — ตอนนี้แค่รอเงียบ ๆ แล้วลองใหม่เอง
   // (เพดาน 15 ครั้ง × 200ms = 3 วิ กันไว้เผื่อจริง ๆ ไม่มีระบบบัญชี จะได้ไม่ค้างรอตลอดกาล)
   if (!sb) {
+    if (cloudDown) { loginNote('ระบบบัญชีปิดปรับปรุงชั่วคราว · กด "เริ่มใช้เลย" ไปก่อน งานเก็บในเครื่องได้ตามปกติ', true); return; }
     if (cloudConfigured() && retriesLeft > 0) setTimeout(() => loginWith(provider, retriesLeft - 1), 200);
     return;
   }
@@ -19257,6 +19268,24 @@ function routeStart() {
   }
 }
 
+// เซิร์ฟเวอร์ถูกล็อก (ดู cloudDown) — จอล็อกอินกดอะไรก็ไม่ผ่าน จึงไม่ขังใครไว้ที่นั่น
+// คนที่มีของในเครื่องอยู่แล้ว (เคยล็อกอิน · มีงาน) พาเข้าแอปเลย ไม่ตั้งธง skipLogin
+// เพราะพอเซิร์ฟเวอร์กลับมา เขาต้องได้จอล็อกอินคืนเพื่อซิงก์ต่อ · คนใหม่ยังอยู่จอล็อกอิน
+// แต่ได้ข้อความบอกตรง ๆ ว่าให้กด "เริ่มใช้เลย" ไปก่อน
+function cloudDownBoot() {
+  const onLogin = (document.querySelector('.screen.on') || {}).id === 'scr-login';
+  const hasLocal = !!localOwner() || (state.tasks || []).some(t => !t.deleted);
+  if (onLogin && hasLocal) routeAfterLogin();
+  if (onLogin && !hasLocal) {
+    loginNote('ระบบบัญชีปิดปรับปรุงชั่วคราว · กด "เริ่มใช้เลย" ไปก่อน งานเก็บในเครื่องได้ตามปกติ', true);
+    return;
+  }
+  setTimeout(() => showToast({
+    title: 'ระบบออนไลน์ปิดชั่วคราว',
+    body: 'ใช้งานได้ตามปกติด้วยข้อมูลในเครื่อง · ซิงก์กับเพื่อนจะกลับมาเอง',
+  }), 2500);
+}
+
 // ใช้หลังผ่านหน้าบัญชีแล้ว (ล็อกอินสำเร็จ หรือกดใช้แบบไม่ล็อกอิน)
 function routeAfterLogin() {
   // 1C12 · เพิ่งเข้าแอปได้จริง — ของรางวัลรายวันติด login-mode อยู่จนถึงบรรทัดนี้
@@ -19830,6 +19859,7 @@ function syncLiteRow() { syncGfxRow(); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) dailyPromptOnOpen(); });
 
   await initCloud();
+  if (cloudDown) cloudDownBoot();
 
   // LANDING_START_AFTER_CLOUD — sb พร้อมแล้วตอนนี้ (ถ้า cloudConfigured() เป็นจริง)
   // จุดเดียวที่ปลอดภัยจะยิง OAuth จริงสำหรับปุ่ม ?start=google จากหน้าแนะนำ
