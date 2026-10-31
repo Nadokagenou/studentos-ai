@@ -13924,8 +13924,74 @@ function renderDoPick() {
   if (cur != null && !days.includes(cur)) days.push(cur);
   box.innerHTML = `<button type="button" class="sp${cur == null ? ' active' : ''}" onclick="setDoDay('')">ไม่ตั้ง</button>`
     + days.map(n => `<button type="button" class="sp${cur === n ? ' active' : ''}" onclick="setDoDay('${n}')">${doDayLabel(n)}</button>`).join('');
+  doThumbMount(box);
 }
 function setDoDay(v) { formDoDay = v; renderDoPick(); updateFormSummary(); }
+
+// ---------- ก้อนเลื่อนของแถวชิป "เตือนให้ทำตอน" · 31 ต.ค. 69 ----------
+// เจ้าของ (ภาพชิป ไม่ตั้ง · วันนี้ · พรุ่งนี้ · มะรืน): "ทำอนิเมชั่นหน่อย" — เดิมแตะแล้ววาดแถวใหม่ทั้งแถว สีทึบกระโดดไปชิปใหม่ทันที
+// ตอนนี้ก้อนสีชิ้นเดียว (.do-thumb) วิ่งจากชิปเดิมไปชิปใหม่ · ท่าเดียวกับก้อนแท็บโหมดของจองาน (tkThumb ข้างบน ·
+// แบบ HaloToggleGroup + ขอบสองข้างเป็นสปริงคนละตัวแบบ Rubber Segment ในคลัง React Bits: ขอบนำแข็งกว่า ยืดก่อนแล้วหด เด้งเกินนิด)
+// ต่างจาก tkThumb ตรงที่ชิปกว้างไม่เท่ากัน และแถวเลื่อนข้างได้ → คิดเป็นพิกเซลจาก offsetLeft/offsetWidth ของชิป (ไม่ใช่ลำดับช่อง)
+// แถวอยู่ใน <details> ที่หุบอยู่ = วัดได้ 0 → ResizeObserver จับตอนกางแล้ววางก้อนที่ชิปเลย ไม่ให้พุ่งมาจากขอบซ้าย
+const DO_THUMB = { l: null, r: null, vl: 0, vr: 0, tl: 0, tr: 0, raf: 0, t: 0, t0: 0, ro: null };
+function doThumbPaint(th) {
+  th.style.visibility = '';
+  th.style.transform = 'translateX(' + DO_THUMB.l.toFixed(2) + 'px)';
+  th.style.width = Math.max(0, DO_THUMB.r - DO_THUMB.l).toFixed(2) + 'px';
+}
+function doThumbMount(box) {
+  let th = box.querySelector('.do-thumb');
+  if (!th) {
+    th = document.createElement('i');
+    th.className = 'do-thumb'; th.setAttribute('aria-hidden', 'true');
+    box.prepend(th);
+  }
+  box.classList.add('has-thumb');
+  if (!DO_THUMB.ro && typeof ResizeObserver === 'function') {
+    DO_THUMB.ro = new ResizeObserver(() => {
+      const b = document.getElementById('doPick');
+      if (b && !DO_THUMB.raf) { DO_THUMB.l = null; doThumbMount(b); }
+    });
+    DO_THUMB.ro.observe(box);
+  }
+  const on = box.querySelector('.sp.active');
+  // ยังหุบอยู่ — ซ่อนไว้ก่อน (ไม่งั้นเห็นเศษขอบ 2px หนึ่งเฟรมก่อนวัดได้) แล้วรอ ResizeObserver วางให้
+  if (!on || !on.offsetWidth) { DO_THUMB.l = null; th.style.visibility = 'hidden'; return; }
+  const tl = on.offsetLeft, tr = on.offsetLeft + on.offsetWidth;
+  th.style.top = on.offsetTop + 'px'; th.style.height = on.offsetHeight + 'px';
+  const still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (DO_THUMB.l === null || still) { DO_THUMB.l = tl; DO_THUMB.r = tr; DO_THUMB.vl = DO_THUMB.vr = 0; }
+  DO_THUMB.tl = tl; DO_THUMB.tr = tr;
+  doThumbPaint(th);
+  if ((DO_THUMB.l !== tl || DO_THUMB.r !== tr) && !DO_THUMB.raf) {
+    DO_THUMB.t = DO_THUMB.t0 = 0;
+    DO_THUMB.raf = requestAnimationFrame(doThumbStep);
+  }
+}
+function doThumbStep(ts) {
+  const S = DO_THUMB, th = document.querySelector('#doPick .do-thumb');
+  if (!th || S.l === null) { S.raf = 0; return; }
+  // เวลาจริงซอยเป็นก้าวละ 1/60 วิ เหมือน tkThumbStep — เฟรมช้าแล้วสปริงไม่ระเบิด
+  let left = S.t ? Math.min(.25, (ts - S.t) / 1000) : 1 / 60;
+  S.t = ts;
+  if (!S.t0) S.t0 = ts;
+  const right = (S.tl + S.tr) / 2 > (S.l + S.r) / 2;   // ไปขวา = ขอบขวานำ · ไปซ้าย = ขอบซ้ายนำ
+  const LEAD = [560, 30], TRAIL = [300, 24];           // ค่าเดียวกับ tkThumb — สองที่ต้องรู้สึกเหมือนกัน
+  const [kl, cl] = right ? TRAIL : LEAD, [kr, cr] = right ? LEAD : TRAIL;
+  while (left > 1e-4) {
+    const dt = Math.min(1 / 60, left);
+    left -= dt;
+    S.vl += (-kl * (S.l - S.tl) - cl * S.vl) * dt; S.l += S.vl * dt;
+    S.vr += (-kr * (S.r - S.tr) - cr * S.vr) * dt; S.r += S.vr * dt;
+    if (S.l > S.r) { const m = (S.l + S.r) / 2; S.l = S.r = m; }
+  }
+  const done = (Math.abs(S.l - S.tl) < .3 && Math.abs(S.r - S.tr) < .3
+    && Math.abs(S.vl) < 2 && Math.abs(S.vr) < 2) || ts - S.t0 > 900;
+  if (done) { S.l = S.tl; S.r = S.tr; S.vl = S.vr = 0; }
+  doThumbPaint(th);
+  S.raf = done ? 0 : requestAnimationFrame(doThumbStep);
+}
 function formDoAtFrom(day) {
   if (day === '' || day == null) return null;
   const m = /^(\d{1,2}):(\d{2})$/.exec((document.getElementById('fDoTime') || {}).value || '');
@@ -13955,6 +14021,7 @@ function fillDoForm(iso) {
     formDoDay = '';
     if (el) el.value = '20:00';
   }
+  DO_THUMB.l = null;          // ฟอร์มใบใหม่ = ก้อนวางที่ชิปเลย ไม่วิ่งมาจากตำแหน่งของใบก่อน
   renderDoPick();
   const wrap = document.getElementById('fDoWrap');
   if (wrap) wrap.open = formDoDay !== '';
