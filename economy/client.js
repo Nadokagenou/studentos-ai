@@ -3,17 +3,26 @@
  'use strict';if(window.__HW_SHOWROOM__===true)return;
  let wallet=null,cache=null,who=null,refreshing=null,lastRead=0,painting=false,mutating='',focusBusy=false,starting=null,lastFeedback=0,generation=0;
  let paintedWalletKey;
- function paintAccount(value){cache=value;const key=JSON.stringify(value?[value.owner,value.admin,value.vault,value.roomOwned,value.stats,value.inviteTheme]:null);if(key!==paintedWalletKey){paintedWalletKey=key;paint();}}
+ /* 31 ต.ค. 69 · เซิร์ฟเวอร์ถูกล็อก (SOS_CLOUD_DOWN · ดู cloudDown ใน app.js) = ไม่มีบัญชีให้อ่าน ยอดเลยเป็น 0 ธีมถูกล็อก
+    เก็บสำเนาคลังบัญชีล่าสุดที่เซิร์ฟเวอร์ยืนยันไว้ในเครื่อง แล้วโชว์จากสำเนาตอนล่ม · โชว์อย่างเดียว ใช้จ่ายไม่ได้ (account() ต้องมีบัญชี)
+    เครื่องที่ยังไม่มีสำเนา ใช้ยอดโทเคนล่าสุดที่ paint() เขียนไว้ใน TOKEN_KEY · ธีมที่ใช้อยู่ใช้ต่อได้เสมอ */
+ const SNAP='studentos.alt.vaultSnap.';
+ const offline=()=>window.SOS_CLOUD_DOWN===true&&!owner()&&typeof localOwner==='function'&&!!localOwner();
+ function snapSave(v){if(!v||!who||v.owner!==who)return;try{localStorage.setItem(SNAP+who,JSON.stringify(v));}catch{}}
+ function snapRead(){const uid=localOwner();try{const v=JSON.parse(localStorage.getItem(SNAP+uid)||'null');return v?.owner===uid&&v.vault?.tokens?v:null;}catch{return null;}}
+ function localTokens(){let t={};try{t=JSON.parse(localStorage.getItem(TOKEN_KEY))||{};}catch{}return {bal:Number.isFinite(t.bal)?t.bal:0,skins:t.skins||{},fx:t.fx||[],fx3d:t.fx3d||{},bought:t.bought||[],freeSpins:t.freeSpins||0};}
+ function usingNow(id){try{return !!id&&localStorage.getItem(THEME_KEY)===id;}catch{return false;}}
+ function paintAccount(value){cache=value;const key=JSON.stringify(value?[value.owner,value.admin,value.vault,value.roomOwned,value.stats,value.inviteTheme]:null);if(key!==paintedWalletKey){paintedWalletKey=key;snapSave(value);paint();}}
  const focusSession=crypto.randomUUID(),revealed=new Map();
  const owner=()=>typeof currentUser==='undefined'?null:currentUser?.id||null;
  const adopted=()=>!!owner()&&(typeof localOwner!=='function'||localOwner()===owner());
  const copy=x=>JSON.parse(JSON.stringify(x));
  function identity(){const uid=owner();if(uid!==who){const old=wallet;generation++;paintedWalletKey=undefined;who=uid;wallet=null;cache=null;refreshing=null;lastRead=0;lastFeedback=0;window.FocusCheckpoints?.close();old?.dispose();}return uid;}
- function document(){identity();return adopted()&&cache?.owner===who?cache:null;}
+ function document(){identity();if(adopted()&&cache?.owner===who)return cache;return offline()?snapRead():null;}
  function ready(){return !!document();}
- function tokens(){const d=document();if(!d)return {bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0};const t=copy(d.vault.tokens);if(t.pendingDraw){const id=t.pendingDraw.id;let seen=revealed.get(id);if(!seen){try{const saved=JSON.parse(localStorage.getItem(TOKEN_KEY+'.revealed.'+who)||'null');seen=saved?.id===id?new Set(saved.indices.filter(Number.isInteger)):new Set();}catch{seen=new Set();}revealed.set(id,seen);}t.pendingDraw.results=t.pendingDraw.results.map((r,i)=>({...r,granted:seen.has(i)}));}return t;}
- function note(){const uid=identity();return !uid?'เข้าสู่ระบบเพื่อรับและใช้รางวัลบัญชี':ready()?'ยอดและสิทธิ์ตรวจจากบัญชี · งานยังบันทึกในเครื่องได้':'กำลังตรวจคลังบัญชี · ข้อมูลเดิมยังอยู่';}
- function paint(){if(painting)return;painting=true;try{const d=document();if(d){const key=TOKEN_KEY+'.legacy-unverified.'+who;try{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({tokens:localStorage.getItem(TOKEN_KEY),at:Date.now()}));localStorage.setItem(TOKEN_KEY,JSON.stringify(tokens()));}catch{}if(typeof tokenAdmin!=='undefined')tokenAdmin=d.admin===true;}
+ function tokens(){const d=document();if(!d&&offline())return localTokens();if(!d)return {bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0};const t=copy(d.vault.tokens);if(t.pendingDraw){const id=t.pendingDraw.id;let seen=revealed.get(id);if(!seen){try{const saved=JSON.parse(localStorage.getItem(TOKEN_KEY+'.revealed.'+who)||'null');seen=saved?.id===id?new Set(saved.indices.filter(Number.isInteger)):new Set();}catch{seen=new Set();}revealed.set(id,seen);}t.pendingDraw.results=t.pendingDraw.results.map((r,i)=>({...r,granted:seen.has(i)}));}return t;}
+ function note(){const uid=identity();if(offline())return 'ระบบออนไลน์ปิดชั่วคราว · โชว์ยอดล่าสุดในเครื่อง ใช้จ่ายได้เมื่อระบบกลับมา';return !uid?'เข้าสู่ระบบเพื่อรับและใช้รางวัลบัญชี':ready()?'ยอดและสิทธิ์ตรวจจากบัญชี · งานยังบันทึกในเครื่องได้':'กำลังตรวจคลังบัญชี · ข้อมูลเดิมยังอยู่';}
+ function paint(){if(painting)return;painting=true;try{const d=document();if(d&&!who){if(typeof tokenAdmin!=='undefined')tokenAdmin=d.admin===true;}else if(d){const key=TOKEN_KEY+'.legacy-unverified.'+who;try{if(!localStorage.getItem(key))localStorage.setItem(key,JSON.stringify({tokens:localStorage.getItem(TOKEN_KEY),at:Date.now()}));localStorage.setItem(TOKEN_KEY,JSON.stringify(tokens()));}catch{}if(typeof tokenAdmin!=='undefined')tokenAdmin=d.admin===true;}
    if(typeof renderAll==='function'&&mutating!=='draw')renderAll();if(typeof applySecrets==='function')applySecrets();if(typeof applyGenesisUnlock==='function')applyGenesisUnlock();if(typeof applyTheme==='function')applyTheme();
    for(const id of ['wheelBody','shopBody','badgesBody']){const body=window.document.getElementById(id),head=body?.querySelector('.page-head');if(!head)continue;let p=body.querySelector('[data-economy-note]');if(!p){p=window.document.createElement('p');p.dataset.economyNote='';p.className='economy-note';head.after(p);}p.textContent=id==='badgesBody'?note()+' · ตรางานใหม่รับเครดิตเมื่อโฟกัสออนไลน์ครบ 5 นาทีแล้วทำเสร็จ':note();}
   }finally{painting=false;}}
@@ -43,7 +52,9 @@
  async function startTask(taskId){if(starting===taskId||!owner())return;const task=typeof state==='undefined'?null:state.tasks.find(t=>t.id===taskId);if(!task||task.halloweenDeathQuest||task.done||task.deleted||document()?.completed[taskId])return;starting=taskId;try{if(typeof pushToCloud==='function')await pushToCloud(true);await run({type:'focus-start',taskId,session:focusSession},null,true);}finally{starting=null;}}
  async function focusTick(){if(focusBusy||!owner())return;const taskId=typeof state==='undefined'?null:state.running?.taskId,active=!!taskId&&!window.document.hidden&&window.document.body.classList.contains('focus-on'),d=document(),p=d?.focus;if(active&&!d){await refresh();return;}if(active&&(!p||p.taskId!==taskId)){await startTask(taskId);return;}if(!p||p.activeMs>=300000||!active&&p.session!==focusSession)return;focusBusy=true;try{await run({type:'focus-pulse',taskId:p.taskId,session:focusSession,active},null,true);const current=document()?.focus;if(active&&current?.attention?.challenge)window.FocusCheckpoints?.show(current.attention.challenge,async(checkpoint,answer)=>{const result=await run({type:'focus-check',taskId:current.taskId,checkpoint,answer});return result?.correct===true;});}finally{focusBusy=false;}}
  async function finishTask(taskId){const p=document()?.focus,task=state.tasks.find(t=>t.id===taskId);if(p?.taskId!==taskId||p.activeMs<300000||!task?.done)return;if(typeof pushToCloud==='function')await pushToCloud(true);return run({type:'focus-finish',taskId},()=>{if(typeof renderBadges==='function')renderBadges();},true);}
- function ownsTheme(id){const d=document(),v=d?.vault,t=v?.tokens;
+ function ownsTheme(id){const d=document(),v=d?.vault,off=offline(),t=v?.tokens||(off?localTokens():null);
+  if(off&&usingNow(id))return true;
+  if(off&&!d&&!(typeof THEME_GACHA!=='undefined'&&THEME_GACHA.includes(id))&&!(typeof THEME_SHOP!=='undefined'&&Object.hasOwn(THEME_SHOP,id)))return null;
   if(typeof THEME_GACHA!=='undefined'&&THEME_GACHA.includes(id))return (t?.skins?.[id]||0)>0;
   if(typeof THEME_SHOP!=='undefined'&&Object.hasOwn(THEME_SHOP,id))return t?.bought?.includes(id)===true;
   if(typeof THEME_CODE!=='undefined'&&Object.hasOwn(THEME_CODE,id))return v?.codeThemes?.includes(id)===true;

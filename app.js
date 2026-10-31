@@ -579,6 +579,9 @@ function themePref() {
   let v = null;
   try { v = localStorage.getItem(THEME_KEY); } catch (_) {}
   if (v === 'library') v = 'ocean'; // 1A6M3: ธีมห้องสมุดถูกแทนที่ — คนที่เคยเลือกไว้ไม่ต้องมาตั้งใหม่
+  // 31 ต.ค. 69 · เซิร์ฟเวอร์ถูกล็อก (ดู cloudDown) = ตรวจสิทธิ์ธีมไม่ได้ · ธีมที่ใช้อยู่ใช้ต่อ ไม่เด้งกลับเป็นโทนพื้นฐาน
+  // อ่านธงจาก window ไม่ใช่ cloudDown — ฟังก์ชันนี้ถูกเรียกก่อนบรรทัดประกาศตัวแปรนั้น
+  if (typeof window !== 'undefined' && window.SOS_CLOUD_DOWN === true && THEMES.includes(v)) return v;
   // 1B58 · ยังไม่เคยเลือก = โทนสว่าง ไม่ใช่ 'system'
   // ภาษาภาพใหม่ถูกออกแบบบนโทนสว่าง เปิดมาครั้งแรกจึงต้องเห็นอันนั้น
   // ต้องตรงกับสคริปต์ใน <head> ของ index.html เสมอ ไม่งั้นจอแรกกะพริบสลับโทน
@@ -19275,6 +19278,9 @@ function routeStart() {
 function cloudDownBoot() {
   const onLogin = (document.querySelector('.screen.on') || {}).id === 'scr-login';
   const hasLocal = !!localOwner() || (state.tasks || []).some(t => !t.deleted);
+  // จอแรกวาดไปก่อนรู้ว่าเซิร์ฟเวอร์ล่ม — วาดโทเคน ธีม และธีมลับใหม่จากสำเนาในเครื่อง (economy/client.js)
+  if (window.StudentOSEconomy) window.StudentOSEconomy.refresh();
+  else { applySecrets(); applyTheme(); renderAll(); }
   if (onLogin && hasLocal) routeAfterLogin();
   if (onLogin && !hasLocal) {
     loginNote('ระบบบัญชีปิดปรับปรุงชั่วคราว · กด "เริ่มใช้เลย" ไปก่อน งานเก็บในเครื่องได้ตามปกติ', true);
