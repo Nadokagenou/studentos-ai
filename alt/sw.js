@@ -31,7 +31,7 @@ const SHELL = ['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.cs
   'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
   'news/announcements.json',
-  'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'icon-512.png', 'icon-maskable-512.png',
+  'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'badge-96.png', 'icon-512.png', 'icon-maskable-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ
   'sai-avatar.png',
@@ -63,6 +63,19 @@ self.addEventListener('activate', e => {
 // มือถือพิมพ์ "Student OS" ให้บนการ์ดอยู่แล้ว เติมเองจึงกลายเป็นชื่อแอปซ้ำสองครั้ง
 // และกินที่ของชื่องาน ซึ่งเป็นสิ่งเดียวบนการ์ดที่คนต้องอ่าน
 const APP_NAME = 'Student OS';
+// 31 ต.ค. 69 · เจ้าของ: "แก้แจ้งเตือนให้เหมือนแจ้งเตือนของแอปอื่นๆแบบปกติ ทำทั้งแอนดรอยและ ios"
+// • ไอคอนเล็ก (badge) เดิมใช้ icon-192.png ซึ่งเป็นภาพสีเต็มใบไม่มีส่วนใส — Android วาดไอคอนแถบสถานะจาก "ส่วนใส" อย่างเดียว
+//   ภาพทึบทั้งใบจึงกลายเป็นสี่เหลี่ยมขาวโล่ง · ตอนนี้ใช้ badge-96.png = เงาขาวรูปหนังสือซ้อนเป็นตัว S บนพื้นใส แบบแอปทั่วไป
+//   (iPhone ไม่ใช้ icon/badge ของการ์ด — ใช้ไอคอนแอปบนหน้าจอโฮมเอง)
+// • เลขบนไอคอนแอป (Badging API · iPhone 16.4+ ที่ติดตั้งลงหน้าจอโฮม · Android ที่ติดตั้งได้จุด) = จำนวนการ์ดที่ค้างในถาด
+//   ตั้งใหม่ทุกครั้งที่การ์ดเด้ง · ถูกแตะ · ถูกปัดทิ้ง · เปิดแอปแล้วแอปล้างให้เอง (clearAppBadge ใน app.js)
+function syncAppBadge() {
+  const nav = self.navigator;
+  if (!nav || !('setAppBadge' in nav)) return Promise.resolve();
+  return self.registration.getNotifications()
+    .then(list => list.length ? nav.setAppBadge(list.length) : nav.clearAppBadge())
+    .catch(() => {});
+}
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
@@ -70,16 +83,19 @@ self.addEventListener('push', e => {
   e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: 'icon-192.png',
-    badge: 'icon-192.png',
+    badge: 'badge-96.png',
     tag: d.tag || 'studentos-reminder',
     renotify: true,
     requireInteraction: false,
     data: { url: d.url || './' },
-  }));
+  }).then(syncAppBadge));
 });
+
+self.addEventListener('notificationclose', e => { e.waitUntil(syncAppBadge()); });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  e.waitUntil(syncAppBadge());
   const target = (e.notification.data && e.notification.data.url) || './';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {

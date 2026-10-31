@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const base = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(base, 'sw.js'), 'utf8');
 // โหลด sw.js ใหม่ทุกครั้งในบริบทแยก — แต่ละเคสได้แคช/registration ของตัวเอง ไม่ปนกัน
-function loadWorker(registration) {
+function loadWorker(registration, selfExtra = {}) {
   const w = { handlers: {}, removed: [], matches: [], shell: [], selectedCache: '' };
   const caches = {
     async keys() { return ['studentos-1c57', 'studentos-alt-previous', w.selectedCache, 'other-app']; },
@@ -23,8 +23,8 @@ function loadWorker(registration) {
   const ctx = vm.createContext({ URL, location: { origin: 'https://example.test' }, caches,
     importScripts: file => vm.runInContext(fs.readFileSync(path.join(base,file),'utf8'),ctx),
     fetch: async () => { throw new Error('offline'); },
-    self: { addEventListener: (event, fn) => { w.handlers[event] = fn; },
-      skipWaiting: async () => {}, clients: { claim: async () => {} }, registration },
+    self: Object.assign({ addEventListener: (event, fn) => { w.handlers[event] = fn; },
+      skipWaiting: async () => {}, clients: { claim: async () => {} }, registration }, selfExtra),
   });
   vm.runInContext(source, ctx);
   // activate เรียก waitUntil สองครั้ง (ล้างแคช + ถอน push) — ต้องรอให้ครบทุกอัน
@@ -67,5 +67,28 @@ function loadWorker(registration) {
   sw.handlers.fetch({request:{method:'GET',url:'https://example.test/alt/halloween/event/config.json'},respondWith(p){eventIntercepted=true;Promise.resolve(p).catch(()=>{});}});
   assert.equal(eventIntercepted,false,'ปิดอีเวนต์แล้วต้องไม่คืน enabled:true จากแคช');
   console.log('PASS หน้าอีเวนต์และสวิตช์เปิดกิจกรรมไม่ย้อนอ่านจากแคช');
-  console.log('ALT service worker: 6/6');
+  // 31 ต.ค. 69 · แจ้งเตือนแบบแอปทั่วไป — ไอคอนแถบสถานะเป็นเงาบนพื้นใส (badge-96.png) · เลขบนไอคอนแอป = จำนวนการ์ดที่ค้างในถาด
+  const shown = [], badges = [];
+  let tray = [{}, {}];
+  const pushSw = loadWorker({ async showNotification(t, o) { shown.push({ t, o }); }, async getNotifications() { return tray; } },
+    { navigator: { async setAppBadge(n) { badges.push(n); }, async clearAppBadge() { badges.push(0); } } });
+  const fire = async (ev, extra) => { const work = []; pushSw.handlers[ev](Object.assign({ waitUntil(p) { work.push(p); } }, extra)); await Promise.all(work); };
+  await fire('push', { data: { json: () => ({ title: 'ใบงานฟิสิกส์', body: 'ส่งพรุ่งนี้', tag: 'task-1' }) } });
+  assert.equal(shown[0].o.badge, 'badge-96.png');
+  assert.equal(shown[0].o.icon, 'icon-192.png');
+  assert.equal(shown[0].o.tag, 'task-1');
+  assert.deepEqual(badges, [2]);
+  assert.ok(sw.shell.includes('badge-96.png'), 'badge-96.png ต้องอยู่ในแคชออฟไลน์');
+  console.log('PASS แจ้งเตือนใช้ไอคอนแถบสถานะแบบเงาใส · เลขบนไอคอนแอปเท่าจำนวนการ์ดในถาด');
+  tray = [];
+  await fire('notificationclose', { notification: {} });
+  assert.deepEqual(badges, [2, 0]);
+  console.log('PASS ปัดการ์ดใบสุดท้ายทิ้ง = ล้างเลขบนไอคอนแอป');
+  const plain = loadWorker({ async showNotification(t, o) { shown.push({ t, o }); }, async getNotifications() { return [{}]; } });
+  const work = [];
+  plain.handlers.push({ waitUntil(p) { work.push(p); }, data: { json: () => ({ title: 'x' }) } });
+  await Promise.all(work);
+  assert.equal(shown.length, 2);
+  console.log('PASS เบราว์เซอร์ที่ไม่มี Badging API ยังเด้งการ์ดได้ ไม่ล้ม');
+  console.log('ALT service worker: 9/9');
 })().catch(e => { console.error(e); process.exitCode = 1; });

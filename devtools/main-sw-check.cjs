@@ -20,5 +20,16 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
  let shared;handlers.fetch({request:{method:'GET',url:'https://example.test/studentos-ai/halloween/rewards/theme-main.js?rev=release'},respondWith(p){shared=p;}});
  assert.equal(await shared,'main-desktop-css');assert.equal(matches.at(-1).key,selected);console.log('PASS shared reward presentation can fall back to the current main offline cache');
  assert.ok(shell.includes('sai-face-sleepy.webp'));assert.ok(shell.includes('hook-hat-avatar.svg'));
- console.log('Main service worker: 6/6');
+ // 31 Oct 2026 · notifications like other apps: transparent status-bar badge, app icon count = notifications left in the tray
+ const ph={},shown=[],badges=[];let tray=[{},{}];
+ vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+  self:{addEventListener:(event,fn)=>{ph[event]=fn;},skipWaiting:async()=>{},clients:{claim:async()=>{}},
+   navigator:{async setAppBadge(n){badges.push(n);},async clearAppBadge(){badges.push(0);}},
+   registration:{scope:'https://example.test/studentos-ai/',async showNotification(t,o){shown.push({t,o});},async getNotifications(){return tray;}}}});
+ const fire=async(event,extra)=>{const pending=[];ph[event](Object.assign({waitUntil(p){pending.push(p);}},extra));await Promise.all(pending);};
+ await fire('push',{data:{json:()=>({title:'Physics worksheet',body:'Due tomorrow',tag:'task-1'})}});
+ assert.equal(shown[0].o.badge,'badge-96.png');assert.equal(shown[0].o.tag,'task-1');assert.deepEqual(badges,[2]);console.log('PASS push uses the transparent status-bar badge and sets the app icon count');
+ tray=[];await fire('notificationclose',{notification:{}});assert.deepEqual(badges,[2,0]);console.log('PASS dismissing the last notification clears the app icon count');
+ assert.ok(shell.includes('badge-96.png'));console.log('PASS the badge icon is precached for offline');
+ console.log('Main service worker: 9/9');
 })().catch(error=>{console.error(error);process.exitCode=1;});

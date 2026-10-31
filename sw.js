@@ -90,6 +90,7 @@ const SHELL = [
   "manifest.json",
   "shortcut-draft.js",
   "icon-192.png",
+  "badge-96.png",
   "icon-512.png",
   "icon-maskable-512.png",
   "logo-mark.png",
@@ -295,6 +296,19 @@ self.addEventListener('activate', e => {
 // iPhone เติม "from Student OS" ให้ทุกการ์ดของเว็บแอปเองอยู่แล้ว · Android มีแถวชื่อแอปบนสุด
 // เติมเองอีกจึงกลายเป็นชื่อแอปซ้ำ และการ์ดแชทกลายเป็น "Student OS · ชื่อเพื่อน" สามบรรทัด
 const APP_NAME = 'Student OS';
+// 31 ต.ค. 69 · เจ้าของ: "แก้แจ้งเตือนให้เหมือนแจ้งเตือนของแอปอื่นๆแบบปกติ ทำทั้งแอนดรอยและ ios"
+// • ไอคอนเล็ก (badge) เดิมใช้ icon-192.png ซึ่งเป็นภาพสีเต็มใบไม่มีส่วนใส — Android วาดไอคอนแถบสถานะจาก "ส่วนใส" อย่างเดียว
+//   ภาพทึบทั้งใบจึงกลายเป็นสี่เหลี่ยมขาวโล่ง · ตอนนี้ใช้ badge-96.png = เงาขาวรูปหนังสือซ้อนเป็นตัว S บนพื้นใส แบบแอปทั่วไป
+//   (iPhone ไม่ใช้ icon/badge ของการ์ด — ใช้ไอคอนแอปบนหน้าจอโฮมเอง)
+// • เลขบนไอคอนแอป (Badging API · iPhone 16.4+ ที่ติดตั้งลงหน้าจอโฮม · Android ที่ติดตั้งได้จุด) = จำนวนการ์ดที่ค้างในถาด
+//   ตั้งใหม่ทุกครั้งที่การ์ดเด้ง · ถูกแตะ · ถูกปัดทิ้ง · เปิดแอปแล้วแอปล้างให้เอง (clearAppBadge ใน app.js)
+function syncAppBadge() {
+  const nav = self.navigator;
+  if (!nav || !('setAppBadge' in nav)) return Promise.resolve();
+  return self.registration.getNotifications()
+    .then(list => list.length ? nav.setAppBadge(list.length) : nav.clearAppBadge())
+    .catch(() => {});
+}
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data ? e.data.text() : '' }; }
@@ -302,16 +316,19 @@ self.addEventListener('push', e => {
   e.waitUntil(self.registration.showNotification(title, {
     body: d.body || '',
     icon: 'icon-192.png',
-    badge: 'icon-192.png',
+    badge: 'badge-96.png',
     tag: d.tag || 'studentos-reminder',
     renotify: true,
     requireInteraction: false,
     data: { url: d.url || './' },
-  }));
+  }).then(syncAppBadge));
 });
+
+self.addEventListener('notificationclose', e => { e.waitUntil(syncAppBadge()); });
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
+  e.waitUntil(syncAppBadge());
   const target = (e.notification.data && e.notification.data.url) || './';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {

@@ -18072,7 +18072,7 @@ async function notify(title, body, tag) {
   title = title || NOTIF_BRAND;
   const opt = {
     body, tag: tag || 'studentos-alt',
-    icon: 'icon-192.png', badge: 'icon-192.png',
+    icon: 'icon-192.png', badge: 'badge-96.png',   // เงาขาวบนพื้นใส — Android วาดไอคอนแถบสถานะจากส่วนใส (ดู sw.js · syncAppBadge)
     renotify: true, data: { url: location.pathname },
   };
   try {
@@ -18085,6 +18085,11 @@ async function notify(title, body, tag) {
   try { new Notification(title, opt); return true; }   // เดสก์ท็อปที่ไม่มี SW
   catch (e) { console.warn('[notify] failed:', e.message); return false; }
 }
+
+// เปิดแอป = เห็นแล้ว → ล้างเลขบนไอคอนแอป (sw.js ตั้งตามจำนวนการ์ดที่ค้างในถาด) · เหมือนแอปทั่วไปบน iPhone/Android · 31 ต.ค. 69
+function clearAppBadge() { try { if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); } catch (_) {} }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) clearAppBadge(); });
+clearAppBadge();
 
 // ปุ่ม "ทดสอบ" ในแท็บฉัน — พิสูจน์ว่ามันเด้งจริงบนเครื่องนี้ ไม่ต้องรอถึงกำหนดส่ง
 // ทดสอบจากเซิร์ฟเวอร์จริง — ทางเดียวที่พิสูจน์ว่า "ปิดแอปแล้วยังเด้ง"
