@@ -110,6 +110,8 @@ async function newsLoad(force) {
   }
   newsPaintRow();
   if (typeof curScreen !== 'undefined' && curScreen === 'scr-news') renderNews();
+  // ประกาศสำคัญปักอยู่บนจอการแจ้งเตือนด้วย (renderNotif ใน inbox.js) — ไฟล์มาทีหลังจอเปิด ต้องวาดซ้ำ
+  if (typeof curScreen !== 'undefined' && curScreen === 'scr-notif' && typeof renderNotif === 'function') renderNotif();
   if (typeof staffNewsLoad === 'function') void staffNewsLoad();
 }
 

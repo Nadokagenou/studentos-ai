@@ -1600,6 +1600,17 @@ function renderNotif() {
         ${icon('chevron')}
       </button>` : '';
 
+  // 31 ต.ค. 69 · เจ้าของ: ประกาศสำคัญ (ระบบล่ม ฯลฯ) ต้องขึ้นที่นี่ด้วย ไม่ใช่แค่แท็บ "ฉัน"
+  // เฉพาะ kind "notice" ที่ยังปักอยู่ (newsPinned ใน news.js) · ข่าวฟีเจอร์ยังอยู่ที่จอข่าวสารที่เดียว
+  // ปักบนสุดทุกตัวกรองยกเว้น "ข้อความ" · กดแล้วเปิดตัวข่าวเต็มที่จอข่าวสาร
+  const notices = notifFilter !== 'dm' && typeof newsShown === 'function' ? newsShown().filter(newsPinned) : [];
+  const pinned = notices.length ? `<div class="ib2-sec"><span>ประกาศสำคัญ</span></div><div class="ib2-list">${
+    notices.map(it => `<button class="nt-row new" onclick="go('scr-news')">
+      <span class="nt-ic"><span class="nt-av src">${icon('flag')}</span></span>
+      <span class="nt-bd"><span class="nt-t">${esc(it.title)}</span><span class="nt-p">${esc(it.body)}</span>
+      <span class="nt-meta">จาก${esc(it.by || 'ทีม StudentOS')}<i aria-hidden="true">·</i>แตะเพื่ออ่านทั้งหมด</span></span>
+      <span class="nt-dot" aria-hidden="true"></span></button>`).join('')}</div>` : '';
+
   // กลุ่มแบบ IG: ใหม่ → วันนี้ → เมื่อวาน → 7 วันที่ผ่านมา → ก่อนหน้านี้ · ในกลุ่มเรียงใหม่สุดก่อน (notifItems เรียงไว้แล้ว)
   // ไม่มีปุ่ม "อ่านทั้งหมด" แล้ว — เปิดจอก็อ่านแล้ว
   const d0 = new Date(); d0.setHours(0, 0, 0, 0);
@@ -1607,8 +1618,8 @@ function renderNotif() {
   const bucket = n => n.at >= today0 ? 'วันนี้' : n.at >= yest0 ? 'เมื่อวาน' : n.at >= week0 ? '7 วันที่ผ่านมา' : 'ก่อนหน้านี้';
   const groups = [['ใหม่', fresh]];
   for (const name of ['วันนี้', 'เมื่อวาน', '7 วันที่ผ่านมา', 'ก่อนหน้านี้']) groups.push([name, older.filter(n => bucket(n) === name)]);
-  body.innerHTML = chips + login
-    + (!list.length ? empty : '')
+  body.innerHTML = chips + pinned + login
+    + (!list.length && !notices.length ? empty : '')
     + groups.filter(g => g[1].length).map(([name, items]) =>
         `<div class="ib2-sec"><span>${name}</span></div><div class="ib2-list">${items.map(row).join('')}</div>`).join('');
 }
