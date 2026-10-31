@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ต้นแบบคลังงาน</title>
+<!-- ต้นแบบคลังงานที่กดได้จริง (31 ต.ค. 69) — เจ้าของ: "ปรับให้มันเก็บข้อมูลได้ด้วยนะ" → เลือก "ทำต้นแบบให้ลองกดก่อน แล้วเขียนสเปกของจริง"
+     ไม่ใช่ของแอป · เก็บใน IndexedDB ชื่อ studentos-vault-prototype ของเครื่องนี้เท่านั้น (ไม่แตะคีย์ studentos.alt.* ของแอป · ไม่ซิงก์)
+     หน้าตาตามม็อกอัป 2026-10-31-task-vault.html · หน้างานแบบเส้นสายจาก Illustration Fluid Rendering ของ Cult UI (MIT) -->
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; padding: 24px; background: #DDE3EE; font-family: 'Sarabun', system-ui, sans-serif; color: #12233F; }
+  h1 { margin: 0 0 4px; font-size: 20px; }
+  .lead { margin: 0 0 16px; color: #4A5A75; font-size: 14px; line-height: 1.6; max-width: 640px; }
+  .wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .side { max-width: 300px; font-size: 13.5px; color: #4A5A75; line-height: 1.65; }
+  .side b { color: #12233F; }
+  .side button { margin-top: 10px; padding: 9px 14px; border: 0; border-radius: 12px; background: #fff; color: #B42318; font: 700 13px 'Sarabun', sans-serif; cursor: pointer; }
+  .phone { position: relative; width: 360px; height: 740px; overflow: hidden; border-radius: 28px; background: #F3F6FC; box-shadow: 0 18px 40px -18px #12233F66; }
+  @media (max-width: 420px) { body { padding: 12px; } .phone { width: 100%; } }
+  .scr { position: absolute; inset: 0; padding: 14px 16px 110px; overflow-y: auto; opacity: 0; transform: translateX(24px); pointer-events: none;
+    transition: opacity .22s cubic-bezier(.23,1,.32,1), transform .28s cubic-bezier(.23,1,.32,1); scrollbar-width: none; }
+  .scr::-webkit-scrollbar { display: none; }
+  .scr.on { opacity: 1; transform: none; pointer-events: auto; }
+  .scr.back { transform: translateX(-24px); }
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 40px; margin-bottom: 6px; }
+  /* ปุ่มกลับ = สูตรเดียวกับ .sh-btn ในแอป */
+  .ic { width: 42px; height: 42px; border-radius: 15px; display: grid; place-items: center; color: #12233F; cursor: pointer; border: 1px solid rgba(255,255,255,.38);
+    background-color: rgba(151,180,245,.21);
+    background-image: radial-gradient(90% 90% at 18% 0%, rgba(255,255,255,.4), transparent 58%), linear-gradient(160deg, rgba(255,255,255,.26), rgba(255,255,255,.06) 55%, rgba(255,255,255,.14));
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.72), inset 1px 0 0 rgba(255,255,255,.38), inset 0 0 12px -3px rgba(37,99,235,.4), 0 0 0 .5px rgba(15,27,45,.12); }
+  .ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+  .ic:active, .add:active, .btn:active, .it:active, .fd:active, .cta:active { transform: scale(.97); }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: #E3ECFF; color: #1F4FB8; font-size: 12px; font-weight: 700; }
+  .chip i { width: 8px; height: 8px; border-radius: 50%; background: #2D6BFF; }
+  .tt { margin: 6px 0 2px; font-size: 19px; font-weight: 800; line-height: 1.35; }
+  .sub { font-size: 13px; color: #5B6B86; }
+  .h2 { margin: 6px 0 2px; font-size: 22px; font-weight: 800; }
+  /* หน้างานแบบเส้นสาย */
+  .fl-hub { position: relative; padding: 12px 14px 14px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #D3DBE8, 0 3px 8px -4px #12233F1F; }
+  .fl-list { position: relative; display: grid; gap: 9px; margin-top: 14px; padding-left: 34px; }
+  .fl-rails { position: absolute; left: 0; top: -14px; width: 100%; height: calc(100% + 14px); overflow: visible; pointer-events: none; }
+  .fl-card { position: relative; padding: 9px 11px 10px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px #D3DBE8, 0 3px 8px -5px #12233F1F; transition: box-shadow .3s; }
+  .fl-card.hi { box-shadow: inset 0 0 0 2px #3E8EF0, 0 6px 16px -8px #3E8EF0; }
+  .fl-card::before { content: ""; position: absolute; left: -4.5px; top: 15.5px; width: 9px; height: 9px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1px #B9C5D9; }
+  .fl-h { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 14px; font-weight: 800; }
+  .fl-h i { width: 8px; height: 8px; border-radius: 50%; }
+  .fl-h small { margin-left: auto; font-size: 12px; font-weight: 600; color: #5B6B86; }
+  .strip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .strip::-webkit-scrollbar { display: none; }
+  .th { position: relative; flex: none; width: 54px; height: 70px; border-radius: 10px; overflow: hidden; background: #E7ECF5 center/cover; box-shadow: inset 0 0 0 1px #12233F14; cursor: pointer;
+    animation: pop .32s cubic-bezier(.23,1,.32,1) both; }
+  @keyframes pop { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+  .add { flex: none; width: 54px; height: 70px; border-radius: 10px; border: 1.5px dashed #9AB0D8; display: grid; place-items: center; text-align: center;
+    font-size: 11.5px; font-weight: 700; color: #1F5BD8; background: #F8FAFF; line-height: 1.3; cursor: pointer; }
+  .add b { display: block; font-size: 20px; line-height: 1; }
+  .fl-dash { display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 9px; border: 1.5px dashed #C3CFE3; font-size: 12.5px; color: #5B6B86; cursor: pointer; }
+  .fl-dash span { color: #1F5BD8; font-weight: 700; }
+  textarea.note { width: 100%; min-height: 64px; resize: none; border: 0; outline: 0; padding: 0; background: transparent; font: 400 13.5px/1.55 'Sarabun', sans-serif; color: #12233F; }
+  .saved { font-size: 11px; color: #1E8A55; opacity: 0; transition: opacity .2s; }
+  .saved.on { opacity: 1; }
+  .cta { position: absolute; left: 16px; right: 16px; bottom: 18px; height: 52px; border-radius: 16px; display: grid; place-items: center; border: 0; cursor: pointer;
+    background: #1F5BD8; color: #fff; font: 800 16px 'Sarabun', sans-serif; box-shadow: 0 10px 22px -10px #1F5BD8; z-index: 3; }
+  .store { position: absolute; left: 0; right: 0; bottom: 76px; text-align: center; font-size: 11.5px; color: #5B6B86; z-index: 3; }
+  /* คลังตามวิชา */
+  .folders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+  .fd { padding: 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #12233F12; cursor: pointer; transition: box-shadow .2s; }
+  .fd i { display: block; width: 30px; height: 30px; border-radius: 10px; margin-bottom: 8px; }
+  .fd b { display: block; font-size: 14.5px; }
+  .fd small { font-size: 12px; color: #5B6B86; }
+  .fd.on { box-shadow: inset 0 0 0 2px #1F5BD8; }
+  .list { margin-top: 14px; }
+  .it { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #12233F12; cursor: pointer; }
+  .it .th { width: 44px; height: 56px; border-radius: 9px; animation: none; }
+  .it .th.none { background: repeating-linear-gradient(180deg, #fff 0 9px, #D9E1EE 9px 10px); }
+  .it b { display: block; font-size: 14px; }
+  .it small { font-size: 12px; color: #5B6B86; }
+  .it em { margin-left: auto; flex: none; font-style: normal; font-size: 12px; font-weight: 700; color: #5B6B86; }
+  .it em.ok { color: #1E8A55; }
+  .total { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #fff; font-size: 12.5px; color: #5B6B86; box-shadow: inset 0 0 0 1px #12233F12; }
+  /* แผ่นเพิ่มรูป */
+  .dim { position: absolute; inset: 0; background: #12233F66; opacity: 0; pointer-events: none; transition: opacity .22s; z-index: 5; }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; border-radius: 24px 24px 0 0; background: #fff; z-index: 6;
+    transform: translateY(105%); transition: transform .32s cubic-bezier(.23,1,.32,1); }
+  .phone.sheet-on .dim { opacity: 1; pointer-events: auto; }
+  .phone.sheet-on .sheet { transform: none; }
+  .grab { width: 38px; height: 4px; border-radius: 2px; background: #C9D2E2; margin: 0 auto 12px; }
+  .sheet h4 { margin: 0 0 4px; font-size: 17px; }
+  .sheet p { margin: 0 0 12px; font-size: 13px; color: #5B6B86; }
+  .kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 14px; }
+  .k { padding: 10px 6px; border-radius: 14px; border: 1.5px solid #D5DDEA; text-align: center; font-size: 13px; font-weight: 700; cursor: pointer; background: #fff; font-family: inherit; color: inherit; }
+  .k.on { border-color: #1F5BD8; background: #EEF3FF; color: #1F4FB8; }
+  .k small { display: block; font-size: 11px; font-weight: 500; color: #6B7A93; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn { height: 46px; border-radius: 14px; display: grid; place-items: center; font: 800 14.5px 'Sarabun', sans-serif; border: 0; cursor: pointer; }
+  .btn.p { background: #1F5BD8; color: #fff; }
+  .btn.q { background: #EEF3FF; color: #1F4FB8; }
+  .btn:disabled { opacity: .6; }
+  /* ดูรูปเต็มจอ */
+  .viewer { position: absolute; inset: 0; z-index: 8; background: #0B1220; color: #fff; display: flex; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  .viewer.on { opacity: 1; pointer-events: auto; }
+  .vw-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 13px; color: #A9B7D6; }
+  .vw-top .ic { color: #fff; }
+  .vw-img { flex: 1; display: grid; place-items: center; padding: 0 10px; min-height: 0; }
+  .vw-img img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+  .vw-bot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 14px 16px 20px; }
+  .vw-bot button { height: 44px; border-radius: 14px; border: 0; background: #1B2A4A; color: #EAF0FF; font: 700 14px 'Sarabun', sans-serif; cursor: pointer; }
+  .vw-bot button.del { background: #3A1C24; color: #FFB4B4; }
+  .vw-bot button.del.sure { background: #E5484D; color: #fff; }
+  /* โหมดโฟกัส */
+  .scr.focus { background: #0F1A30; color: #EAF0FF; padding-top: 26px; }
+  .fz-t { font-size: 13px; color: #A9B7D6; text-align: center; }
+  .fz-n { margin: 6px 0 2px; text-align: center; font-size: 18px; font-weight: 800; }
+  .ring { width: 210px; height: 210px; margin: 22px auto 16px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(#6E9BFF 0 var(--p, 0%), #24345A var(--p, 0%) 100%); }
+  .ring div { width: 184px; height: 184px; border-radius: 50%; background: #0F1A30; display: grid; place-items: center; font-size: 44px; font-weight: 800; }
+  .peek { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 16px; background: #1B2A4A; cursor: pointer; }
+  .peek .th { width: 54px; height: 70px; animation: none; }
+  .peek b { display: block; font-size: 14px; }
+  .peek small { font-size: 12px; color: #A9B7D6; }
+  .peek .go { margin-left: auto; padding: 8px 12px; border-radius: 12px; background: #2D4B8A; font-size: 13px; font-weight: 700; }
+  .fz-act { position: absolute; left: 16px; right: 16px; bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .fz-act button { height: 50px; border-radius: 16px; border: 0; font: 800 15px 'Sarabun', sans-serif; background: #24345A; color: #EAF0FF; cursor: pointer; }
+  .fz-act button:last-child { background: #6E9BFF; color: #0F1A30; }
+  input[type=file] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .scr, .sheet, .th { transition: none; animation: none; } }
+</style>
+</head>
+<body>
+<h1>คลังงาน · ต้นแบบที่กดได้จริง</h1>
+<p class="lead">ลองเพิ่มรูป ดูรูปเต็มจอ ลบรูป และจดโน้ตได้จริง ปิดหน้าแล้วเปิดใหม่ของยังอยู่ · <b>ข้อมูลเก็บในเครื่องนี้เท่านั้น</b> (ของจริงจะซิงก์ขึ้นคลาวด์ให้เห็นทุกเครื่อง — อยู่ในสเปก) · งานในต้นแบบเป็นงานตัวอย่าง ไม่ใช่งานของคุณ</p>
+<div class="wrap">
+<div class="phone" id="phone">
+
+  <!-- คลังงาน (แท็บ "ฉัน") -->
+  <section class="scr on" id="sVault">
+    <div class="bar"><span class="ic" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span></span></div>
+    <div class="h2">คลังงาน</div>
+    <div class="sub">รูปและโน้ตของทุกงาน แยกตามวิชา · รวมงานที่ส่งไปแล้ว</div>
+    <div class="folders" id="folders"></div>
+    <div class="list" id="list"></div>
+    <div class="total" id="total">กำลังเปิดคลัง…</div>
+  </section>
+
+  <!-- หน้างาน -->
+  <section class="scr" id="sTask">
+    <div class="bar"><span class="ic" id="backTask" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span></span></div>
+    <div class="fl-hub"><span class="chip" id="tChip"><i></i></span><div class="tt" id="tTitle"></div><div class="sub" id="tSub"></div></div>
+    <div class="fl-list" id="rails">
+      <svg class="fl-rails" aria-hidden="true"></svg>
+      <div class="fl-card" data-c="#2BB59B" data-kind="q"><div class="fl-h"><i style="background:#2BB59B"></i>โจทย์ · ใบงาน<small data-count></small></div><div class="strip" data-strip></div></div>
+      <div class="fl-card" data-c="#3E8EF0" data-kind="done"><div class="fl-h"><i style="background:#3E8EF0"></i>งานที่ทำเสร็จ<small data-count></small></div><div class="strip" data-strip></div></div>
+      <div class="fl-card" data-c="#8B6CF0" data-kind="note"><div class="fl-h"><i style="background:#8B6CF0"></i>โน้ต · สไลด์<small data-count></small></div><div class="strip" data-strip></div></div>
+      <div class="fl-card" data-c="#E5484D"><div class="fl-h"><i style="background:#E5484D"></i>จดไว้<small><span class="saved" id="saved">บันทึกแล้ว ✓</span></small></div>
+        <textarea class="note" id="note" placeholder="แตะเพื่อจด เช่น ข้อ 7 ถามครูก่อน" rows="3"></textarea></div>
+    </div>
+    <div class="store" id="tStore"></div>
+    <button class="cta" id="start">▶ เริ่มทำ</button>
+  </section>
+
+  <!-- โหมดโฟกัส -->
+  <section class="scr focus" id="sFocus">
+    <div class="fz-t">กำลังทำ</div>
+    <div class="fz-n" id="fTitle"></div>
+    <div class="ring" id="ring"><div id="clock">0:00</div></div>
+    <div class="peek" id="peek" hidden><div class="th" id="peekTh"></div><div><b id="peekB"></b><small>แตะเพื่อดูเต็มจอ</small></div><span class="go">ดูโจทย์</span></div>
+    <div class="fz-act"><button id="pause">พัก</button><button id="finish">เสร็จแล้ว</button></div>
+  </section>
+
+  <div class="dim" id="dim"></div>
+  <div class="sheet" id="sheet"><div class="grab"></div>
+    <h4 id="shH">เพิ่มรูป</h4><p>ย่อรูปในเครื่องก่อนเก็บ (ด้านยาวไม่เกิน 1600px)</p>
+    <div class="strip" id="shStrip"></div>
+    <div class="kinds" id="kinds">
+      <button class="k" data-k="q">โจทย์<small>ใบงาน/หนังสือ</small></button>
+      <button class="k" data-k="done">ทำเสร็จ<small>ก่อนส่ง</small></button>
+      <button class="k" data-k="note">โน้ต<small>สไลด์/จดเอง</small></button>
+    </div>
+    <div class="two"><button class="btn q" id="more">ถ่าย/เลือกเพิ่ม</button><button class="btn p" id="saveP">บันทึก</button></div>
+  </div>
+
+  <div class="viewer" id="viewer">
+    <div class="vw-top"><span class="ic" id="vwClose" aria-label="ปิด"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span id="vwInfo"></span><span style="width:42px"></span></div>
+    <div class="vw-img"><img id="vwImg" alt=""></div>
+    <div class="vw-bot"><button id="vwPrev">ก่อนหน้า</button><button class="del" id="vwDel">ลบรูปนี้</button><button id="vwNext">ถัดไป</button></div>
+  </div>
+
+  <input type="file" id="pick" accept="image/*" multiple>
+  <input type="file" id="cam" accept="image/*" capture="environment">
+</div>
+
+<div class="side">
+  <b>ลองอะไรได้บ้าง</b><br>
+  1. แตะงานในคลัง → หน้างาน<br>
+  2. "+ เพิ่ม" → เลือกได้หลายรูปทีเดียว → เลือกประเภท → บันทึก<br>
+  3. แตะรูป → ดูเต็มจอ · เลื่อนดูรูปถัดไป · ลบ (แตะลบสองครั้งกันพลาด)<br>
+  4. จดในช่อง "จดไว้" → บันทึกเองตอนพิมพ์<br>
+  5. "เริ่มทำ" → มีรูปโจทย์ = มีแถว "ดูโจทย์" ในโหมดโฟกัส · "เสร็จแล้ว" → แอปชวนถ่ายงานที่ทำเสร็จ<br>
+  6. รีเฟรชหน้า → ทุกอย่างยังอยู่
+  <br><button id="wipe">ล้างข้อมูลต้นแบบทั้งหมด</button>
+</div>
+</div>
+
+<script>
+/* ---------- งานตัวอย่าง (ของจริงอ่านจาก state.tasks) ---------- */
+const SUBJ = { 'คณิตศาสตร์': '#2D6BFF', 'ภาษาอังกฤษ': '#E0663A', 'วิทยาศาสตร์': '#1E9E6A' };
+const TASKS = [
+  { id: 't1', subject: 'คณิตศาสตร์', title: 'แบบฝึกหัดฟังก์ชัน ข้อ 1–10', due: 'ส่งพรุ่งนี้ 08:00', est: 40 },
+  { id: 't2', subject: 'คณิตศาสตร์', title: 'ใบงานลิมิต ชุด 2', due: 'ส่งแล้ว ✓', est: 30, done: true },
+  { id: 't3', subject: 'ภาษาอังกฤษ', title: 'เรียงความ My Hero', due: 'ส่งวันศุกร์', est: 60 },
+  { id: 't4', subject: 'วิทยาศาสตร์', title: 'รายงานการทดลองแรงเสียดทาน', due: 'ส่งวันจันทร์', est: 45 },
+];
+const KIND = { q: 'โจทย์', done: 'ทำเสร็จ', note: 'โน้ต' };
+
+/* ---------- ที่เก็บ: IndexedDB (รูปใหญ่เกิน localStorage 5MB ไปไกล) ---------- */
+const DB_NAME = 'studentos-vault-prototype';
+let dbp = null;
+function db() {
+  return dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('photos', { keyPath: 'id' }).createIndex('task', 'taskId');
+      d.createObjectStore('notes', { keyPath: 'taskId' });
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+}
+async function tx(store, mode, fn) {
+  const d = await db();
+  return new Promise((res, rej) => {
+    const t = d.transaction(store, mode), s = t.objectStore(store);
+    const out = fn(s);
+    t.oncomplete = () => res(out && 'result' in out ? out.result : out);
+    t.onerror = () => rej(t.error);
+  });
+}
+const allPhotos = () => tx('photos', 'readonly', s => s.getAll());
+const photosOf = id => tx('photos', 'readonly', s => s.index('task').getAll(id));
+const putPhoto = p => tx('photos', 'readwrite', s => s.put(p));
+const delPhoto = id => tx('photos', 'readwrite', s => s.delete(id));
+const getNote = id => tx('notes', 'readonly', s => s.get(id));
+const putNote = n => tx('notes', 'readwrite', s => s.put(n));
+const allNotes = () => tx('notes', 'readonly', s => s.getAll());
+
+/* ย่อรูปก่อนเก็บ — ด้านยาวไม่เกิน 1600px · JPEG 0.82 (ใบงานยังอ่านออก ไฟล์เหลือ ~200–400KB) */
+async function shrink(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const k = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .82));
+    return { blob, w: c.width, h: c.height };
+  } finally { URL.revokeObjectURL(url); }
+}
+const urls = new Map();   // id → object URL (สร้างครั้งเดียวต่อรูป)
+function urlOf(p) { if (!urls.has(p.id)) urls.set(p.id, URL.createObjectURL(p.blob)); return urls.get(p.id); }
+const kb = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+const $ = id => document.getElementById(id);
+
+/* ---------- สลับจอ ---------- */
+function show(id) {
+  document.querySelectorAll('.scr').forEach(s => { s.classList.toggle('back', s.classList.contains('on') && s.id !== id); s.classList.toggle('on', s.id === id); });
+  if (id === 'sTask') requestAnimationFrame(drawRails);
+}
+
+/* ---------- คลัง ---------- */
+let subjOn = null;
+async function renderVault() {
+  const [ps, ns] = await Promise.all([allPhotos(), allNotes()]);
+  const by = id => ({ p: ps.filter(p => p.taskId === id), n: ns.find(n => n.taskId === id && n.text.trim()) });
+  $('folders').innerHTML = Object.keys(SUBJ).map(s => {
+    const ts = TASKS.filter(t => t.subject === s), pc = ts.reduce((a, t) => a + by(t.id).p.length, 0);
+    return `<div class="fd${subjOn === s ? ' on' : ''}" data-s="${s}"><i style="background:${SUBJ[s]}"></i><b>${s}</b><small>${ts.length} งาน · ${pc} รูป</small></div>`;
+  }).join('');
+  $('list').innerHTML = TASKS.filter(t => !subjOn || t.subject === subjOn).map(t => {
+    const b = by(t.id), first = b.p.find(p => p.kind === 'q') || b.p[0];
+    const meta = (b.p.length ? b.p.length + ' รูป' : 'ยังไม่มีรูป') + (b.n ? ' · จดไว้ 1' : '');
+    return `<div class="it" data-t="${t.id}"><div class="th${first ? '' : ' none'}"${first ? ` style="background-image:url(${urlOf(first)})"` : ''}></div>`
+      + `<div><b>${t.title}</b><small>${meta}</small></div><em class="${t.done ? 'ok' : ''}">${t.due}</em></div>`;
+  }).join('');
+  const bytes = ps.reduce((a, p) => a + p.blob.size, 0);
+  $('total').textContent = ps.length || ns.length
+    ? `เก็บในเครื่องนี้แล้ว · ${ps.length} รูป (${kb(bytes)}) · โน้ต ${ns.filter(n => n.text.trim()).length} งาน`
+    : 'ยังไม่มีอะไรในคลัง · แตะงานข้างบนแล้วลองเพิ่มรูปดู';
+}
+$('folders').addEventListener('click', e => { const f = e.target.closest('.fd'); if (!f) return; subjOn = subjOn === f.dataset.s ? null : f.dataset.s; renderVault(); });
+$('list').addEventListener('click', e => { const it = e.target.closest('.it'); if (it) openTask(it.dataset.t); });
+
+/* ---------- หน้างาน ---------- */
+let cur = null, photos = [];
+async function openTask(id, hiKind) {
+  cur = TASKS.find(t => t.id === id);
+  $('tChip').innerHTML = `<i style="background:${SUBJ[cur.subject]}"></i>${cur.subject}`;
+  $('tTitle').textContent = cur.title;
+  $('tSub').textContent = cur.due + ' · ~' + cur.est + ' นาที';
+  const n = await getNote(id); $('note').value = n ? n.text : '';
+  await renderTask(hiKind);
+  show('sTask');
+}
+async function renderTask(hiKind) {
+  photos = (await photosOf(cur.id)).sort((a, b) => a.at - b.at);
+  document.querySelectorAll('#rails .fl-card[data-kind]').forEach(card => {
+    const k = card.dataset.kind, list = photos.filter(p => p.kind === k);
+    card.querySelector('[data-count]').textContent = list.length ? list.length + ' รูป' : (k === 'done' ? 'ถ่ายก่อนส่ง' : '');
+    card.querySelector('[data-strip]').innerHTML = list.length || k !== 'done'
+      ? list.map(p => `<div class="th" data-p="${p.id}" style="background-image:url(${urlOf(p)})"></div>`).join('') + `<div class="add" data-add="${k}"><span><b>+</b>เพิ่ม</span></div>`
+      : `<div class="fl-dash" data-add="done" style="flex:1">ยังไม่มีรูป <span>+ ถ่าย</span></div>`;
+    card.classList.toggle('hi', k === hiKind);
+  });
+  const bytes = photos.reduce((a, p) => a + p.blob.size, 0);
+  $('tStore').textContent = photos.length ? `เก็บในเครื่องนี้แล้ว · ${photos.length} รูป · ${kb(bytes)}` : '';
+  drawRails();
+}
+$('rails').addEventListener('click', e => {
+  const a = e.target.closest('[data-add]'); if (a) { pickFor(a.dataset.add); return; }
+  const t = e.target.closest('.th[data-p]'); if (t) openViewer(t.dataset.p);
+});
+$('backTask').addEventListener('click', () => { renderVault(); show('sVault'); });
+
+/* จด: บันทึกเองหลังหยุดพิมพ์ 0.4 วิ */
+let noteT = null;
+$('note').addEventListener('input', () => {
+  clearTimeout(noteT);
+  noteT = setTimeout(async () => {
+    await putNote({ taskId: cur.id, text: $('note').value, at: Date.now() });
+    $('saved').classList.add('on'); setTimeout(() => $('saved').classList.remove('on'), 1200);
+  }, 400);
+});
+
+/* ---------- เพิ่มรูป: เลือกหลายรูป → แผ่นยืนยัน + เลือกประเภท → บันทึก ---------- */
+let pending = [], kindOn = 'q';
+function pickFor(k) { kindOn = k; $('pick').value = ''; $('pick').click(); }
+function addPending(files) {
+  for (const f of files) if (f.type.startsWith('image/')) pending.push({ f, url: URL.createObjectURL(f) });
+  if (!pending.length) return;
+  $('shH').textContent = `เพิ่ม ${pending.length} รูป`;
+  $('shStrip').innerHTML = pending.map(p => `<div class="th" style="background-image:url(${p.url})"></div>`).join('');
+  document.querySelectorAll('#kinds .k').forEach(b => b.classList.toggle('on', b.dataset.k === kindOn));
+  $('saveP').textContent = `บันทึก ${pending.length} รูป`;
+  $('phone').classList.add('sheet-on');
+}
+function closeSheet() { pending.forEach(p => URL.revokeObjectURL(p.url)); pending = []; $('phone').classList.remove('sheet-on'); }
+$('pick').addEventListener('change', e => addPending(e.target.files));
+$('cam').addEventListener('change', e => addPending(e.target.files));
+$('more').addEventListener('click', () => { $('cam').value = ''; $('cam').click(); });
+$('kinds').addEventListener('click', e => { const b = e.target.closest('.k'); if (!b) return; kindOn = b.dataset.k; document.querySelectorAll('#kinds .k').forEach(x => x.classList.toggle('on', x === b)); });
+$('dim').addEventListener('click', closeSheet);
+$('saveP').addEventListener('click', async () => {
+  const btn = $('saveP'); btn.disabled = true; btn.textContent = 'กำลังย่อรูป…';
+  try {
+    for (const p of pending) {
+      const s = await shrink(p.f);
+      await putPhoto({ id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), taskId: cur.id, kind: kindOn, blob: s.blob, w: s.w, h: s.h, at: Date.now() });
+    }
+  } catch (err) { alert('เก็บรูปไม่สำเร็จ: ' + err.message); }
+  btn.disabled = false; closeSheet(); await renderTask(kindOn);
+});
+
+/* ---------- ดูรูปเต็มจอ ---------- */
+let vwList = [], vwI = 0, delSure = false;
+function openViewer(id) {
+  const p = photos.find(x => x.id === id);
+  vwList = photos.filter(x => x.kind === p.kind); vwI = vwList.indexOf(p);
+  paintViewer(); $('viewer').classList.add('on');
+}
+function paintViewer() {
+  const p = vwList[vwI];
+  $('vwImg').src = urlOf(p);
+  $('vwInfo').textContent = `${KIND[p.kind]} ${vwI + 1}/${vwList.length} · ${kb(p.blob.size)}`;
+  $('vwPrev').disabled = vwI === 0; $('vwNext').disabled = vwI === vwList.length - 1;
+  delSure = false; $('vwDel').classList.remove('sure'); $('vwDel').textContent = 'ลบรูปนี้';
+}
+$('vwClose').addEventListener('click', () => $('viewer').classList.remove('on'));
+$('vwPrev').addEventListener('click', () => { if (vwI > 0) { vwI--; paintViewer(); } });
+$('vwNext').addEventListener('click', () => { if (vwI < vwList.length - 1) { vwI++; paintViewer(); } });
+$('vwDel').addEventListener('click', async () => {
+  if (!delSure) { delSure = true; $('vwDel').classList.add('sure'); $('vwDel').textContent = 'แตะอีกครั้งเพื่อลบ'; return; }
+  const p = vwList[vwI];
+  await delPhoto(p.id); URL.revokeObjectURL(urls.get(p.id)); urls.delete(p.id);
+  vwList.splice(vwI, 1); await renderTask();
+  if (!vwList.length) { $('viewer').classList.remove('on'); return; }
+  vwI = Math.min(vwI, vwList.length - 1); paintViewer();
+});
+let sx = null;
+$('viewer').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+$('viewer').addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; sx = null; if (Math.abs(dx) > 50) $(dx < 0 ? 'vwNext' : 'vwPrev').click(); });
+
+/* ---------- โหมดโฟกัส ---------- */
+let fzT = null, fzS = 0, fzRun = false;
+$('start').addEventListener('click', () => {
+  $('fTitle').textContent = cur.title;
+  const q = photos.filter(p => p.kind === 'q');
+  $('peek').hidden = !q.length;
+  if (q.length) { $('peekTh').style.backgroundImage = `url(${urlOf(q[0])})`; $('peekB').textContent = `โจทย์ ${q.length} รูป`; }
+  fzS = 0; tickFz(); fzRun = true; clearInterval(fzT); fzT = setInterval(() => { if (fzRun) { fzS++; tickFz(); } }, 1000);
+  $('pause').textContent = 'พัก';
+  show('sFocus');
+});
+function tickFz() { $('clock').textContent = Math.floor(fzS / 60) + ':' + String(fzS % 60).padStart(2, '0'); $('ring').style.setProperty('--p', Math.min(100, fzS / (cur.est * 60) * 100) + '%'); }
+$('pause').addEventListener('click', () => { fzRun = !fzRun; $('pause').textContent = fzRun ? 'พัก' : 'ทำต่อ'; });
+$('peek').addEventListener('click', () => { const q = photos.find(p => p.kind === 'q'); if (q) openViewer(q.id); });
+$('finish').addEventListener('click', async () => {
+  clearInterval(fzT);
+  await renderTask('done');      // ทำเสร็จแล้ว → ไฮไลต์กลุ่ม "งานที่ทำเสร็จ" ชวนถ่ายเก็บไว้ก่อนส่ง
+  show('sTask');
+  setTimeout(() => document.querySelector('.fl-card[data-kind="done"]').scrollIntoView({ behavior: 'smooth', block: 'center' }), 260);
+});
+
+/* ---------- เส้นสาย (Cult UI · Fluid Rendering หมุนแนวตั้ง) ---------- */
+function drawRails() {
+  const list = $('rails'), svg = list.querySelector('.fl-rails'), cards = [...list.querySelectorAll('.fl-card')], box = list.getBoundingClientRect(), n = cards.length;
+  if (!box.width) return;
+  svg.setAttribute('viewBox', '0 -14 ' + box.width + ' ' + (box.height + 14));
+  svg.innerHTML = cards.map((c, i) => {
+    const r = c.getBoundingClientRect(), cy = r.top - box.top + 20, x = 6 + (n - 1 - i) * 6, end = r.left - box.left - 4.5;
+    return '<path d="M' + x + ' -14V' + (cy - 8) + 'Q' + x + ' ' + cy + ' ' + (x + 8) + ' ' + cy + 'H' + end + '" stroke="' + c.dataset.c + '" stroke-width="2" fill="none" stroke-linecap="round"/>';
+  }).join('');
+}
+addEventListener('resize', drawRails);
+document.fonts && document.fonts.ready.then(drawRails);
+
+$('wipe').addEventListener('click', async () => {
+  if (!confirm('ลบรูปและโน้ตทั้งหมดในต้นแบบนี้?')) return;
+  await tx('photos', 'readwrite', s => s.clear()); await tx('notes', 'readwrite', s => s.clear());
+  urls.forEach(u => URL.revokeObjectURL(u)); urls.clear();
+  renderVault(); show('sVault');
+});
+
+renderVault().catch(err => { $('total').textContent = 'เปิดที่เก็บในเครื่องไม่ได้: ' + err.message; });
+</script>
+</body>
+</html>
