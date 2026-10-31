@@ -75,6 +75,20 @@
  :root body:not(.login-mode) :is(.top-friends,.top-set){right:clamp(28px,6vw,70px)}
  :root body:not(.login-mode) .statusbar{display:none}
 }
+/* 31 ต.ค. 69 · เจ้าของ (ภาพใต้ปุ่ม "เสร็จ" / "ข้าม ไว้ทีหลัง" มีกล่องมืดว่าง ๆ): "ตรงนี้คืออะไรแก้ด้วย"
+   แถบปุ่มฟอร์ม (.fm-bar) เว้นล่าง 75px ไว้ให้แถบแท็บลอย แล้วทาพื้น --scr ทึบทั้งก้อน · มือถือ (≤768) มีกฎแยกที่ลดเหลือ 12px
+   แล้วปักเหนือแถบแท็บแทน แต่ช่วงแท็บเล็ตนี้ไม่มี → เหลือแผ่นทึบว่าง ๆ กว้างเท่าคอลัมน์ฟอร์ม ทับแสงฟุ้งของพื้นจอ เห็นเป็นกล่อง
+   ตอนนี้: ปักเหนือแถบแท็บลอย (ล่าง 14 + สูง 68 + เว้น 8 = 90px) แบบเดียวกับมือถือ · เว้นล่างเหลือ 12px
+   พื้นหลังยืดเต็มกว้างจอ (ไม่ใช่แค่คอลัมน์) = เงาจางท้ายจอ ไม่ใช่กล่อง · ตั้งเมนูเป็นด้านซ้าย = ไม่มีแถบล่าง ไม่ต้องเว้นที่
+   เริ่มที่ 769 (ต่ำกว่านั้นแถบแท็บอยู่ในผังตามกฎมือถือของ alt.css) · แอปที่ติดตั้ง (standalone) ใช้กฎมือถืออยู่แล้ว ไม่แตะ */
+@media (min-width:769px) and (max-width:1024px) and (display-mode:browser),(min-width:769px) and (max-width:1366px) and (pointer:coarse) and (display-mode:browser){
+ /* sticky วัดจากขอบในของช่องเลื่อน — padding ล่าง 110 ของจอ (กฎแถบล่างข้างบน) ทำให้ bottom:90 กลายเป็น 200 ลอยห่างแถบแท็บ
+    เนื้อฟอร์มโผล่ใต้ปุ่ม → จอนี้ไม่เว้นล่าง ให้แถบปุ่มเว้นข้างบนเท่าที่ยกตัว (margin-top) แทน แบบเดียวกับ --tb-under ของมือถือ
+    เลื่อนสุดแล้วแถบปุ่มยกขึ้นมาทับช่องว่างนั้นพอดี ไม่ทับแถวสุดท้ายของฟอร์ม */
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) #scr-form.screen{padding-bottom:0!important}
+ :root:not([data-nav-pref="side"]) body:not(.login-mode) #scr-form .fm-bar{bottom:90px;margin-top:90px;padding-bottom:12px;margin-inline:calc(-1 * clamp(28px,6vw,70px));padding-inline:calc(20px + clamp(28px,6vw,70px))}
+ :root[data-nav-pref="side"] body:not(.login-mode) #scr-form .fm-bar{padding-bottom:16px}
+}
 /* 23 ต.ค. 69 · เจ้าของ: ปุ่มเยอะจนรก — ปุ่มลอย "ตรวจหน้าจอ" ทับป้ายไทล์หน้าแรกบนมือถือ/แท็บเล็ตทุกธีม
    ซ่อนที่ 1024px ลงมา · ยังเข้าได้จากลิงก์ "ตรวจหน้าจอ ALT" ในจอตั้งค่า (.alt-lab-entry) */
 @media(max-width:1024px){.alt-device-preview{display:none}}
