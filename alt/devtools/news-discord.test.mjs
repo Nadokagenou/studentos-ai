@@ -51,6 +51,13 @@ test('first message invites testers to try and report back', () => {
   assert.match(m[0].content, /บอกในห้องนี้/);
 });
 
+test('a batch of notices only is not announced as a new update to try', () => {
+  const m = toMessages([it('a', { kind: 'notice' })], {});
+  assert.doesNotMatch(m[0].content, /อัปเดตใหม่/);
+  assert.match(m[0].content, /ประกาศสำคัญ/);
+  assert.match(toMessages([it('a', { kind: 'notice' }), it('b')], {})[0].content, /อัปเดตใหม่/);
+});
+
 test('manual resend takes several ids or a whole release', () => {
   const doc = { items: [it('a'), it('b', { release: '1C60' }), it('c', { release: '1C60' })] };
   assert.deepEqual(pick(doc, 'a, c').map(x => x.id), ['a', 'c']);
