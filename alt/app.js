@@ -5149,7 +5149,9 @@ function aiContext(now = new Date()) {
   for (const c of onBreak ? [] : cls) {
     const wd = c.weekday == null ? 'ทุกวัน'
       : (Array.isArray(c.weekday) ? c.weekday : [c.weekday]).map(d => WEEKDAY_SHORT[d]).join(',');
-    L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (c.subject || 'เรียน'));
+    const si = ctxSubjInfo(c.subject);
+    L.push('- ' + wd + ' ' + c.start + '–' + c.end + ' ' + (si.name || 'เรียน')
+      + (si.code ? ' (' + si.code + (si.extra ? ' ' + si.extra : '') + ')' : ''));
   }
 
   const rt = typeof ctxRoutines === 'function' ? ctxRoutines() : [];
@@ -10190,18 +10192,20 @@ function ctxWeekHtml() {
     const to = list.reduce((m, x) => Math.max(m, hm2min(x.end) || 0), 0);
     const body = on
       ? `<div class="ctx-pers">${list.map((x, n) => {
-          const name = x.subject || 'เรียน';
+          const si = ctxSubjInfo(x.subject);
+          const name = si.name || 'เรียน';
           return `<div class="ctx-per ${subjClass(name)}">
             <span class="ctx-per-n">${n + 1}</span>
             <i class="mono">${esc(x.start)}–${esc(x.end)}</i>
-            <b>${esc(name)}</b>
+            <b>${esc(name)}${si.code
+              ? `<small>${esc(si.code)}${si.extra ? ' · ' + esc(si.extra) : ''}</small>` : ''}</b>
             ${ctxDayCount(x) > 1 ? `<u>${esc(ctxDayLabel(x))}</u>` : ''}
             ${x.week ? `<u class="wk">สัปดาห์ ${esc(x.week)}</u>` : ''}
             <button class="ctx-del" onclick="ctxDelete('class','${x.id}')"
               aria-label="ลบ ${esc(name)}">${icon('trash')}</button>
           </div>`;
         }).join('')}</div>`
-      : `<p class="ctx-daysum">${[...new Set(list.map(x => x.subject || 'เรียน'))]
+      : `<p class="ctx-daysum">${[...new Set(list.map(x => ctxSubjName(x.subject) || 'เรียน'))]
           .map(s => `<span class="ctx-chip ${subjClass(s)}">${esc(s)}</span>`).join('')}</p>`;
 
     return `<div class="ctx-dayblk${on ? ' on' : ''}">
@@ -10230,7 +10234,7 @@ function ctxListHtml(kind) {
     ${sorted.map(x => `<div class="ctx-item">
       <span class="ctx-ic">${icon(kind === 'class' ? 'calendar' : (CTX_KINDS[x.kind] || CTX_KINDS.other).icon)}</span>
       <span class="ctx-bd">
-        <b>${esc(kind === 'class' ? (x.subject || 'เรียน') : (x.title || 'กิจวัตร'))}</b>
+        <b>${esc(kind === 'class' ? (ctxSubjName(x.subject) || 'เรียน') : (x.title || 'กิจวัตร'))}</b>
         <i class="mono">${esc(ctxDayLabel(x))} · ${esc(x.start)}–${esc(x.end)}</i>
       </span>
       <button class="ctx-del" onclick="ctxDelete('${kind}','${x.id}')" aria-label="ลบ">${icon('trash')}</button>
@@ -12879,7 +12883,7 @@ async function ttRead(dataUrl) {
     const { data, error } = await sb.functions.invoke('read-timetable', { body: { image, mime: 'image/jpeg' } });
     if (error) throw new Error(error.message || 'เรียกตัวอ่านไม่สำเร็จ');
     if (data && data.error) throw new Error(data.error);
-    const rows = (data && data.classes || []).map(r => ({ ...r, on: true }));
+    const rows = (data && data.classes || []).map(r => ({ ...r, src: r.subject, on: true }));
     ttState = { phase: rows.length ? 'review' : 'pick', rows, shot: dataUrl,
       note: (data && data.note) || '',
       error: rows.length ? '' : ((data && data.note) || 'อ่านตารางจากรูปนี้ไม่ได้ ลองถ่ายให้ตรงและชัดขึ้น') };
@@ -12894,9 +12898,58 @@ async function ttRead(dataUrl) {
 function ttSet(i, key, val) {
   const r = ttState.rows[i];
   if (!r) return;
+  // ตั้งชื่อให้คาบที่เป็นรหัสล้วน = ตั้งให้ทุกคาบที่รหัสเดียวกันในสัปดาห์ (ค23101 มีห้าคาบ ไม่ต้องพิมพ์ห้ารอบ)
+  // คาบที่ยังเป็นรหัสเดิมเท่านั้น — คาบที่แก้ไปแล้วไม่โดนทับ
+  // ช่องนี้บันทึกทุกตัวอักษร จึงจับคู่ด้วยรหัสตั้งต้น (src) + ชื่อที่ยังตรงกันอยู่ ไม่ใช่ชื่อเดิมตัวเดียว
+  if (key === 'subject') {
+    const src = String(r.src || '').trim();
+    const ci = ctxSubjInfo(src);
+    const same = [];
+    if (ci.code && ci.code === src.replace(/\s+/g, '')) {
+      ttState.rows.forEach((o, j) => {
+        if (o !== r && o.src === r.src && o.subject === r.subject) { o.subject = val; same.push(j); }
+      });
+    }
+    // ช่องนี้ยิงทุกตัวอักษร — วาดทั้งจอใหม่ = ช่องหลุดโฟกัสหลังพิมพ์ตัวแรก (พิมพ์ได้ทีละตัว)
+    // จึงแก้แค่ช่อง · คำแปล · ติ๊ก · ยอดที่เลือก ตรงที่ ไม่วาดใหม่
+    {
+      const wasOff = !r.on;
+      r.subject = val;
+      r.on = true;
+      if (wasOff) {
+        const row = document.querySelector(`#ttBody .tt-row[data-i="${ttState.rows.indexOf(r)}"]`);
+        if (row) {
+          row.classList.remove('off');
+          const ck = row.querySelector('.tt-ck');
+          if (ck) { ck.classList.add('on'); ck.setAttribute('aria-label', 'ไม่เอาคาบนี้'); }
+        }
+        const n = ttState.rows.filter(x => x.on).length;
+        const badge = document.querySelector('#ttBody .tt-sum-sec .fs-badge');
+        if (badge) badge.textContent = 'เลือกไว้ ' + n;
+        const save = document.querySelector('#ttBody .fm-save');
+        if (save) { save.disabled = false; save.querySelector('.fb-t').textContent = `บันทึก ${n} คาบเข้าบริบท`; }
+      }
+      for (const j of [ttState.rows.indexOf(r), ...same]) {
+        const row = document.querySelector(`#ttBody .tt-row[data-i="${j}"]`);
+        if (!row) continue;
+        const inp = row.querySelector('.tt-sub');
+        if (inp && inp !== document.activeElement) inp.value = ttState.rows[j].subject;
+        const hint = row.querySelector('.tt-subhint');
+        if (hint) hint.outerHTML = ttSubjHint(ttState.rows[j].subject);
+      }
+      return;
+    }
+  }
   r[key] = key === 'day' ? +val : val;
   if (key !== 'on') r.on = true;    // แก้แถวไหน = ตั้งใจเก็บแถวนั้น
   renderTtScan();
+}
+// ตัวอ่านรูปได้มาแค่รหัส "ค23101" → บอกใต้ช่องว่าแอปจะเรียกวิชานี้ว่าอะไร
+// ไม่เขียนทับช่องให้ — รหัสคือของที่อยู่บนกระดาษจริง เขาจะพิมพ์ชื่ออื่นแทนก็ได้
+function ttSubjHint(raw) {
+  const si = ctxSubjInfo(raw);
+  if (!si.name || si.name === String(raw || '').trim()) return '<span class="tt-subhint"></span>';
+  return `<span class="tt-subhint">= ${esc(si.name)}${si.extra ? ' ' + esc(si.extra) : ''}</span>`;
 }
 function ttToggle(i) {
   const r = ttState.rows[i];
@@ -12990,12 +13043,13 @@ function renderTtScan() {
     .map(d => [d, rows.map((r, i) => [r, i]).filter(([r]) => r.day === d)])
     .filter(([, g]) => g.length);
 
-  const rowHtml = (r, i) => `<div class="tt-row${r.on ? '' : ' off'}">
+  const rowHtml = (r, i) => `<div class="tt-row${r.on ? '' : ' off'}" data-i="${i}">
     <button class="tt-ck${r.on ? ' on' : ''}" onclick="ttToggle(${i})"
       aria-label="${r.on ? 'ไม่เอาคาบนี้' : 'เอาคาบนี้'}">${icon('check')}</button>
     <div class="tt-fields">
       <input class="tt-sub" type="text" value="${esc(r.subject)}" maxlength="40"
         oninput="ttSet(${i},'subject',this.value)">
+      ${ttSubjHint(r.subject)}
       <div class="tt-when">
         <select onchange="ttSet(${i},'day',this.value)" aria-label="วัน">
           ${TT_DAYS.map((d, n) => `<option value="${n}"${n === r.day ? ' selected' : ''}>${d}</option>`).join('')}

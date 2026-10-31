@@ -40,8 +40,10 @@ test('a rejected quest submission restores its captured button after the DOM eve
  const box={pending:false,viewEpoch:0,perform:async()=>null,id:'quest',branch:null};vm.runInNewContext('async '+grab(event,'runAction')+'\nasync function submit(e){'+body+'\n}',box);const p=box.submit(e);assert.equal(button.disabled,true);e.currentTarget=null;await p;assert.equal(button.disabled,false);
 });
 test('unchanged account reads and focus pulses do not rebuild all buttons under a finger',()=>{
- const box={cache:null,paintedWalletKey:undefined,paint:()=>{box.paints++;},paints:0};vm.runInNewContext(grab(read('economy/client.js'),'paintAccount'),box);
+ const box={cache:null,paintedWalletKey:undefined,paint:()=>{box.paints++;},paints:0,snaps:[],snapSave:v=>box.snaps.push(v)};vm.runInNewContext(grab(read('economy/client.js'),'paintAccount'),box);
  const d={owner:'same-owner',admin:false,vault:{tokens:{bal:3}},roomOwned:[],focusProofs:{x:0}};box.paintAccount(d);box.paintAccount({...d,focusProofs:{x:5}});assert.equal(box.paints,1);assert.equal(box.cache.focusProofs.x,5);box.paintAccount({...d,vault:{tokens:{bal:4}}});assert.equal(box.paints,2);box.paintAccount(null);box.paintAccount(null);assert.equal(box.paints,3);
+ // 31 ต.ค. 69 · สำเนาคลังบัญชีสำหรับตอนเซิร์ฟเวอร์ล่ม เขียนเฉพาะตอนคลังเปลี่ยน ไม่ใช่ทุกจังหวะโฟกัส
+ assert.equal(box.snaps.length,3);assert.equal(box.snaps[1].vault.tokens.bal,4);
 });
 
  test('main update leaves large event artwork for first-use caching',()=>{

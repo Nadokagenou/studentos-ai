@@ -65,7 +65,12 @@ export function toEmbed(it, env = process.env) {
 
 // ข้อความนำ — ชวนเปิดแอปและชวนแจ้งบั๊ก ไม่อ้างอะไรเกินข่าวที่ตรวจแล้ว
 // ไม่สัญญาแทนทีม ("ทีมอ่านทุกข้อความ") — ทีมไม่มีเวลาตอบ สัญญาแล้วเงียบแย่กว่าไม่สัญญา
-export function intro(n) {
+// 31 ต.ค. 69 · ส่งแต่ประกาศสำคัญ (ระบบล่ม ฯลฯ) = ไม่ใช่ "อัปเดตใหม่ ลองเลย" — ชวนเปิดแอปอ่านแทน
+export function intro(n, items = []) {
+  if (items.length && items.every(it => it.kind === 'notice')) {
+    return `📢 **StudentOS ประกาศสำคัญ** อ่านรายละเอียดข้างล่าง แล้วเปิดแอปได้ที่ 👉 ${APP_URL}\n` +
+      'ยังเจอปัญหาตรงไหน บอกในห้องนี้ได้เลย 🙏';
+  }
   return `🚀 **StudentOS อัปเดตใหม่ ${n} เรื่อง!** เปิดแอปแล้วลองเลย 👉 ${APP_URL}\n` +
     'ลองแล้วเจอบั๊ก หรือชอบ/ไม่ชอบตรงไหน บอกในห้องนี้ได้เลย 🙏';
 }
@@ -80,7 +85,7 @@ export function pick(doc, query) {
 export function toMessages(items, env = process.env) {
   const out = [];
   for (let i = 0; i < items.length; i += 10) {
-    out.push({ username: 'StudentOS', content: i ? '' : intro(items.length), embeds: items.slice(i, i + 10).map(it => toEmbed(it, env)) });
+    out.push({ username: 'StudentOS', content: i ? '' : intro(items.length, items), embeds: items.slice(i, i + 10).map(it => toEmbed(it, env)) });
   }
   return out;
 }
