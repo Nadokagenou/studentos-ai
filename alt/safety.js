@@ -146,6 +146,13 @@ async function deleteAccount() {
   if (!confirm('ลบบัญชีและข้อมูลทั้งหมดถาวร?\n\nโพสต์ คำตอบ เพื่อน ข้อความ และงานทั้งหมดจะหายไป กู้คืนไม่ได้')) return;
   if (!confirm('แน่ใจนะ กดตกลงแล้วลบทันที')) return;
 
+  // รูปในคลังงานอยู่ใน storage ซึ่ง delete_account() ลบให้ไม่ได้ (ไม่มี cascade) — ลบทั้งโฟลเดอร์เองก่อน
+  // ลบไม่หมดก็ลบบัญชีต่อ แต่บอกตรง ๆ ว่ารูปค้างกี่รูป (ไม่ปิดบัง)
+  if (typeof vaultWipeCloud === 'function') {
+    const r = await vaultWipeCloud();
+    if (r.left) alert('รูปในคลังงานลบไม่หมด ' + r.left + ' รูป · บัญชีจะถูกลบต่อ แจ้งทีมได้ที่ "รายงานปัญหาแอป"');
+  }
+
   const { error } = await sb.rpc('delete_account');
   if (error) { showToast({ title: 'ลบไม่สำเร็จ', body: error.message }); return; }
   try { localStorage.clear(); } catch (_) {}

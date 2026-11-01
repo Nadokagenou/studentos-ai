@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-notify-20261031'; // Phone-style reminders with a start button, SW installs again (no duplicate precache), costumes, home tiles, Thai theme fix; app version unchanged.
+const CACHE = CACHE_PREFIX + '1c60-vault-20261101'; // Task vault (photos, notes, portfolio, PDF), 4x2 home tiles, logging out and back in keeps portfolio/pins/sessions/settings; app version unchanged.
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -21,7 +21,7 @@ try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLO
 // ผลคือเครื่องใหม่ไม่มี SW เลย (ไม่มีแจ้งเตือน ไม่มีออฟไลน์) และเครื่องเก่าค้าง SW รุ่นเก่า · devtools/sw-check.cjs กันไว้แล้ว
 const SHELL = [...new Set(['.', 'index.html', 'style.css', 'alt.css', 'inbox.css', 'today.css', 'room.css', 'social.css', 'feed.css', 'safety.css', 'hw.css', 'topic.css', 'sai.css', 'hoop.css', 'fxgames.css', 'gacha-fx.css', 'board.css', 'custom.css',
   'engine.js', 'context.js', 'planner.js', 'facts.js', 'profile.js', 'simulate.js', 'calibrate.js', 'loss.js', 'decide.js', 'brain.js', 'inbox.js', 'linelink.js', 'integrations.js', 'room.js', 'social.js', 'feed.js', 'hw.js', 'topic.js', 'safety.js', 'sai.js', 'fxgames.js', 'fx3d.js', 'hoop.js', 'gacha-fx.js', 'quickadd.js', 'board.js', 'news.js', 'app.js', 'config.js', 'remote-config.js',
-  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'contrast.css', 'glass.css', 'notification-policy.mjs',
+  'manifest.json', 'compat.js', 'staff-news.js', 'bug-reports.js', 'bug-reports.css', 'events.js', 'events.css', 'classrooms.js', 'classrooms.css', 'vault.js', 'vault.css', 'contrast.css', 'glass.css', 'notification-policy.mjs',
   'halloween/death-quests.js', 'halloween/death-quest-main.js', 'halloween/death-quest-main.css',
   'halloween/study-pact.js','halloween/study-pact-main.js','halloween/study-pact-main.css',
   'device-preview.html', 'device-preview.css', 'device-preview.js', 'device-preview-controls.css', 'device-preview-bridge.js', ...HALLOWEEN_FILES,

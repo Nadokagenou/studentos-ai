@@ -1,0 +1,207 @@
+/* ============================================================
+   คลังงาน (vault.js) · 1 พ.ย. 69 — หน้าตาตามต้นแบบ alt/docs/superpowers/mockups/2026-10-31-task-vault-prototype.html
+   ------------------------------------------------------------
+   สีจากโทเคนของธีมทั้งหมด (--card --ink --muted --line --fill --good --warn) · สีวิชาจาก .sj-N (--sj) — เปลี่ยนธีมแล้วตามเอง
+   ชิปวิชา = .cp-chip ของแอป (กระจกตามธีม) · การ์ด = Notion Gallery บนเปลือกกระจกตระกูล Halo ของ Cult UI (MIT)
+   แถบพื้นที่ = HaloProgress ของ Cult UI · หน้างานแบบเส้นสาย = Illustration Fluid Rendering ของ Cult UI
+   โผล่ทีละใบ/กดยุบ = ease-out ของ React Bits (MIT + Commons Clause) · ลดการเคลื่อนไหว = จางเข้าแทน
+   แอนิเมชันเข้าใช้ fill-mode backwards — both ค้าง transform ไว้ทับ :active จนกดแล้วไม่ยุบ
+   ============================================================ */
+.vt-body { padding-bottom: 120px; }
+
+/* ชิปวิชา — แถวเดียวเลื่อนแนวนอน ไม่ตัดบรรทัด */
+.vt-chips { display: flex; gap: 7px; margin: 6px -16px 0; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+.vt-chips::-webkit-scrollbar { display: none; }
+.vt-chip { flex: none; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: transform .16s cubic-bezier(.23,1,.32,1); }
+.vt-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--sj); }
+.vt-chip small { font-size: 11.5px; font-weight: 700; opacity: .7; }
+.vt-chip.on { color: var(--on-fill); background-color: var(--fill); border-color: transparent; }
+
+.vt-sec { margin-top: 18px; }
+.vt-sec h3 { display: flex; align-items: baseline; gap: 6px; margin: 0 0 9px; font-size: 15px; font-weight: 800; color: var(--ink); }
+.vt-sec h3 small { font-size: 12.5px; font-weight: 700; color: var(--faint); }
+
+:is(.vt-chip, .vt-card, .vt-row, .vt-rc, .vt-th, .vt-add, .vt-dash, .vt-k):active { transform: scale(.97); }
+
+/* เพิ่งเพิ่ม */
+.vt-recent { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+.vt-recent::-webkit-scrollbar { display: none; }
+.vt-rc { position: relative; flex: none; width: 66px; padding: 0; border: 0; background: none; cursor: pointer;
+  transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vt-in .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 40ms); }
+.vt-rc > span { display: block; height: 86px; border-radius: 12px; background: var(--card2) center/cover;
+  box-shadow: inset 0 0 0 1px var(--line), 0 6px 12px -10px var(--lg-drop, rgba(15,27,45,.4)); }
+.vt-rc small { position: absolute; left: 5px; bottom: 5px; padding: 1px 6px; border-radius: 99px; background: rgba(15,27,45,.62); color: #fff; font-size: 10px; font-weight: 700; }
+.vt-rc::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--sj); box-shadow: 0 0 0 2px var(--card); }
+
+/* ทำต่อ — แกลเลอรีสองคอลัมน์ */
+.vt-gal { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.vt-card { display: flex; flex-direction: column; padding: 0; border: 0; border-radius: 18px; overflow: hidden; text-align: left; cursor: pointer;
+  font-family: inherit; color: var(--ink); background: var(--card);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 60%, transparent), 0 0 0 1px var(--line), 0 12px 24px -18px var(--lg-drop, rgba(15,27,45,.5));
+  transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vt-in .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 45ms); }
+.vt-cov { position: relative; height: 96px; display: grid; place-items: center; color: var(--sj); background-size: cover; background-position: center;
+  background-image: radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--sj) 30%, var(--card)), transparent 70%),
+    linear-gradient(160deg, color-mix(in srgb, var(--sj) 16%, var(--card)), color-mix(in srgb, var(--sj) 6%, var(--card))); }
+.vt-cov svg, .vt-dot svg, .vt-badge svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.vt-big { width: 30px; height: 30px; opacity: .85; }
+.vt-badge { position: absolute; top: 7px; right: 7px; display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 7px; border-radius: 99px;
+  background: rgba(15,27,45,.58); color: #fff; font-size: 11px; font-weight: 800; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.vt-badge svg { width: 13px; height: 13px; }
+.vt-badge.n { right: auto; left: 7px; padding: 0 6px; }
+.vt-cb { display: flex; flex-direction: column; gap: 3px; padding: 9px 11px 11px; }
+.vt-cb b { font-size: 13.5px; font-weight: 800; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em; }
+.vt-meta { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.vt-meta i { width: 7px; height: 7px; border-radius: 50%; background: var(--sj); }
+.vt-due { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.vt-due.warm { color: var(--warn); }
+.vt-due.hot { color: var(--alert); }
+.vt-none { grid-column: 1 / -1; padding: 14px; border-radius: 14px; border: 1.5px dashed var(--line); font-size: 12.5px; color: var(--faint); text-align: center; }
+
+/* ส่งแล้ว — แถวเบา สีเขียว (ทองไว้ของที่สำเร็จจริงเท่านั้น) */
+.vt-row { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 7px; border: 0; border-radius: 14px; background: var(--card);
+  box-shadow: 0 0 0 1px var(--line); text-align: left; font-family: inherit; color: var(--ink); cursor: pointer;
+  transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vt-in .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 45ms + 120ms); }
+.vt-dot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.vt-dot svg { width: 15px; height: 15px; }
+.vt-rt { flex: 1; min-width: 0; }
+.vt-rt b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vt-rt small { font-size: 11.5px; color: var(--muted); }
+.vt-row em { flex: none; font-style: normal; font-size: 11.5px; font-weight: 800; color: var(--good); }
+
+/* พื้นที่ที่ใช้ */
+.vt-meter { margin-top: 18px; padding: 12px 14px; border-radius: 16px; background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+.vt-mt { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.vt-bar { height: 6px; margin: 8px 0 6px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 9%, transparent); overflow: hidden; }
+.vt-bar i { display: block; height: 100%; border-radius: inherit; background: var(--fill); transform-origin: left; transition: transform .6s cubic-bezier(.23,1,.32,1); }
+.vt-meter small { font-size: 11px; color: var(--faint); }
+
+/* ช่องรูปที่ยังไม่มีภาพ: อีกเครื่องถ่ายไว้แต่ยังไม่ส่ง / โหลดไม่ได้ */
+[data-f].vt-away, [data-f].vt-miss { position: relative; background-image: repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in srgb, var(--ink) 6%, transparent) 6px 12px) !important; }
+[data-f].vt-away::before { content: attr(data-away); position: absolute; inset: auto 4px 4px; font-size: 9.5px; font-weight: 700; line-height: 1.2; color: var(--muted); text-align: center; }
+
+/* ---------- หน้างาน · เส้นสาย ---------- */
+.vt-hub { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px 14px; border-radius: 16px; background: var(--card);
+  box-shadow: 0 0 0 1px var(--line), 0 3px 8px -4px var(--lg-drop, rgba(15,27,45,.25)); }
+.vt-hub b { font-size: 19px; font-weight: 800; line-height: 1.35; color: var(--ink); }
+.vt-hub small { font-size: 13px; color: var(--muted); }
+.vt-chipsj { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px;
+  background: color-mix(in srgb, var(--sj) 16%, transparent); color: var(--ink); font-size: 12px; font-weight: 700; }
+.vt-chipsj i { width: 8px; height: 8px; border-radius: 50%; background: var(--sj); }
+.vt-list { position: relative; display: grid; gap: 9px; margin-top: 14px; padding-left: 34px; }
+.vt-rails { position: absolute; left: 0; top: -14px; width: 100%; height: calc(100% + 14px); overflow: visible; pointer-events: none; }
+.vt-rc-card { position: relative; padding: 9px 11px 10px; border-radius: 12px; background: var(--card);
+  box-shadow: 0 0 0 1px var(--line), 0 3px 8px -5px var(--lg-drop, rgba(15,27,45,.25)); transition: box-shadow .3s; }
+.vt-rc-card.hi { box-shadow: 0 0 0 2px var(--fill), 0 6px 16px -8px var(--fill); }
+.vt-rc-card::before { content: ""; position: absolute; left: -4.5px; top: 15.5px; width: 9px; height: 9px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.vt-h { display: flex; align-items: center; gap: 7px; margin-bottom: 7px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.vt-h i { width: 8px; height: 8px; border-radius: 50%; }
+.vt-h small { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--muted); }
+.vt-strip { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.vt-strip::-webkit-scrollbar { display: none; }
+.vt-th { position: relative; flex: none; width: 54px; height: 70px; padding: 0; border: 0; border-radius: 10px; overflow: hidden; cursor: pointer;
+  background: var(--card2) center/cover; box-shadow: inset 0 0 0 1px var(--line); animation: vt-pop .32s cubic-bezier(.23,1,.32,1) backwards; }
+.vt-add { flex: none; width: 54px; height: 70px; border-radius: 10px; border: 1.5px dashed color-mix(in srgb, var(--fill) 55%, transparent); background: color-mix(in srgb, var(--fill) 6%, transparent);
+  display: grid; place-content: center; text-align: center; font: 700 11.5px/1.3 inherit; font-family: inherit; color: var(--fill); cursor: pointer; }
+.vt-add b { display: block; font-size: 20px; line-height: 1; }
+.vt-dash { flex: 1; display: flex; justify-content: space-between; padding: 9px 10px; border-radius: 9px; border: 1.5px dashed var(--line); background: none;
+  font-family: inherit; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+.vt-dash span { color: var(--fill); font-weight: 700; }
+.vt-note { width: 100%; min-height: 64px; resize: none; border: 0; outline: 0; padding: 0; background: transparent; font: 400 13.5px/1.55 inherit; font-family: inherit; color: var(--ink); }
+.vt-saved { opacity: 0; color: var(--good) !important; transition: opacity .2s; }
+.vt-saved.on { opacity: 1; }
+.vt-store { margin: 12px 0 0; text-align: center; font-size: 11.5px; color: var(--muted); }
+.vt-cta { position: sticky; bottom: 12px; display: grid; place-items: center; width: 100%; height: 52px; margin-top: 16px; }
+.vt-cta[hidden] { display: none; }
+
+/* ---------- แผ่นเพิ่มรูป · ตัวดูรูป (ซ้อนในกรอบ .phone แบบ #focusWrap · 93 = เหนือโหมดโฟกัส 92 ใต้แผ่นเพิ่มงาน 94) ---------- */
+.vt-layer { position: absolute; inset: 0; z-index: 93; }
+.vt-layer[hidden] { display: none; }
+.vt-dim { position: absolute; inset: 0; background: rgba(15,27,45,.45); animation: vt-fade .2s ease-out; }
+.vt-sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px calc(22px + env(safe-area-inset-bottom)); border-radius: 24px 24px 0 0;
+  background: var(--card); color: var(--ink); animation: vt-up .32s cubic-bezier(.23,1,.32,1); }
+.vt-grab { width: 38px; height: 4px; border-radius: 2px; background: var(--line); margin: 0 auto 12px; }
+.vt-sheet h4 { margin: 0 0 4px; font-size: 17px; }
+.vt-sheet p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+.vt-kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 14px; }
+.vt-k { padding: 10px 6px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--card); text-align: center; font: 700 13px inherit; font-family: inherit; color: var(--ink); cursor: pointer; }
+.vt-k.on { border-color: var(--fill); background: color-mix(in srgb, var(--fill) 12%, transparent); }
+.vt-k small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+.vt-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#vtViewer { display: flex; flex-direction: column; background: #0B1220; color: #fff; animation: vt-fade .2s ease-out; }
+#vtViewer[hidden] { display: none; }
+.vt-vtop { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; font-size: 13px; color: #A9B7D6; }
+.vt-vtop .sh-btn { color: #fff; }
+.vt-vsp { width: 42px; }
+.vt-vimg { flex: 1; min-height: 0; display: grid; place-items: center; padding: 0 10px; }
+.vt-vimg img { max-width: 100%; max-height: 100%; border-radius: 10px; }
+.vt-vmiss { color: #A9B7D6; font-size: 14px; }
+.vt-vbot { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; padding: 14px 16px calc(20px + env(safe-area-inset-bottom)); }
+.vt-vbot button { height: 44px; border-radius: 14px; border: 0; background: #1B2A4A; color: #EAF0FF; font: 700 14px inherit; font-family: inherit; cursor: pointer; }
+.vt-vbot button:disabled { opacity: .4; }
+.vt-vbot .vt-del { background: #3A1C24; color: #FFB4B4; }
+.vt-vbot .vt-del.sure { background: var(--alert, #E5484D); color: #fff; }
+
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+@keyframes vt-pop { from { opacity: 0; transform: scale(.85); } }
+@keyframes vt-up { from { transform: translateY(100%); } }
+@keyframes vt-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .vt-card, .vt-row, .vt-rc, .vt-th { animation-name: vt-fade; }
+  .vt-sheet { animation: vt-fade .2s ease-out; }
+}
+:root[data-lite] :is(.vt-card, .vt-row, .vt-rc, .vt-th) { animation: none; }
+
+/* ---------- โหมดโฟกัส: แถวดูโจทย์ · ปุ่มถ่ายงานที่ทำเสร็จ (งาน 6) ---------- */
+.vt-peek { display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 0; padding: 10px; border: 0; border-radius: 16px; cursor: pointer; text-align: left;
+  font-family: inherit; color: var(--ink); background: color-mix(in srgb, var(--card) 70%, transparent); box-shadow: 0 0 0 1px var(--line);
+  transition: transform .16s cubic-bezier(.23,1,.32,1); }
+.vt-peek:active { transform: scale(.98); }
+.vt-peek .vt-th { width: 44px; height: 56px; animation: none; }
+.vt-pk { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.vt-pk b { font-size: 14px; }
+.vt-pk small { font-size: 12px; color: var(--muted); }
+.vt-go { flex: none; padding: 8px 12px; border-radius: 12px; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 700; }
+.vt-shoot { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.vt-shoot svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---------- พอร์ต (งาน 8) ---------- */
+.vt-modes { margin: 4px 0 2px; }
+.vt-pbar { margin-top: 12px; }
+.vt-pcat h3 i { width: 8px; height: 8px; border-radius: 50%; }
+.vt-pit .vt-th { width: 40px; height: 40px; display: grid; place-items: center; color: var(--muted); animation: none; }
+.vt-pit .vt-th svg, .vt-chev, .vt-toport svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.vt-chev { flex: none; color: var(--faint); }
+.vt-pempty { padding: 9px 10px; border-radius: 10px; border: 1.5px dashed var(--line); font-size: 12px; color: var(--faint); }
+.vt-lbl { display: block; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.vt-in { display: block; width: 100%; margin-top: 5px; padding: 10px 12px; border: 0; border-radius: 12px; background: var(--card); color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line); font: 400 14px/1.5 inherit; font-family: inherit; outline: 0; resize: none; }
+.vt-in:focus { box-shadow: inset 0 0 0 2px var(--fill); }
+.vt-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.vt-iact { margin-top: 16px; }
+.vt-pdel { color: var(--alert) !important; }
+.vt-pdel.sure { background: var(--alert) !important; color: #fff !important; }
+.vt-toport { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; }
+.vt-left { text-align: left; }
+.vt-plist { margin-top: 10px; }
+.vt-prow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.vt-prow input { width: 18px; height: 18px; accent-color: var(--fill); }
+.vt-prow span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vt-prow small { flex: none; font-size: 11.5px; color: var(--muted); }
+.vt-pages { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--card); font-size: 13px; color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.vt-pages.over { box-shadow: 0 0 0 2px var(--alert); color: var(--alert); }
+.vt-pv { display: block; width: 100%; margin-top: 12px; border-radius: 8px; box-shadow: 0 6px 16px -10px rgba(15,27,45,.55); }
+.vt-pv[hidden] { display: none; }
+
+/* ---------- สลับ งาน ↔ พอร์ต: เนื้อหาเลื่อนเข้าจากฝั่งที่กด (vaultSwitch · 1 พ.ย. 69) ----------
+   แบบเดียวกับแท็บหน้างาน (#taskList.tk-swap ใน alt.css) — Direction Aware Tabs ของ Cult UI · ease-out .22,1,.36,1 ของ React Bits
+   แต่ละส่วนตามกันห่าง 40ms ให้อ่านเป็นการไหลเข้า ไม่ใช่ทั้งก้อนกระโดด · ลดการเคลื่อนไหว = จางเข้าอย่างเดียว */
+#vtBody.vt-swap { overflow-x: clip; }
+#vtBody.vt-swap > * { animation: vt-from-r .42s cubic-bezier(.22, 1, .36, 1) backwards; }
+#vtBody.vt-swap[data-swap="-1"] > * { animation-name: vt-from-l; }
+#vtBody.vt-swap > :nth-child(2) { animation-delay: .04s; }
+#vtBody.vt-swap > :nth-child(3) { animation-delay: .08s; }
+#vtBody.vt-swap > :nth-child(n+4) { animation-delay: .12s; }
+@keyframes vt-from-r { from { opacity: 0; transform: translateX(28px); } }
+@keyframes vt-from-l { from { opacity: 0; transform: translateX(-28px); } }
+@media (prefers-reduced-motion: reduce) { #vtBody.vt-swap > *, #vtBody.vt-swap[data-swap="-1"] > * { animation-name: vt-fade; } }
+:root[data-lite] #vtBody.vt-swap > * { animation: none; }

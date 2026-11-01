@@ -63,22 +63,75 @@
   .cta { position: absolute; left: 16px; right: 16px; bottom: 18px; height: 52px; border-radius: 16px; display: grid; place-items: center; border: 0; cursor: pointer;
     background: #1F5BD8; color: #fff; font: 800 16px 'Sarabun', sans-serif; box-shadow: 0 10px 22px -10px #1F5BD8; z-index: 3; }
   .store { position: absolute; left: 0; right: 0; bottom: 76px; text-align: center; font-size: 11.5px; color: #5B6B86; z-index: 3; }
-  /* คลังตามวิชา */
-  .folders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
-  .fd { padding: 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #12233F12; cursor: pointer; transition: box-shadow .2s; }
-  .fd i { display: block; width: 30px; height: 30px; border-radius: 10px; margin-bottom: 8px; }
-  .fd b { display: block; font-size: 14.5px; }
-  .fd small { font-size: 12px; color: #5B6B86; }
-  .fd.on { box-shadow: inset 0 0 0 2px #1F5BD8; }
-  .list { margin-top: 14px; }
-  .it { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #12233F12; cursor: pointer; }
-  .it .th { width: 44px; height: 56px; border-radius: 9px; animation: none; }
-  .it .th.none { background: repeating-linear-gradient(180deg, #fff 0 9px, #D9E1EE 9px 10px); }
-  .it b { display: block; font-size: 14px; }
-  .it small { font-size: 12px; color: #5B6B86; }
-  .it em { margin-left: auto; flex: none; font-style: normal; font-size: 12px; font-weight: 700; color: #5B6B86; }
-  .it em.ok { color: #1E8A55; }
-  .total { margin-top: 14px; padding: 10px 12px; border-radius: 12px; background: #fff; font-size: 12.5px; color: #5B6B86; box-shadow: inset 0 0 0 1px #12233F12; }
+  /* คลัง · ปรับใหม่ 1 พ.ย. 69 — เจ้าของ: "ปรับใหม่หมดให้สวยกว่านี้และจัดลำดับให้ดูง่าย"
+     ลำดับ: สวิตช์ → ชิปวิชา → เพิ่งเพิ่ม → ทำต่อ (แกลเลอรี) → ส่งแล้ว (แถวเบา) → พื้นที่ที่ใช้
+     ชิปวิชา = GradientButtonGroup แบบชิปของ Cult UI (MIT) · การ์ด = Notion Gallery + เปลือกกระจกตระกูล Halo ของ Cult UI
+     แถบพื้นที่ = HaloProgress ของ Cult UI · โผล่ทีละใบ/กดยุบ = ease-out ของ React Bits (MIT + Commons Clause)
+     แอนิเมชันเข้าใช้ fill-mode backwards — both จะค้าง transform ไว้ทับ :active จนกดแล้วไม่ยุบ */
+  .vt-sum { font-size: 12px; font-weight: 700; color: #5B6B86; }
+  .vchips { display: flex; gap: 7px; margin: 12px -16px 0; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+  .vchips::-webkit-scrollbar { display: none; }
+  /* ชิปวิชา — ชุดเดียวกับสวิตช์ของแอป: ปกติ = แก้วขาวแบบกรอบ .tk-modes · ที่เลือก = เม็ดฟ้าเคลือบเงาแบบ .tk-thumb */
+  .vchip { flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 999px; cursor: pointer;
+    font: 600 12.5px 'Sarabun', sans-serif; color: #556884;
+    background-color: rgba(255,255,255,.52); background-image: linear-gradient(rgba(255,255,255,.42), rgba(255,255,255,.06) 58%, rgba(255,255,255,.17));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(255,255,255,.3), 0 0 0 .5px rgba(15,27,45,.1), 0 4px 10px -8px rgba(15,27,45,.35);
+    transition: background-color .2s, color .2s, box-shadow .2s, transform .16s cubic-bezier(.23,1,.32,1); }
+  .vchip i { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 0 1.5px rgba(255,255,255,.8); }
+  .vchip small { font-size: 11.5px; font-weight: 700; color: #8592A8; transition: color .2s; }
+  .vchip.on { color: #fff; background-color: #1566CE;
+    background-image: linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,0) 16%, rgba(0,0,0,.06) 55%, rgba(0,0,0,.12));
+    border-color: rgba(255,255,255,.4);
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14), 0 0 0 .5px rgba(15,27,45,.1), 0 4px 10px -5px rgba(21,102,206,.7); }
+  .vchip.on small { color: rgba(255,255,255,.78); }
+  .vchip:active, .vcard:active, .vrow:active, .vrc:active { transform: scale(.97); }
+  .vsec { margin-top: 18px; }
+  .vsec[hidden] { display: none; }
+  .vsec h3 { display: flex; align-items: baseline; gap: 6px; margin: 0 0 9px; font-size: 15px; font-weight: 800; }
+  .vsec h3 small { font-size: 12.5px; font-weight: 700; color: #8592A8; }
+  .vrecent { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 6px; overflow-x: auto; scrollbar-width: none; }
+  .vrecent::-webkit-scrollbar { display: none; }
+  .vrc { position: relative; flex: none; width: 66px; padding: 0; border: 0; background: none; cursor: pointer;
+    transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vin .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 40ms); }
+  .vrc span { display: block; height: 86px; border-radius: 12px; background: #E7ECF5 center/cover; box-shadow: inset 0 0 0 1px #12233F14, 0 6px 12px -10px #12233F; }
+  .vrc small { position: absolute; left: 5px; bottom: 5px; padding: 1px 6px; border-radius: 99px; background: rgba(18,35,63,.62); color: #fff; font-size: 10px; font-weight: 700; }
+  .vrc::after { content: ""; position: absolute; top: 6px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--sc); box-shadow: 0 0 0 2px #fff; }
+  .vgal { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .vcard { display: flex; flex-direction: column; padding: 0; border: 0; border-radius: 18px; overflow: hidden; text-align: left; cursor: pointer; font-family: inherit; color: inherit;
+    background: color-mix(in srgb, #fff 90%, transparent);
+    box-shadow: inset 0 1px 0 #fff, 0 0 0 1px #12233F0F, 0 1px 2px #12233F12, 0 12px 24px -18px #12233F80;
+    transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vin .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 45ms); }
+  .vcov { position: relative; height: 96px; display: grid; place-items: center; color: var(--sc); background-size: cover; background-position: center;
+    background-image: radial-gradient(120% 90% at 20% 0%, color-mix(in srgb, var(--sc) 26%, #fff), transparent 70%), linear-gradient(160deg, color-mix(in srgb, var(--sc) 14%, #fff), color-mix(in srgb, var(--sc) 6%, #fff)); }
+  .vi { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .vi.big { width: 30px; height: 30px; stroke-width: 1.8; opacity: .85; }
+  .vbadge { position: absolute; top: 7px; right: 7px; display: inline-flex; align-items: center; gap: 3px; height: 22px; padding: 0 7px; border-radius: 99px;
+    background: rgba(18,35,63,.58); color: #fff; font-size: 11px; font-weight: 800; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+  .vbadge.n { right: auto; left: 7px; padding: 0 6px; }
+  .vbody { display: flex; flex-direction: column; gap: 3px; padding: 9px 11px 11px; }
+  .vbody b { font-size: 13.5px; font-weight: 800; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em; }
+  .vmeta { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: #5B6B86; }
+  .vmeta i { width: 7px; height: 7px; border-radius: 50%; background: var(--sc); }
+  .vdue { font-size: 11.5px; font-weight: 700; color: #5B6B86; }
+  .vdue.hot { color: #C2410C; }
+  .vnone { grid-column: 1 / -1; padding: 14px; border-radius: 14px; border: 1.5px dashed #C3CFE3; font-size: 12.5px; color: #8592A8; text-align: center; }
+  .vrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; margin-bottom: 7px; border: 0; border-radius: 14px; background: #fff;
+    box-shadow: inset 0 0 0 1px #12233F0F; text-align: left; font-family: inherit; color: inherit; cursor: pointer;
+    transition: transform .16s cubic-bezier(.23,1,.32,1); animation: vin .42s cubic-bezier(.23,1,.32,1) backwards; animation-delay: calc(var(--i) * 45ms + 120ms); }
+  .vdot { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: #E6F4EC; color: #1E8A55; }
+  .vrt { flex: 1; min-width: 0; }
+  .vrt b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vrt small { font-size: 11.5px; color: #5B6B86; }
+  .vrow em { flex: none; font-style: normal; font-size: 11.5px; font-weight: 800; color: #1E8A55; }
+  .vmeter { margin-top: 18px; padding: 12px 14px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1px #12233F0F; }
+  .vm-top { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: #33415C; }
+  .vm-bar { height: 6px; margin: 8px 0 6px; border-radius: 99px; background: #E3E9F5; overflow: hidden; }
+  .vm-bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #5B8CFF, #1F5BD8); transform-origin: left; transition: transform .6s cubic-bezier(.23,1,.32,1); }
+  .vmeter small { font-size: 11px; color: #8592A8; }
+  @keyframes vin { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+  @keyframes vfade { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .vcard, .vrow, .vrc { animation-name: vfade; } }
   /* แผ่นเพิ่มรูป */
   .dim { position: absolute; inset: 0; background: #12233F66; opacity: 0; pointer-events: none; transition: opacity .22s; z-index: 5; }
   .sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px 22px; border-radius: 24px 24px 0 0; background: #fff; z-index: 6;
@@ -123,6 +176,55 @@
   .fz-act button { height: 50px; border-radius: 16px; border: 0; font: 800 15px 'Sarabun', sans-serif; background: #24345A; color: #EAF0FF; cursor: pointer; }
   .fz-act button:last-child { background: #6E9BFF; color: #0F1A30; }
   input[type=file] { display: none; }
+  /* ---------- พอร์ต (1 พ.ย. 69) ---------- */
+  /* สวิตช์ งาน · พอร์ต — 1 พ.ย. 69 เจ้าของ: "สวิตช์ในคลังให้เหมือนแอป" → ลอกค่าจริงของ .tk-modes / .tk-thumb (สวิตช์ วันนี้ · สัปดาห์ · รายการ ธีมสว่าง วัดจากแอปที่รันอยู่)
+     กรอบ = แก้วขาว 52% + ไล่แสง + เบลอ 20px · ตัวเลื่อน = ฟ้า #1566CE เคลือบเงา · ปุ่ม 32px 12.5px/600
+     การเลื่อน = Rubber Segment ของ React Bits แบบเดียวกับ tkThumbStep: ขอบด้านที่ไปถึงก่อน ขอบหลังตามมาเด้งนิด ๆ (.to-r / .to-l) */
+  .seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 3px; height: 40px; padding: 3px; margin: 10px 0 2px; border-radius: 999px; isolation: isolate;
+    background-color: rgba(255,255,255,.52);
+    background-image: linear-gradient(rgba(255,255,255,.42), rgba(255,255,255,.06) 58%, rgba(255,255,255,.17));
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.95), inset 0 -1px 0 rgba(255,255,255,.3), inset 0 0 12px rgba(255,255,255,.2), 0 0 0 .5px rgba(15,27,45,.1), 0 6px 16px -12px rgba(15,27,45,.35);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8); backdrop-filter: blur(20px) saturate(1.8); }
+  .seg::before { content: ""; position: absolute; z-index: -1; top: 3px; bottom: 3px; border-radius: 999px; background-color: #1566CE;
+    background-image: linear-gradient(rgba(255,255,255,.16), rgba(255,255,255,0) 16%, rgba(0,0,0,.06) 55%, rgba(0,0,0,.12));
+    border: 1px solid rgba(255,255,255,.4); box-sizing: border-box;
+    box-shadow: inset 0 1.5px 0 rgba(255,255,255,.55), inset 0 -1.5px 3px rgba(0,0,0,.14), inset 0 0 6px rgba(255,255,255,.06), 0 0 0 .5px rgba(15,27,45,.1), 0 4px 10px -5px rgba(21,102,206,.7); }
+  .seg[data-pos="0"]::before { left: 3px; right: calc(50% + 1.5px); }
+  .seg[data-pos="1"]::before { left: calc(50% + 1.5px); right: 3px; }
+  .seg.to-r::before { transition: right .2s cubic-bezier(.23,1,.32,1), left .34s cubic-bezier(.34,1.3,.64,1) .05s; }
+  .seg.to-l::before { transition: left .2s cubic-bezier(.23,1,.32,1), right .34s cubic-bezier(.34,1.3,.64,1) .05s; }
+  .seg button { position: relative; height: 32px; border: 0; border-radius: 999px; background: transparent; font: 600 12.5px 'Sarabun', sans-serif; color: #556884; cursor: pointer; transition: color .25s; }
+  .seg button.on { color: #fff; }
+  @media (prefers-reduced-motion: reduce) { .seg.to-r::before, .seg.to-l::before { transition: none; } }
+  .pcat { margin-top: 14px; }
+  .pcat h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 7px; font-size: 14px; font-weight: 800; }
+  .pcat h3 i { width: 8px; height: 8px; border-radius: 50%; }
+  .pcat h3 small { margin-left: auto; font-size: 12px; font-weight: 600; color: #5B6B86; }
+  .pit { display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-bottom: 7px; border-radius: 12px; background: #fff; box-shadow: inset 0 0 0 1px #12233F12; cursor: pointer; }
+  .pit .th { width: 40px; height: 40px; border-radius: 9px; animation: none; }
+  .pit .th.none { background: #EEF2F8; }
+  .pit b { display: block; font-size: 13.5px; }
+  .pit small { font-size: 11.5px; color: #5B6B86; }
+  .pempty { padding: 9px 10px; border-radius: 10px; border: 1.5px dashed #C3CFE3; font-size: 12px; color: #8592A8; }
+  .pbar { position: absolute; left: 16px; right: 16px; bottom: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; z-index: 3; }
+  .fld { display: block; margin-top: 12px; font-size: 12.5px; font-weight: 700; color: #4A5A75; }
+  .fld input, .fld textarea { display: block; width: 100%; margin-top: 5px; padding: 10px 12px; border: 0; border-radius: 12px; background: #fff;
+    box-shadow: inset 0 0 0 1px #D3DBE8; font: 400 14px/1.5 'Sarabun', sans-serif; color: #12233F; outline: 0; resize: none; }
+  .fld input:focus, .fld textarea:focus { box-shadow: inset 0 0 0 2px #1F5BD8; }
+  .cats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .cats button { padding: 6px 10px; border-radius: 99px; border: 1.5px solid #D5DDEA; background: #fff; font: 700 12px 'Sarabun', sans-serif; color: #4A5A75; cursor: pointer; }
+  .cats button.on { border-color: #1F5BD8; background: #EEF3FF; color: #1F4FB8; }
+  .prow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid #12233F12; font-size: 13.5px; cursor: pointer; }
+  .prow input { width: 18px; height: 18px; accent-color: #1F5BD8; }
+  .prow small { margin-left: auto; font-size: 11.5px; color: #5B6B86; }
+  .pages { margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #fff; font-size: 13px; box-shadow: inset 0 0 0 1px #12233F12; }
+  .pages.over { box-shadow: inset 0 0 0 2px #E5484D; color: #B42318; }
+  .pv { display: block; width: 100%; margin-top: 12px; border-radius: 8px; box-shadow: 0 6px 16px -10px #12233F88; }
+  .send { width: 100%; margin-top: 12px; }
+  .toast { position: absolute; left: 16px; right: 16px; bottom: 84px; padding: 10px 14px; border-radius: 14px; background: #12233F; color: #fff; font-size: 13px;
+    opacity: 0; transform: translateY(8px); transition: opacity .2s, transform .25s cubic-bezier(.23,1,.32,1); pointer-events: none; z-index: 9; }
+  .toast.on { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .scr, .sheet, .th { transition: none; animation: none; } }
 </style>
 </head>
@@ -134,12 +236,14 @@
 
   <!-- คลังงาน (แท็บ "ฉัน") -->
   <section class="scr on" id="sVault">
-    <div class="bar"><span class="ic" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span></span></div>
+    <div class="bar"><span class="ic" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span class="vt-sum" id="vSum"></span></div>
     <div class="h2">คลังงาน</div>
-    <div class="sub">รูปและโน้ตของทุกงาน แยกตามวิชา · รวมงานที่ส่งไปแล้ว</div>
-    <div class="folders" id="folders"></div>
-    <div class="list" id="list"></div>
-    <div class="total" id="total">กำลังเปิดคลัง…</div>
+    <div class="seg" data-pos="0"><button class="on" data-go="sVault">งาน</button><button data-go="sPort">พอร์ต</button></div>
+    <div class="vchips" id="folders" role="group" aria-label="กรองตามวิชา"></div>
+    <div class="vsec" id="vRecentSec" hidden><h3>เพิ่งเพิ่ม</h3><div class="vrecent" id="vRecent"></div></div>
+    <div class="vsec"><h3>ทำต่อ<small id="nPend"></small></h3><div class="vgal" id="list"></div></div>
+    <div class="vsec" id="vDoneSec"><h3>ส่งแล้ว<small id="nDone"></small></h3><div id="listDone"></div></div>
+    <div class="vmeter" id="total">กำลังเปิดคลัง…</div>
   </section>
 
   <!-- หน้างาน -->
@@ -154,6 +258,7 @@
       <div class="fl-card" data-c="#E5484D"><div class="fl-h"><i style="background:#E5484D"></i>จดไว้<small><span class="saved" id="saved">บันทึกแล้ว ✓</span></small></div>
         <textarea class="note" id="note" placeholder="แตะเพื่อจด เช่น ข้อ 7 ถามครูก่อน" rows="3"></textarea></div>
     </div>
+    <button class="btn q send" id="toPort" hidden>★ ส่งเข้าพอร์ต</button>
     <div class="store" id="tStore"></div>
     <button class="cta" id="start">▶ เริ่มทำ</button>
   </section>
@@ -166,6 +271,43 @@
     <div class="peek" id="peek" hidden><div class="th" id="peekTh"></div><div><b id="peekB"></b><small>แตะเพื่อดูเต็มจอ</small></div><span class="go">ดูโจทย์</span></div>
     <div class="fz-act"><button id="pause">พัก</button><button id="finish">เสร็จแล้ว</button></div>
   </section>
+
+  <!-- พอร์ต: 6 หมวดเดียวกับ TCASfolio ของ ทปอ. · สูงสุด 40 รายการ -->
+  <section class="scr" id="sPort">
+    <div class="bar"><span class="ic" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span></span></div>
+    <div class="h2">คลังงาน</div>
+    <div class="seg" data-pos="1"><button data-go="sVault">งาน</button><button class="on" data-go="sPort">พอร์ต</button></div>
+    <div class="sub" id="pSub">เก็บผลงานไว้ตลอดปี · หมวดเดียวกับ TCASfolio</div>
+    <div id="pCats"></div>
+    <div class="pbar"><button class="btn q" id="pAdd">+ เพิ่มผลงาน</button><button class="btn p" id="pPdf">ทำ PDF</button></div>
+  </section>
+
+  <section class="scr" id="sItem">
+    <div class="bar"><span class="ic" id="iBack" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span class="saved" id="iSaved">บันทึกแล้ว ✓</span></div>
+    <div class="h2" style="font-size:19px">ผลงาน</div>
+    <span class="fld">หมวด</span><div class="cats" id="iCats"></div>
+    <label class="fld">ชื่อผลงาน<input id="iTitle" placeholder="เช่น ค่ายวิทยาศาสตร์ สอวน. ค่าย 1"></label>
+    <label class="fld">วันที่ / ช่วงเวลา<input id="iDate" placeholder="เช่น มี.ค. 2569"></label>
+    <label class="fld">บทบาท / สิ่งที่ได้<input id="iRole" placeholder="เช่น หัวหน้าทีม · รางวัลเหรียญทอง"></label>
+    <label class="fld">เล่าสั้น ๆ<textarea id="iDesc" rows="4" placeholder="ทำอะไร ได้เรียนรู้อะไร (ใช้แปะลง TCASfolio ได้เลย)"></textarea></label>
+    <span class="fld">รูป / เกียรติบัตร</span><div class="strip" id="iStrip" style="margin-top:6px"></div>
+    <div class="two" style="margin-top:14px"><button class="btn q" id="iCopy">คัดลอกข้อความ</button><button class="btn q" id="iDel" style="color:#B42318">ลบผลงาน</button></div>
+  </section>
+
+  <section class="scr" id="sPdf">
+    <div class="bar"><span class="ic" id="dBack" aria-label="กลับ"><svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></span><span></span></div>
+    <div class="h2" style="font-size:19px">ทำ PDF พอร์ต</div>
+    <div class="sub">A4 · ปก 1 หน้า + ผลงานละ 1 หน้า · หลายมหาวิทยาลัยรับไม่เกิน 10 หน้า</div>
+    <label class="fld">ชื่อ-นามสกุล<input id="dName" placeholder="ชื่อบนปก"></label>
+    <label class="fld">คณะ / สาขาที่สมัคร<input id="dProg" placeholder="เช่น วิศวกรรมคอมพิวเตอร์"></label>
+    <div id="dList" style="margin-top:8px"></div>
+    <div class="pages" id="dPages"></div>
+    <img class="pv" id="dPv" alt="ตัวอย่างหน้าแรก" hidden>
+    <button class="cta" id="dGo">สร้าง PDF</button>
+  </section>
+
+  <div class="toast" id="toast"></div>
+  <input type="file" id="pickPort" accept="image/*" multiple>
 
   <div class="dim" id="dim"></div>
   <div class="sheet" id="sheet"><div class="grab"></div>
@@ -196,7 +338,12 @@
   3. แตะรูป → ดูเต็มจอ · เลื่อนดูรูปถัดไป · ลบ (แตะลบสองครั้งกันพลาด)<br>
   4. จดในช่อง "จดไว้" → บันทึกเองตอนพิมพ์<br>
   5. "เริ่มทำ" → มีรูปโจทย์ = มีแถว "ดูโจทย์" ในโหมดโฟกัส · "เสร็จแล้ว" → แอปชวนถ่ายงานที่ทำเสร็จ<br>
-  6. รีเฟรชหน้า → ทุกอย่างยังอยู่
+  6. รีเฟรชหน้า → ทุกอย่างยังอยู่<br>
+  <br><b>พอร์ต</b> (สวิตช์ "งาน | พอร์ต" บนหน้าคลัง)<br>
+  7. "+ เพิ่มผลงาน" → เลือกหมวด (6 หมวดเดียวกับ TCASfolio) · ชื่อ · วันที่ · บทบาท · เล่าสั้น ๆ · รูปเกียรติบัตร<br>
+  8. งานที่ทำเสร็จแล้ว (ใบงานลิมิต ชุด 2) → ปุ่ม "★ ส่งเข้าพอร์ต" พารูปงานที่ทำเสร็จไปด้วย<br>
+  9. "คัดลอกข้อความ" → ไปแปะใน TCASfolio<br>
+  10. "ทำ PDF" → เลือกผลงาน · ปก + สารบัญ · ไม่เกิน 10 หน้า → ได้ไฟล์ PDF จริง
   <br><button id="wipe">ล้างข้อมูลต้นแบบทั้งหมด</button>
 </div>
 </div>
@@ -205,11 +352,20 @@
 /* ---------- งานตัวอย่าง (ของจริงอ่านจาก state.tasks) ---------- */
 const SUBJ = { 'คณิตศาสตร์': '#2D6BFF', 'ภาษาอังกฤษ': '#E0663A', 'วิทยาศาสตร์': '#1E9E6A' };
 const TASKS = [
-  { id: 't1', subject: 'คณิตศาสตร์', title: 'แบบฝึกหัดฟังก์ชัน ข้อ 1–10', due: 'ส่งพรุ่งนี้ 08:00', est: 40 },
+  // rank = ลำดับกำหนดส่ง (ของจริงเรียงจาก t.due) · hot = ส่งภายในพรุ่งนี้ ขึ้นสีส้ม (ไม่ใช่ทอง)
+  { id: 't1', subject: 'คณิตศาสตร์', title: 'แบบฝึกหัดฟังก์ชัน ข้อ 1–10', due: 'ส่งพรุ่งนี้ 08:00', est: 40, rank: 1, hot: true },
   { id: 't2', subject: 'คณิตศาสตร์', title: 'ใบงานลิมิต ชุด 2', due: 'ส่งแล้ว ✓', est: 30, done: true },
-  { id: 't3', subject: 'ภาษาอังกฤษ', title: 'เรียงความ My Hero', due: 'ส่งวันศุกร์', est: 60 },
-  { id: 't4', subject: 'วิทยาศาสตร์', title: 'รายงานการทดลองแรงเสียดทาน', due: 'ส่งวันจันทร์', est: 45 },
+  { id: 't3', subject: 'ภาษาอังกฤษ', title: 'เรียงความ My Hero', due: 'ส่งวันศุกร์', est: 60, rank: 3 },
+  { id: 't4', subject: 'วิทยาศาสตร์', title: 'รายงานการทดลองแรงเสียดทาน', due: 'ส่งวันพุธ', est: 45, rank: 2 },
 ];
+// ไอคอน Lucide (ISC) — ไม่ใช้อีโมจิบนการ์ด
+const ICON = {
+  cam: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3z"/><circle cx="12" cy="13" r="3"/>',
+  book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+};
+const svg = (k, cls = '') => `<svg class="vi ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const KIND = { q: 'โจทย์', done: 'ทำเสร็จ', note: 'โน้ต' };
 
 /* ---------- ที่เก็บ: IndexedDB (รูปใหญ่เกิน localStorage 5MB ไปไกล) ---------- */
@@ -217,11 +373,13 @@ const DB_NAME = 'studentos-vault-prototype';
 let dbp = null;
 function db() {
   return dbp || (dbp = new Promise((res, rej) => {
-    const r = indexedDB.open(DB_NAME, 1);
+    // รุ่น 2 (1 พ.ย. 69) เพิ่ม store "port" — สร้างเฉพาะที่ยังไม่มี รูปกับโน้ตที่ลองไว้ในรุ่น 1 อยู่ครบ
+    const r = indexedDB.open(DB_NAME, 2);
     r.onupgradeneeded = () => {
-      const d = r.result;
-      d.createObjectStore('photos', { keyPath: 'id' }).createIndex('task', 'taskId');
-      d.createObjectStore('notes', { keyPath: 'taskId' });
+      const d = r.result, has = n => d.objectStoreNames.contains(n);
+      if (!has('photos')) d.createObjectStore('photos', { keyPath: 'id' }).createIndex('task', 'taskId');
+      if (!has('notes')) d.createObjectStore('notes', { keyPath: 'taskId' });
+      if (!has('port')) d.createObjectStore('port', { keyPath: 'id' });
     };
     r.onsuccess = () => res(r.result);
     r.onerror = () => rej(r.error);
@@ -272,24 +430,58 @@ function show(id) {
 let subjOn = null;
 async function renderVault() {
   const [ps, ns] = await Promise.all([allPhotos(), allNotes()]);
-  const by = id => ({ p: ps.filter(p => p.taskId === id), n: ns.find(n => n.taskId === id && n.text.trim()) });
-  $('folders').innerHTML = Object.keys(SUBJ).map(s => {
-    const ts = TASKS.filter(t => t.subject === s), pc = ts.reduce((a, t) => a + by(t.id).p.length, 0);
-    return `<div class="fd${subjOn === s ? ' on' : ''}" data-s="${s}"><i style="background:${SUBJ[s]}"></i><b>${s}</b><small>${ts.length} งาน · ${pc} รูป</small></div>`;
+  const taskPs = ps.filter(p => !String(p.taskId).startsWith('port:'));      // รูปของพอร์ตไม่นับเป็นรูปงาน
+  const photosFor = id => taskPs.filter(p => p.taskId === id).sort((a, b) => a.at - b.at);
+  const noted = id => ns.some(n => n.taskId === id && n.text.trim());
+  const subjOf = id => (TASKS.find(t => t.id === id) || {}).subject;
+  const shown = TASKS.filter(t => !subjOn || t.subject === subjOn);
+
+  // 1) ชิปวิชา — "ทั้งหมด" ก่อน แล้วตามวิชา · แตะซ้ำที่ชิปที่เลือกอยู่ = กลับไปทั้งหมด
+  const chip = (s, label, n, color) => `<button class="vchip${(subjOn || '') === (s || '') ? ' on' : ''}" data-s="${s || ''}" aria-pressed="${(subjOn || '') === (s || '')}">`
+    + `${color ? `<i style="background:${color}"></i>` : ''}${label}<small>${n}</small></button>`;
+  $('folders').innerHTML = chip(null, 'ทั้งหมด', TASKS.length)
+    + Object.keys(SUBJ).map(s => chip(s, s, TASKS.filter(t => t.subject === s).length, SUBJ[s])).join('');
+
+  // 2) เพิ่งเพิ่ม — รูปล่าสุดก่อน แตะแล้วเปิดดูรูปนั้นเลย (ไม่มีรูป = ซ่อนทั้งส่วน)
+  const recent = taskPs.filter(p => !subjOn || subjOf(p.taskId) === subjOn).sort((a, b) => b.at - a.at).slice(0, 8);
+  $('vRecentSec').hidden = !recent.length;
+  $('vRecent').innerHTML = recent.map((p, i) => `<button class="vrc" data-t="${p.taskId}" data-p="${p.id}" style="--i:${i};--sc:${SUBJ[subjOf(p.taskId)]}" aria-label="เปิดรูป${KIND[p.kind] || ''}">`
+    + `<span style="background-image:url(${urlOf(p)})"></span><small>${KIND[p.kind] || ''}</small></button>`).join('');
+
+  // 3) ทำต่อ — แกลเลอรีเรียงตามกำหนดส่ง · ปกเป็นรูปโจทย์ใบแรก ไม่มีรูป = พื้นสีวิชา + ไอคอนหนังสือ
+  const pend = shown.filter(t => !t.done).sort((a, b) => a.rank - b.rank), done = shown.filter(t => t.done);
+  $('nPend').textContent = pend.length; $('nDone').textContent = done.length;
+  $('list').innerHTML = pend.length ? pend.map((t, i) => {
+    const p = photosFor(t.id), cover = p.find(x => x.kind === 'q') || p[0];
+    return `<button class="vcard" data-t="${t.id}" style="--i:${i};--sc:${SUBJ[t.subject]}">`
+      + `<span class="vcov"${cover ? ` style="background-image:url(${urlOf(cover)})"` : ''}>${cover ? '' : svg('book', 'big')}`
+      + (p.length ? `<span class="vbadge">${svg('cam')}${p.length}</span>` : '')
+      + (noted(t.id) ? `<span class="vbadge n" title="มีโน้ต">${svg('pen')}</span>` : '') + '</span>'
+      + `<span class="vbody"><b>${t.title}</b><span class="vmeta"><i></i>${t.subject}</span><span class="vdue${t.hot ? ' hot' : ''}">${t.due}</span></span></button>`;
+  }).join('') : '<div class="vnone">ไม่มีงานค้างในวิชานี้</div>';
+
+  // 4) ส่งแล้ว — แถวเบากว่า สีเขียว (ทองไว้ของที่สำเร็จจริงเท่านั้น)
+  $('vDoneSec').hidden = !done.length;
+  $('listDone').innerHTML = done.map((t, i) => {
+    const n = photosFor(t.id).length;
+    return `<button class="vrow" data-t="${t.id}" style="--i:${i};--sc:${SUBJ[t.subject]}"><span class="vdot">${svg('check')}</span>`
+      + `<span class="vrt"><b>${t.title}</b><small>${t.subject} · ${n ? n + ' รูป' : 'ยังไม่มีรูป'}</small></span><em>ส่งแล้ว</em></button>`;
   }).join('');
-  $('list').innerHTML = TASKS.filter(t => !subjOn || t.subject === subjOn).map(t => {
-    const b = by(t.id), first = b.p.find(p => p.kind === 'q') || b.p[0];
-    const meta = (b.p.length ? b.p.length + ' รูป' : 'ยังไม่มีรูป') + (b.n ? ' · จดไว้ 1' : '');
-    return `<div class="it" data-t="${t.id}"><div class="th${first ? '' : ' none'}"${first ? ` style="background-image:url(${urlOf(first)})"` : ''}></div>`
-      + `<div><b>${t.title}</b><small>${meta}</small></div><em class="${t.done ? 'ok' : ''}">${t.due}</em></div>`;
-  }).join('');
-  const bytes = ps.reduce((a, p) => a + p.blob.size, 0);
-  $('total').textContent = ps.length || ns.length
-    ? `เก็บในเครื่องนี้แล้ว · ${ps.length} รูป (${kb(bytes)}) · โน้ต ${ns.filter(n => n.text.trim()).length} งาน`
-    : 'ยังไม่มีอะไรในคลัง · แตะงานข้างบนแล้วลองเพิ่มรูปดู';
+
+  // 5) พื้นที่ที่ใช้ — เพดาน 300 รูปตามสเปก
+  const CAP = 300, bytes = ps.reduce((a, p) => a + p.blob.size, 0);
+  $('vSum').textContent = `${TASKS.length} งาน · ${taskPs.length} รูป`;
+  $('total').innerHTML = `<div class="vm-top"><span>ใช้พื้นที่ ${ps.length}/${CAP} รูป</span><span>${ps.length ? kb(bytes) : 'ยังว่าง'}</span></div>`
+    + `<div class="vm-bar"><i style="transform:scaleX(${Math.min(1, ps.length / CAP)})"></i></div><small>ต้นแบบเก็บในเครื่องนี้ · ของจริงซิงก์ทุกเครื่อง</small>`;
 }
-$('folders').addEventListener('click', e => { const f = e.target.closest('.fd'); if (!f) return; subjOn = subjOn === f.dataset.s ? null : f.dataset.s; renderVault(); });
-$('list').addEventListener('click', e => { const it = e.target.closest('.it'); if (it) openTask(it.dataset.t); });
+$('sVault').addEventListener('click', async e => {
+  const c = e.target.closest('.vchip');
+  if (c) { subjOn = c.dataset.s && c.dataset.s !== subjOn ? c.dataset.s : null; renderVault(); return; }
+  const r = e.target.closest('.vrc');
+  if (r) { await openTask(r.dataset.t); openViewer(r.dataset.p); return; }
+  const t = e.target.closest('[data-t]');
+  if (t) openTask(t.dataset.t);
+});
 
 /* ---------- หน้างาน ---------- */
 let cur = null, photos = [];
@@ -425,13 +617,264 @@ addEventListener('resize', drawRails);
 document.fonts && document.fonts.ready.then(drawRails);
 
 $('wipe').addEventListener('click', async () => {
-  if (!confirm('ลบรูปและโน้ตทั้งหมดในต้นแบบนี้?')) return;
-  await tx('photos', 'readwrite', s => s.clear()); await tx('notes', 'readwrite', s => s.clear());
+  if (!confirm('ลบรูป โน้ต และพอร์ตทั้งหมดในต้นแบบนี้?')) return;
+  await tx('photos', 'readwrite', s => s.clear()); await tx('notes', 'readwrite', s => s.clear()); await tx('port', 'readwrite', s => s.clear());
   urls.forEach(u => URL.revokeObjectURL(u)); urls.clear();
   renderVault(); show('sVault');
 });
 
 renderVault().catch(err => { $('total').textContent = 'เปิดที่เก็บในเครื่องไม่ได้: ' + err.message; });
+</script>
+<script>
+/* ============================================================
+   พอร์ต (1 พ.ย. 69) — เจ้าของ: "ทำให้มีระบบเก็บพอร์ตด้วย" → ทั้งหมวดผลงาน TCAS และส่งงานที่ทำเสร็จเข้าไป · ทำ PDF ด้วย
+   · หมวด = 6 หมวดของ TCASfolio (ทปอ. · ข่าว PPTV 8 ก.ค. 69) · สูงสุด 40 รายการตามระบบนั้น
+   · TCASfolio ให้พิมพ์กรอกเองทีละรายการ → แต่ละผลงานมีปุ่ม "คัดลอกข้อความ" ไว้แปะ
+   · PDF: วาดแต่ละหน้า A4 ลง canvas (เบราว์เซอร์ตัดคำ/วางสระไทยถูกเอง) → JPEG → ห่อเป็นไฟล์ PDF เอง ไม่ต้องใช้ไลบรารี/ฝังฟอนต์
+   ============================================================ */
+const PCATS = [
+  ['essay', 'เรียงความ · เหตุผลที่สมัคร', '#8B6CF0'],
+  ['letter', 'หนังสือรับรอง', '#3E8EF0'],
+  ['project', 'โครงการ · โครงงาน', '#2BB59B'],
+  ['activity', 'กิจกรรม', '#E0663A'],
+  ['award', 'เกียรติบัตร · รางวัล', '#C2410C'],
+  ['extra', 'คำถามเพิ่มเติมจากมหาวิทยาลัย', '#5B6B86'],
+];
+const PORT_CAP = 40, PDF_MAX = 10;
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const allPort = () => tx('port', 'readonly', s => s.getAll());
+const getPort = id => tx('port', 'readonly', s => s.get(id));
+const putPort = it => tx('port', 'readwrite', s => s.put(it));
+const delPort = id => tx('port', 'readwrite', s => s.delete(id));
+const catOf = k => PCATS.find(c => c[0] === k) || PCATS[2];
+const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+function toast(t) { const e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove('on'), 2400); }
+
+// ตัวเลื่อนไหลไปช่องที่กดก่อน (0.22 วิ) แล้วค่อยสลับจอ · สวิตช์ของจอที่ซ่อนไปแล้วคืนตำแหน่งเดิมไว้ให้รอบหน้า
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', async () => {
+  const seg = b.parentElement, idx = String([...seg.children].indexOf(b)), was = seg.dataset.pos;
+  if (idx === was) return;
+  const mark = pos => { seg.dataset.pos = pos; [...seg.children].forEach((x, i) => x.classList.toggle('on', String(i) === pos)); };
+  seg.classList.toggle('to-r', idx > was); seg.classList.toggle('to-l', idx < was);   // ทิศของขอบที่วิ่งนำ (Rubber Segment)
+  mark(idx);
+  await new Promise(r => setTimeout(r, 220));
+  if (b.dataset.go === 'sPort') { await renderPort(); show('sPort'); } else { await renderVault(); show('sVault'); }
+  mark(was);
+}));
+
+/* ---------- รายการพอร์ตแยก 6 หมวด ---------- */
+async function renderPort() {
+  const items = (await allPort()).sort((a, b) => b.at - a.at), ps = await allPhotos();
+  $('pSub').textContent = `เก็บผลงานไว้ตลอดปี · หมวดเดียวกับ TCASfolio · ${items.length}/${PORT_CAP} รายการ`;
+  $('pCats').innerHTML = PCATS.map(([k, name, c]) => {
+    const list = items.filter(i => i.cat === k);
+    return `<div class="pcat"><h3><i style="background:${c}"></i>${name}<small>${list.length || ''}</small></h3>`
+      + (list.length ? list.map(i => {
+        const p = ps.find(x => x.taskId === 'port:' + i.id);
+        return `<div class="pit" data-i="${i.id}"><div class="th${p ? '' : ' none'}"${p ? ` style="background-image:url(${urlOf(p)})"` : ''}></div>`
+          + `<div><b>${esc(i.title || 'ยังไม่ได้ตั้งชื่อ')}</b><small>${esc([i.date, i.role].filter(Boolean).join(' · ') || 'แตะเพื่อกรอก')}</small></div></div>`;
+      }).join('') : '<div class="pempty">ยังไม่มี</div>') + '</div>';
+  }).join('');
+}
+$('pCats').addEventListener('click', e => { const it = e.target.closest('.pit'); if (it) openItem(it.dataset.i); });
+async function newItem(fields) {
+  if ((await allPort()).length >= PORT_CAP) { toast(`พอร์ตเต็ม ${PORT_CAP} รายการแล้ว (เท่าที่ TCASfolio รับ) · ลบอันที่ไม่ใช้ก่อน`); return null; }
+  const it = Object.assign({ id: newId('i'), cat: 'project', title: '', date: '', role: '', desc: '', at: Date.now() }, fields);
+  await putPort(it); return it;
+}
+$('pAdd').addEventListener('click', async () => { const it = await newItem({}); if (it) openItem(it.id); });
+
+/* ---------- แก้ผลงาน · บันทึกเองตอนพิมพ์ ---------- */
+let curItem = null, itemT = null, delArm = false;
+async function openItem(id) {
+  curItem = await getPort(id); if (!curItem) return;
+  $('iTitle').value = curItem.title; $('iDate').value = curItem.date; $('iRole').value = curItem.role; $('iDesc').value = curItem.desc;
+  paintCats(); delArm = false; $('iDel').textContent = 'ลบผลงาน';
+  await paintStrip(); show('sItem');
+}
+function paintCats() { $('iCats').innerHTML = PCATS.map(([k, n]) => `<button data-c="${k}" class="${curItem.cat === k ? 'on' : ''}">${n}</button>`).join(''); }
+async function paintStrip() {
+  photos = (await photosOf('port:' + curItem.id)).sort((a, b) => a.at - b.at);   // ตัวดูรูปเต็มจอของหน้างานอ่านจาก photos
+  cur = { id: 'port:' + curItem.id };                                            // ให้ตัวลบรูปของตัวดูรูปทำงานกับผลงานนี้ได้
+  $('iStrip').innerHTML = photos.map(p => `<div class="th" data-p="${p.id}" style="background-image:url(${urlOf(p)})"></div>`).join('')
+    + '<div class="add" data-padd><span><b>+</b>เพิ่ม</span></div>';
+}
+async function saveItem() {
+  Object.assign(curItem, { title: $('iTitle').value.trim(), date: $('iDate').value.trim(), role: $('iRole').value.trim(), desc: $('iDesc').value });
+  await putPort(curItem); $('iSaved').classList.add('on'); setTimeout(() => $('iSaved').classList.remove('on'), 1200);
+}
+['iTitle', 'iDate', 'iRole', 'iDesc'].forEach(id => $(id).addEventListener('input', () => { clearTimeout(itemT); itemT = setTimeout(saveItem, 400); }));
+$('iCats').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; curItem.cat = b.dataset.c; paintCats(); saveItem(); });
+$('iStrip').addEventListener('click', e => {
+  if (e.target.closest('[data-padd]')) { $('pickPort').value = ''; $('pickPort').click(); return; }
+  const t = e.target.closest('.th[data-p]'); if (t) openViewer(t.dataset.p);
+});
+$('pickPort').addEventListener('change', async e => {
+  const files = [...e.target.files].filter(f => f.type.startsWith('image/'));
+  for (let i = 0; i < files.length; i++) {          // ทีละรูป — เครื่องเล็กย่อ 10 รูปพร้อมกันแล้วค้าง
+    toast(`กำลังย่อรูป ${i + 1}/${files.length}`);
+    try { const s = await shrink(files[i]); await putPhoto({ id: newId('p'), taskId: 'port:' + curItem.id, kind: 'port', blob: s.blob, w: s.w, h: s.h, at: Date.now() }); }
+    catch (err) { toast('อ่านรูปไม่ได้ 1 รูป · ข้ามไป'); }
+  }
+  await paintStrip(); toast(`เพิ่ม ${files.length} รูปแล้ว`);
+});
+// ตัวดูรูปเต็มจอลบรูปแล้ววาดหน้างานใหม่ — อยู่ในหน้าผลงานต้องวาดแถบรูปของผลงานใหม่ด้วย
+['vwDel', 'vwClose'].forEach(id => $(id).addEventListener('click', () => setTimeout(() => {
+  if (curItem && document.getElementById('sItem').classList.contains('on')) paintStrip();
+}, 350)));
+$('iCopy').addEventListener('click', async () => {
+  const text = [curItem.title, [curItem.date, curItem.role].filter(Boolean).join(' · '), '', curItem.desc].join('\n').trim();
+  try { await navigator.clipboard.writeText(text); toast('คัดลอกแล้ว · ไปแปะในช่องของ TCASfolio ได้เลย'); }
+  catch (_) { toast('คัดลอกไม่ได้ในเบราว์เซอร์นี้ · กดค้างที่ข้อความแล้วคัดลอกเอง'); }
+});
+$('iDel').addEventListener('click', async () => {
+  if (!delArm) { delArm = true; $('iDel').textContent = 'แตะอีกครั้งเพื่อลบ'; return; }
+  for (const p of await photosOf('port:' + curItem.id)) await delPhoto(p.id);
+  await delPort(curItem.id); curItem = null; await renderPort(); show('sPort'); toast('ลบผลงานแล้ว');
+});
+$('iBack').addEventListener('click', async () => { clearTimeout(itemT); if (curItem) await saveItem(); await renderPort(); show('sPort'); });
+document.querySelector('#sPort .ic').addEventListener('click', async () => { await renderVault(); show('sVault'); });
+
+/* ---------- ส่งงานที่ทำเสร็จเข้าพอร์ต (หน้างาน) ---------- */
+const _renderTask = renderTask;
+renderTask = async function (hi) { await _renderTask(hi); $('toPort').hidden = !(cur && cur.done && !String(cur.id).startsWith('port:')); };
+$('toPort').addEventListener('click', async () => {
+  const note = await getNote(cur.id);
+  const it = await newItem({ cat: 'project', title: cur.title, date: '', role: '', desc: note ? note.text : '', from: cur.id });
+  if (!it) return;
+  const mine = await photosOf(cur.id), pick = mine.some(p => p.kind === 'done') ? mine.filter(p => p.kind === 'done') : mine;
+  for (const p of pick) await putPhoto({ id: newId('p'), taskId: 'port:' + it.id, kind: 'port', blob: p.blob, w: p.w, h: p.h, at: Date.now() });
+  toast(`ส่งเข้าพอร์ตแล้ว · พร้อม ${pick.length} รูป · เติมรายละเอียดได้เลย`);
+  openItem(it.id);
+});
+
+/* ---------- ทำ PDF ---------- */
+let pdfPick = null;
+$('pPdf').addEventListener('click', async () => {
+  const items = await allPort();
+  if (!items.length) { toast('ยังไม่มีผลงาน · เพิ่มผลงานก่อน'); return; }
+  pdfPick = pdfPick || new Set(sortForPdf(items).slice(0, PDF_MAX - 1).map(i => i.id));
+  try { const s = JSON.parse(localStorage.getItem('vault-prototype-pdf') || '{}'); $('dName').value = s.name || ''; $('dProg').value = s.prog || ''; } catch (_) {}
+  $('dPv').hidden = true; await renderPdfList(); show('sPdf');
+});
+const sortForPdf = items => items.slice().sort((a, b) => PCATS.findIndex(c => c[0] === a.cat) - PCATS.findIndex(c => c[0] === b.cat) || a.at - b.at);
+async function renderPdfList() {
+  const items = sortForPdf(await allPort());
+  $('dList').innerHTML = items.map(i => `<label class="prow"><input type="checkbox" data-i="${i.id}" ${pdfPick.has(i.id) ? 'checked' : ''}>${esc(i.title || 'ยังไม่ได้ตั้งชื่อ')}<small>${esc(catOf(i.cat)[1])}</small></label>`).join('');
+  const n = items.filter(i => pdfPick.has(i.id)).length, pages = n ? n + 1 : 0, over = pages > PDF_MAX;
+  $('dPages').className = 'pages' + (over ? ' over' : '');
+  $('dPages').textContent = !n ? 'เลือกผลงานอย่างน้อย 1 อย่าง'
+    : `ปก 1 + ผลงาน ${n} = ${pages} หน้า` + (over ? ` · เกิน ${PDF_MAX} หน้า เอาออกอีก ${pages - PDF_MAX} อย่าง` : ` · ไม่เกิน ${PDF_MAX} หน้า ✓`);
+  $('dGo').disabled = !n || over; $('dGo').style.opacity = !n || over ? .5 : 1;
+}
+$('dList').addEventListener('change', e => { const c = e.target.closest('input[data-i]'); if (!c) return; c.checked ? pdfPick.add(c.dataset.i) : pdfPick.delete(c.dataset.i); renderPdfList(); });
+['dName', 'dProg'].forEach(id => $(id).addEventListener('input', () => { try { localStorage.setItem('vault-prototype-pdf', JSON.stringify({ name: $('dName').value, prog: $('dProg').value })); } catch (_) {} }));
+$('dBack').addEventListener('click', async () => { await renderPort(); show('sPort'); });
+
+const PW = 1240, PH = 1754, PM = 110;      // A4 ที่ 150 dpi
+function lines(g, text, maxW, maxLines) {
+  const out = [];
+  for (const para of String(text || '').split('\n')) {
+    const segs = typeof Intl !== 'undefined' && Intl.Segmenter
+      ? [...new Intl.Segmenter('th', { granularity: 'word' }).segment(para)].map(s => s.segment) : [...para];
+    let line = '';
+    for (const s of segs) {
+      if (g.measureText(line + s).width > maxW && line) { out.push(line.trimEnd()); line = s.trimStart(); } else line += s;
+    }
+    out.push(line);
+  }
+  if (out.length > maxLines) { out.length = maxLines; out[maxLines - 1] = out[maxLines - 1].replace(/.{0,2}$/, '…'); }
+  return out;
+}
+async function drawFit(g, blob, x, y, w, h) {
+  const bmp = await createImageBitmap(blob), k = Math.min(w / bmp.width, h / bmp.height);
+  const dw = bmp.width * k, dh = bmp.height * k;
+  g.drawImage(bmp, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  g.strokeStyle = '#D3DBE8'; g.lineWidth = 2; g.strokeRect(x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+async function pageOf(draw) {
+  const c = document.createElement('canvas'); c.width = PW; c.height = PH;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, PW, PH); g.textBaseline = 'alphabetic';
+  await draw(g);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .85));
+  return { jpeg: new Uint8Array(await blob.arrayBuffer()), w: PW, h: PH, url: c.toDataURL('image/jpeg', .5) };
+}
+function coverPage(name, prog, items) {
+  return pageOf(g => {
+    g.fillStyle = '#1F4FB8'; g.fillRect(0, 0, PW, 16);
+    g.fillStyle = '#12233F'; g.font = '800 78px Sarabun'; g.fillText('แฟ้มสะสมผลงาน', PM, 300);
+    g.fillStyle = '#5B6B86'; g.font = '600 38px Sarabun'; g.fillText('Portfolio', PM, 360);
+    g.fillStyle = '#12233F'; g.font = '800 56px Sarabun'; g.fillText(name || 'ชื่อ-นามสกุล', PM, 560);
+    if (prog) { g.fillStyle = '#4A5A75'; g.font = '400 38px Sarabun'; g.fillText('สมัคร ' + prog, PM, 628); }
+    g.fillStyle = '#12233F'; g.font = '800 38px Sarabun'; g.fillText('สารบัญ', PM, 800);
+    g.font = '400 34px Sarabun';
+    items.forEach((it, i) => {
+      const y = 870 + i * 62;
+      g.fillStyle = catOf(it.cat)[2]; g.fillRect(PM, y - 22, 10, 10);
+      g.fillStyle = '#12233F'; g.fillText(lines(g, it.title || 'ไม่มีชื่อ', PW - PM * 2 - 140, 1)[0], PM + 30, y);
+      g.fillStyle = '#5B6B86'; g.textAlign = 'right'; g.fillText(String(i + 2), PW - PM, y); g.textAlign = 'left';
+    });
+    g.fillStyle = '#8592A8'; g.font = '400 26px Sarabun';
+    g.fillText('ทำจากคลังงาน StudentOS · ' + new Date().toLocaleDateString('th-TH', { dateStyle: 'long' }), PM, PH - 90);
+  });
+}
+function itemPage(it, no, name, pics) {
+  return pageOf(async g => {
+    const [, cname, color] = catOf(it.cat);
+    g.fillStyle = color; g.fillRect(0, 0, PW, 16);
+    g.fillStyle = color; g.font = '700 32px Sarabun'; g.fillText(cname, PM, 140);
+    g.fillStyle = '#12233F'; g.font = '800 58px Sarabun';
+    let y = 230; for (const l of lines(g, it.title || 'ไม่มีชื่อ', PW - PM * 2, 2)) { g.fillText(l, PM, y); y += 74; }
+    const meta = [it.date, it.role].filter(Boolean).join(' · ');
+    if (meta) { g.fillStyle = '#4A5A75'; g.font = '600 34px Sarabun'; g.fillText(lines(g, meta, PW - PM * 2, 1)[0], PM, y + 6); y += 70; }
+    if (it.desc) { g.fillStyle = '#12233F'; g.font = '400 33px Sarabun'; for (const l of lines(g, it.desc, PW - PM * 2, 9)) { y += 52; g.fillText(l, PM, y); } y += 30; }
+    const top = y + 30, h = PH - 150 - top, show = pics.slice(0, 2);
+    if (show.length === 1 && h > 200) await drawFit(g, show[0].blob, PM, top, PW - PM * 2, h);
+    if (show.length === 2 && h > 200) { const w = (PW - PM * 2 - 30) / 2; await drawFit(g, show[0].blob, PM, top, w, h); await drawFit(g, show[1].blob, PM + w + 30, top, w, h); }
+    g.fillStyle = '#8592A8'; g.font = '400 26px Sarabun'; g.fillText(name || '', PM, PH - 70);
+    g.textAlign = 'right'; g.fillText(String(no), PW - PM, PH - 70); g.textAlign = 'left';
+  });
+}
+/* ห่อภาพ JPEG เป็น PDF เอง: catalog → pages → (page · content · image) ต่อหน้า + ตาราง xref (บรรทัดละ 20 ไบต์ตามสเปก PDF) */
+function buildPdf(pages) {
+  const enc = new TextEncoder(), parts = [], off = [];
+  let len = 0;
+  const push = x => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+  const obj = (id, body) => { off[id] = len; push(id + ' 0 obj\n'); body(); push('\nendobj\n'); };
+  push('%PDF-1.4\n'); push(new Uint8Array([37, 226, 227, 207, 211, 10]));
+  obj(1, () => push('<< /Type /Catalog /Pages 2 0 R >>'));
+  obj(2, () => push(`<< /Type /Pages /Kids [${pages.map((_, i) => (3 + i * 3) + ' 0 R').join(' ')}] /Count ${pages.length} >>`));
+  pages.forEach((p, i) => {
+    const pid = 3 + i * 3, cs = `q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`;
+    obj(pid, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${pid + 2} 0 R >> >> /Contents ${pid + 1} 0 R >>`));
+    obj(pid + 1, () => push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`));
+    obj(pid + 2, () => { push(`<< /Type /XObject /Subtype /Image /Width ${p.w} /Height ${p.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>\nstream\n`); push(p.jpeg); push('\nendstream'); });
+  });
+  const xref = len, total = 3 + pages.length * 3;
+  let x = `xref\n0 ${total}\n0000000000 65535 f \n`;
+  for (let i = 1; i < total; i++) x += String(off[i]).padStart(10, '0') + ' 00000 n \n';
+  push(x + `trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: 'application/pdf' });
+}
+$('dGo').addEventListener('click', async () => {
+  const btn = $('dGo'); if (btn.disabled) return;
+  btn.disabled = true; btn.textContent = 'กำลังจัดหน้า…';
+  try {
+    await Promise.all(['800 78px Sarabun', '700 32px Sarabun', '600 34px Sarabun', '400 33px Sarabun'].map(f => document.fonts.load(f, 'ก')));
+    const items = sortForPdf(await allPort()).filter(i => pdfPick.has(i.id)), name = $('dName').value.trim(), prog = $('dProg').value.trim();
+    const pages = [await coverPage(name, prog, items)];
+    for (let i = 0; i < items.length; i++) {
+      btn.textContent = `กำลังจัดหน้า ${i + 2}/${items.length + 1}`;
+      pages.push(await itemPage(items[i], i + 2, name, (await photosOf('port:' + items[i].id)).sort((a, b) => a.at - b.at)));
+    }
+    const pdf = buildPdf(pages); window.__lastPdf = pdf;
+    $('dPv').src = pages[0].url; $('dPv').hidden = false;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(pdf); a.download = 'portfolio' + (name ? '-' + name.replace(/\s+/g, '-') : '') + '.pdf';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+    toast(`สร้างแล้ว · ${pages.length} หน้า · ${kb(pdf.size)}`);
+  } catch (err) { toast('สร้าง PDF ไม่สำเร็จ: ' + err.message); }
+  btn.disabled = false; btn.textContent = 'สร้าง PDF';
+});
 </script>
 </body>
 </html>

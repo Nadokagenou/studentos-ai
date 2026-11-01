@@ -991,7 +991,16 @@ function syncSetVals() {
     fxRow.hidden = !anyFx;
     if (anyFx && typeof doneFxPref === 'function') {
       const cur = doneFxPref();
-      put('setValFx', cur === 'confetti' ? 'เศษกระดาษ' : ((FX_SHOP[cur] && FX_SHOP[cur].name) || ''));
+      const fxName = cur === 'confetti' ? 'เศษกระดาษ' : ((FX_SHOP[cur] && FX_SHOP[cur].name) || '');
+      // 1 พ.ย. 69 · เจ้าของ (ภาพแถวธีมมีเม็ดยาสี แต่แถวเอฟเฟกต์มีแค่ชื่อ): "ให้เอฟเฟกต์หน้าธีมโชว์รูปเหมือนในปุ่มธีม"
+      // เม็ดยาแบบเดียวกับแถวธีม (.set-val-theme) · ช่องกลมเป็นไอคอนเอฟเฟกต์ตัวเดียวกับปุ่มในหน้าเลือก (fxIcon · hoop.js)
+      // เศษกระดาษไม่มีไอคอน → จุดสามสีแบบเดียวกับปุ่มในหน้าเลือก (.fx-sw-confetti)
+      const fxEl = document.getElementById('setValFx');
+      if (fxEl) {
+        const art = cur === 'confetti' || typeof fxIcon !== 'function' ? '' : fxIcon(cur);
+        fxEl.classList.add('set-val-theme', 'set-val-fx');
+        fxEl.innerHTML = `<span class="fx-sw${cur === 'confetti' ? ' fx-sw-confetti' : ''}">${art}</span><b>${esc(fxName)}</b>`;
+      }
     }
   }
 }
@@ -1438,10 +1447,18 @@ function adoptAccountIfNeeded(uid) {
     let bk = null;
     try { bk = JSON.parse(localStorage.getItem(ACCOUNT_BACKUP_PREFIX + uid) || 'null'); } catch (_) {}
     if (bk && bk.owner === uid && bk.state) {
-      const byId = {};
-      for (const t of bk.state.tasks || []) byId[t.id] = t;
-      for (const t of state.tasks || []) byId[t.id] = t;
-      state.tasks = Object.values(byId);
+      // ฐานซิงก์ของบัญชีกลับมาพร้อมคีย์ข้างล่าง — ทุกอย่างที่ฐานจำไว้ต้องกลับเข้าเครื่องด้วย (1 พ.ย. 69)
+      // เดิมคืนแค่งาน: พอร์ต · รอบจับเวลา · หมุด · ตั้งค่า ถูกอ่านว่า "เครื่องนี้ลบทิ้ง" แล้วล้างจากคลาวด์ (syncbench u)
+      // รายการรวมตาม id · ของที่ทำตอนไม่ล็อกอินชนะเมื่อ id ซ้ำ (กติกาเดิมของงาน)
+      for (const k of ['tasks', 'sessions', 'marks', 'portfolio']) {
+        if (!Array.isArray(bk.state[k]) && !Array.isArray(state[k])) continue;
+        const byId = {};
+        for (const x of bk.state[k] || []) if (x) byId[x.id] = x;
+        for (const x of state[k] || []) if (x) byId[x.id] = x;
+        state[k] = Object.values(byId);
+      }
+      // ตั้งค่าของบัญชีชนะ — ของเครื่องเปล่าคือค่าเริ่มต้น (ชื่อว่าง) ที่เขาไม่ได้ตั้ง · คีย์ที่มีแต่ฝั่งเครื่องเปล่าเก็บไว้
+      state.settings = Object.assign({}, state.settings, bk.state.settings);
       for (const [k, v] of Object.entries(bk.keys || {})) {
         try { if (localStorage.getItem(k) == null) localStorage.setItem(k, v); } catch (_) {}
       }
@@ -1451,6 +1468,8 @@ function adoptAccountIfNeeded(uid) {
       if (bk.ctx && empty && typeof ctxImport === 'function') ctxImport(bk.ctx);
       persistState();
     }
+    // คลังงาน (vault.js) · รูปที่ถ่ายไว้ก่อนล็อกอินอยู่ในเครื่องในชื่อ 'guest' — ย้ายเจ้าของตามงานไปบัญชีนี้
+    if (typeof vaultAdoptGuest === 'function') vaultAdoptGuest(uid);
     return 'same';
   }
   if (!stashAccount(prev)) return 'blocked';
@@ -1573,6 +1592,8 @@ async function syncFromCloud() {
   }
   // ส่งพังไม่ทำให้ส่วนที่เหลือหยุด — pushToCloud บอกผู้ใช้เองแล้ว (เหมือนเดิม)
   await pushToCloud(true);
+  // คลังงาน: รูปที่ค้างส่ง · คิวลบ · เก็บกวาดวันละครั้ง — ไม่รอ (ไฟล์ใหญ่กว่างานหลายร้อยเท่า)
+  if (typeof vaultSync === 'function') vaultSync();
   try {
     // ของที่บอท LINE หย่อนไว้ตอนแอปปิดอยู่ — ดึงมาทีเดียวตอนเปิด
     await loadLineLinks();
@@ -1634,7 +1655,7 @@ function syncBaseFrom(body) {
     return m;
   };
   return { uid: currentUser && currentUser.id, tasks: ids(body.tasks), sessions: ids(body.sessions),
-    marks: ids(body.marks), settings: keys(body.settings), ctx: body.ctx ? syncFp(body.ctx) : null };
+    marks: ids(body.marks), portfolio: ids(body.portfolio), settings: keys(body.settings), ctx: body.ctx ? syncFp(body.ctx) : null };
 }
 
 // ============================================================
@@ -1761,6 +1782,10 @@ async function cloudPull() {
     .slice(-SESSION_CAP);
   // หมุดปฏิทินรวมตาม id เหมือนงาน — ปักจากเครื่องไหนก็เป็นของจริงทั้งคู่
   state.marks = syncMergeById(state.marks, remote.marks, base && base.marks);
+  // พอร์ตของคลังงาน (vault.js · 1 พ.ย. 69) รวมตาม id แบบเดียวกับงาน
+  // ก้อนบนคลาวด์ที่ไม่มีช่อง portfolio เลย = ส่งมาจากแอปรุ่นที่ยังไม่รู้จักพอร์ต — ไม่ใช่ "อีกเครื่องลบหมด"
+  // คงของในเครื่องไว้ทั้งก้อน แล้วรอบส่งถัดไปพากลับขึ้นไปเอง (ไม่งั้นมือถือรุ่นเก่าเครื่องเดียวล้างพอร์ตทุกเครื่อง)
+  if (Array.isArray(remote.portfolio)) state.portfolio = syncMergeById(state.portfolio || [], remote.portfolio, base && base.portfolio);
   funnelMerge(remote.funnel);
   // สถานะ push ของเครื่องอื่น — เก็บไว้ส่งกลับขึ้นไปพร้อมของเครื่องนี้ (ดู pushDiagExport)
   if (remote.pushDiag && typeof remote.pushDiag === 'object') pushDiagRemote = remote.pushDiag;
@@ -1854,6 +1879,7 @@ function pushSnapshot() {
   const body = { tasks: localQuestParts?localQuestParts.tasks:state.tasks, settings: state.settings,
     sessions: localQuestParts?localQuestParts.sessions:state.sessions || [],
     marks: state.marks || [],
+    portfolio: state.portfolio || [],
     ctx: typeof ctxExport === 'function' ? ctxExport() : undefined,
     vault, push, funnel: funnelExport(),
     pushDiag: typeof pushDiagExport === 'function' ? pushDiagExport() : undefined };
@@ -3245,9 +3271,12 @@ function toolsGrid() {
     // ที่ว่างคืนให้ "กล่องเข้า" ซึ่งเป็นทางเข้าที่มีของรออยู่จริงและหายากกว่า
     ['inbox', 'กล่องเข้า', 'time', "go('scr-inbox')",
       (typeof inboxPending === 'function' ? inboxPending().length : 0) || '', true],
+    // 1 พ.ย. 69 · เจ้าของ (ภาพไทล์ 3×2): "เพิ่มมาอีกสองปุ่ม ปุ่มอันดับกับปุ่มคลังงานใหม่" → 8 ไทล์ 4×2 · สถิติอยู่ต่อ
+    ['trophy', 'อันดับ', 'in', "openBoard('scr-menu')", '', false],
     ['chart', 'สถิติ', 'me', "go('scr-stats')", '', false],
     ['medal', 'ของสะสม', 'me', "go('scr-badges')", '', false],
     ['bag', 'ร้านค้า', 'me', "go('scr-shop')", gift ? ' ' : '', true, 'shop'],
+    ['archive', 'คลังงาน', 'me', "openVault('scr-menu')", '', false, 'vault'],   // vault.js · ปิดได้ใน Feature Manager
   ].filter(t => !t[6] || typeof sosFeature !== 'function' || sosFeature(t[6]))
     // 24 ต.ค. 69 · หน้าแรกแบบใหม่ถอดสามก้อนที่มีทางเข้าอื่นอยู่แล้วบนจอเดียวกัน — ไทล์เหลือแถวเดียว
     //   สแกนตารางเรียน → การ์ดตั้งค่าครั้งเดียวเหนือไทล์ โผล่เฉพาะตอนยังไม่มีตารางเรียน (setupCard) · ป้าย ! ไม่ค้างตลอดไปอีก
@@ -3268,7 +3297,7 @@ function toolsGrid() {
         <span class="ts-go">${icon('chevron')}</span>
       </button>` : '';
   return `${setup}<section class="td-tiles">
-    <div class="tg-grid" style="--tg-n:${tiles.length};--tg-cols:${tiles.length === 6 ? 3 : tiles.length}">
+    <div class="tg-grid" style="--tg-n:${tiles.length};--tg-cols:${tiles.length > 5 ? Math.ceil(tiles.length / 2) : tiles.length}">
       ${tiles.map(([ic, lb, tone, act, ct, hot]) => `<button class="tg-t tone-${tone}" onclick="${act}">
         <span class="tg-ic">${icon(ic)}${ct !== '' ? `<i class="tg-ct${hot ? ' hot' : ''}${
           ct === ' ' ? ' dot' : ''}">${String(ct).trim()}</i>` : ''}</span>
@@ -7839,12 +7868,14 @@ async function purgeTask(id) {
   const t = state.tasks.find(x => x.id === id);
   if (!t) return;
   if (!(await appConfirm({ title: 'ลบงานนี้ถาวร?', body: 'กู้คืนไม่ได้อีก', ok: 'ลบถาวร', danger: true }))) return;
+  if (typeof vaultForgetTasks === 'function') vaultForgetTasks([t]);   // รูปในคลังงานของงานนี้หายตาม (vault.js)
   state.tasks = state.tasks.filter(x => x.id !== id);
   save(); renderAll();
 }
 async function emptyBin() {
   const n = state.tasks.filter(t => t.deleted).length;
   if (!n || !(await appConfirm({ title: `ลบถาวรทั้ง ${n} รายการ?`, body: 'กู้คืนไม่ได้อีก', ok: 'ล้างถังขยะ', danger: true }))) return;
+  if (typeof vaultForgetTasks === 'function') vaultForgetTasks(state.tasks.filter(t => t.deleted));
   state.tasks = liveTasks();
   save();
   setFilter('pending');
@@ -7853,9 +7884,13 @@ async function emptyBin() {
 // ล้างของที่นอนในถังขยะเกิน 30 วันทิ้งอัตโนมัติ (เรียกตอนเปิดแอป)
 function purgeOldTrash() {
   const cut = Date.now() - 30 * 8.64e7;
-  const before = state.tasks.length;
-  state.tasks = state.tasks.filter(t => !(t.deleted && t.deletedAt && new Date(t.deletedAt) < cut));
-  if (state.tasks.length !== before) save();
+  const old = t => t.deleted && t.deletedAt && new Date(t.deletedAt) < cut;
+  const gone = state.tasks.filter(old);
+  if (!gone.length) return;
+  // รูปในคลังงานของงานพวกนี้หายตาม · เปิดแอปตอนยังไม่ได้ล็อกอิน = ลบได้แค่ในเครื่อง ไฟล์บนคลาวด์ถูกเก็บกวาดทีหลัง (vaultSweep)
+  if (typeof vaultForgetTasks === 'function') vaultForgetTasks(gone);
+  state.tasks = state.tasks.filter(t => !old(t));
+  save();
 }
 
 // ---------- เส้นเวลา (แกนตั้ง) ----------
@@ -8856,6 +8891,7 @@ function renderProfile() {
   // บรรทัดรองต้องบอก "ค่าที่ตั้งไว้" ไม่ใช่คำโฆษณาของแถว — นี่คือเหตุผลเดียวที่แถวนี้
   // ไม่ใช่ทางเข้าซ้ำกับปุ่ม "แก้ไขโปรไฟล์" · คนอ่านผ่านแล้วรู้เลยว่าตั้งไว้ว่าอะไร
   // ไม่ต้องกดเข้าไปดู (เกณฑ์เดียวกับแถว "บริบทของฉัน" ที่บอก % ไว้บนแถว)
+  if (typeof vaultPaintRow === 'function') vaultPaintRow();   // แถว "คลังงาน" (vault.js)
   const pj = document.getElementById('peSubjCt');
   if (pj && typeof socialState === 'function') {
     const ss = socialState();
@@ -13655,12 +13691,14 @@ function renderFocus() {
         <span class="fs-min mono">${s.min}น</span>
       </button>`).join('')}
     </div>` : ''}
+    ${typeof vaultFocusPeek === 'function' ? vaultFocusPeek(t) : ''}
 
     <div class="fc-act">
       <button class="fc-done" onclick="finishFocus()">${icon('check')}ทำเสร็จแล้ว</button>
       <button class="fc-pause" onclick="closeFocus(false)">${icon('pause')}พักก่อน</button>
     </div>
   </div>`;
+  if (typeof vaultHydrate === 'function') vaultHydrate(wrap);   // รูปโจทย์ในแถวดูโจทย์ (vault.js)
   tickFocus();
 }
 
@@ -13758,6 +13796,7 @@ function finishFocus() {
     <div class="fw-act">
       <button class="fc-go" onclick="startFocus('${nxt.task.id}')">${icon('play')}ทำต่อเลย</button>
       <button class="fc-later" onclick="closeFocus(true)">พอแค่นี้ก่อน</button>
+      ${typeof vaultDoneOffer === 'function' ? vaultDoneOffer(t) : ''}
     </div>` : `<div class="fw-next">
       <span class="fw-lb">ไม่เหลืองานค้างแล้ว</span>
       <b>วันนี้พักได้เต็มที่</b>
@@ -13765,6 +13804,7 @@ function finishFocus() {
     </div>
     <div class="fw-act">
       <button class="fc-go" onclick="closeFocus(true)">กลับหน้าแรก</button>
+      ${typeof vaultDoneOffer === 'function' ? vaultDoneOffer(t) : ''}
     </div>`}
   </div>`;
   // เอฟเฟกต์ "โยนลงห่วง" ลอยทับจอฉลองนี้ — ปิดแล้วค่อยพ่นเศษกระดาษจากวงติ๊กตามเดิม

@@ -6239,6 +6239,22 @@ body.deep-scr .top-friends { display: none; }
   box-shadow: 0 0 0 2px var(--card), 0 0 10px -2px var(--fill);
 }
 .set-val-theme b { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+/* 1 พ.ย. 69 · แถว "เอฟเฟกต์ตอนงานเสร็จ" ใช้เม็ดยาเดียวกับแถวธีม — ช่องกลมเป็นไอคอนเอฟเฟกต์แทนช่องสีธีม
+   พื้นช่องสีพีชเดียวกับปุ่มในหน้าเลือก (.th-grid .sw.fx-sw ใน hoop.css) · รูป Halloween (img) เต็มช่อง · SVG ของเกม 14px */
+.set-val-fx .fx-sw {
+  flex: none; width: 22px; height: 22px; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center; background: #FFF1E6;
+  box-shadow: 0 0 0 2px var(--card), 0 0 10px -2px var(--fill);
+}
+.set-val-fx .fx-sw svg { width: 14px; height: 14px; }
+.set-val-fx .fx-sw img { width: 100%; height: 100%; object-fit: cover; }
+.set-val-fx .fx-sw.fx-sw-confetti {
+  background:
+    radial-gradient(circle at 30% 30%, #E03A2F 2px, transparent 2.5px),
+    radial-gradient(circle at 70% 40%, #2C9C57 2px, transparent 2.5px),
+    radial-gradient(circle at 45% 72%, #EFAE0B 2px, transparent 2.5px),
+    var(--card);
+}
 .set-row.danger .set-lb { color: var(--alert); }
 .set-row.danger .set-ic { background: var(--alert-soft); color: var(--alert); }
 

@@ -36,6 +36,7 @@ ${block}
   syncFromCloud, pushToCloud, cloudPull, syncSerial, syncFp, save() { pushToCloud(); }, get renders() { return renders; },
   setCtx(c) { ctxStore = c; }, get ctx() { return ctxStore; }, toasts,
   resetMemory() { syncBase = null; lastSeenRev = -1; lastPushedHash = ''; },
+  leaveAccount: typeof leaveAccount === 'function' ? leaveAccount : () => {},
   baseDiag: typeof baseDiag === 'function' ? baseDiag : () => ({}) })`;
 const lsStore = {};
 const localStorage = { getItem: k => (k in lsStore ? lsStore[k] : null), setItem: (k, v) => { lsStore[k] = String(v); },
@@ -237,6 +238,60 @@ const results = []; const check = (name, ok, info) => results.push(`${ok ? 'PASS
   check('q: device diag reports the remembered base', dg.base === app.state.tasks.length && dg.baseOk === true, JSON.stringify(dg) + ' tasks=' + app.state.tasks.length);
   app.state = { tasks: [], settings: {}, sessions: [], marks: [] }; app.resetMemory();
   check('q: device diag says the base will not be used when local tasks are gone', app.baseDiag().baseOk === false, JSON.stringify(app.baseDiag()));
+
+  // (r) คลังงาน (1 พ.ย. 69) — รายการรูป (t.files) อยู่ในงาน จึงซิงก์ด้วยกติกาเดิม ไม่ต้องมีทางพิเศษ
+  delete lsStore['studentos.alt.owner']; app.resetMemory();
+  app.setUser({ id: 'u-v' }); app.state = { tasks: [mk('v1', 'มีรูป'), mk('v2', 'ไม่มีรูป')], settings: {}, sessions: [], marks: [] };
+  cloud.row = mkCloud([mk('v1', 'มีรูป'), mk('v2', 'ไม่มีรูป')]);
+  await app.syncFromCloud(); await wait(50);
+  app.state.tasks.find(t => t.id === 'v1').files = [{ id: 'fa', kind: 'q', w: 10, h: 10, bytes: 5, at: 1, up: true }];
+  let cv = cloud.row; cv.data.tasks.find(t => t.id === 'v2').detail = 'แก้จากอีกเครื่อง'; cv.rev++;
+  log.length = 0; app.save(); await wait(1700);
+  const cv1 = cloud.row.data.tasks.find(t => t.id === 'v1'), cv2 = cloud.row.data.tasks.find(t => t.id === 'v2');
+  check('r: รูปที่เพิ่มในเครื่องนี้ขึ้นคลาวด์ไปกับงาน', !!(cv1 && cv1.files && cv1.files[0].id === 'fa'), JSON.stringify(cv1 && cv1.files));
+  check('r: งานที่อีกเครื่องแก้ (เครื่องนี้ไม่ได้แตะ) ไม่ถูกทับ', !!(cv2 && cv2.detail === 'แก้จากอีกเครื่อง'), cv2 && cv2.detail);
+
+  // (s) พอร์ต (1 พ.ย. 69) — state.portfolio รวมข้ามเครื่องตาม id แบบเดียวกับงาน
+  delete lsStore['studentos.alt.owner']; app.resetMemory();
+  const pi = (id, title) => ({ id, cat: 'project', title, date: '', role: '', desc: '', at: 1 });
+  app.setUser({ id: 'u-p' }); app.state = { tasks: [], settings: {}, sessions: [], marks: [], portfolio: [pi('pa', 'ค่าย')] };
+  cloud.row = { rev: 1, data: jsonbify({ tasks: [], settings: {}, portfolio: [pi('pa', 'ค่าย')] }), avatar: null };
+  await app.syncFromCloud(); await wait(50);
+  cloud.row.data.portfolio.push(pi('pb', 'จิตอาสา (จากอีกเครื่อง)')); cloud.row.rev++;
+  app.state.portfolio.push(pi('pc', 'เกียรติบัตร (เครื่องนี้)'));
+  log.length = 0; app.save(); await wait(1700);
+  const pids = arr => (arr || []).map(x => x.id).sort().join(',');
+  check('s: ผลงานจากสองเครื่องรวมกันทั้งบนคลาวด์และในเครื่อง', pids(cloud.row.data.portfolio) === 'pa,pb,pc' && pids(app.state.portfolio) === 'pa,pb,pc',
+    pids(cloud.row.data.portfolio) + ' | ' + pids(app.state.portfolio));
+  // (t) เครื่องที่ยังเป็นแอปรุ่นเก่าส่งก้อนที่ไม่มีช่อง portfolio — ต้องไม่ถูกตีความว่า "อีกเครื่องลบทิ้งหมด"
+  delete cloud.row.data.portfolio; cloud.row.rev++;
+  app.state.tasks.push(mk('pt', 'งานใหม่')); log.length = 0; app.save(); await wait(1700);
+  check('t: แอปรุ่นเก่าที่ไม่รู้จักพอร์ต ไม่ทำให้พอร์ตในเครื่องนี้หาย', pids(app.state.portfolio) === 'pa,pb,pc', pids(app.state.portfolio));
+  check('t: รอบส่งถัดไปพาพอร์ตกลับขึ้นคลาวด์', pids(cloud.row.data.portfolio) === 'pa,pb,pc', pids(cloud.row.data.portfolio));
+
+  // (u) ออกจากระบบแล้วล็อกอินบัญชีเดิมกลับ (1 พ.ย. 69 · เจ้าของ: "เปลี่ยนแอคได้และข้อมูลยังอยู่")
+  // ทางนี้คือทางสลับบัญชีปกติจากหน้าจอ: ออก (leaveAccount) → ล็อกอิน (adoptAccountIfNeeded ทาง !prev)
+  // ฐานซิงก์ของบัญชีกลับมาจากที่สำรอง — ของที่ไม่ได้คืนเข้าเครื่องด้วยจะดูเหมือน "เครื่องนี้ลบทิ้ง" แล้วถูกล้างจากคลาวด์
+  delete lsStore['studentos.alt.owner']; app.resetMemory();
+  const mine = () => ({ tasks: [mk('l1', 'งานของฉัน')], settings: { name: 'วิน', freeHours: 3 },
+    sessions: [{ id: 'ls1', start: '2026-11-01T08:00:00Z', end: '2026-11-01T08:25:00Z' }], marks: [{ id: 'lm1', date: '2026-11-05' }],
+    portfolio: [pi('lp1', 'ค่ายวิทย์')] });
+  app.setUser({ id: 'u-lo' }); app.state = mine();
+  cloud.row = { rev: 1, data: jsonbify(mine()), avatar: null };
+  await app.syncFromCloud(); await wait(50);
+  // logout(): ส่งของค้าง → signOut → leaveAccount → ล้างความจำซิงก์
+  app.leaveAccount(); app.setUser(null); app.resetMemory();
+  check('u: ออกจากระบบแล้วเครื่องเปล่า', app.state.tasks.length === 0 && !(app.state.portfolio || []).length, JSON.stringify(app.state));
+  app.setUser({ id: 'u-lo' });
+  await app.syncFromCloud(); await wait(50);
+  const lo = app.state, lc = cloud.row.data;
+  check('u: ล็อกอินกลับ → พอร์ตอยู่ครบทั้งในเครื่องและบนคลาวด์', pids(lo.portfolio) === 'lp1' && pids(lc.portfolio) === 'lp1',
+    pids(lo.portfolio) + ' | ' + pids(lc.portfolio));
+  check('u: ล็อกอินกลับ → หมุดปฏิทินกับรอบจับเวลาอยู่ครบ', pids(lo.marks) === 'lm1' && pids(lo.sessions) === 'ls1'
+    && pids(lc.marks) === 'lm1' && pids(lc.sessions) === 'ls1', [pids(lo.marks), pids(lo.sessions), pids(lc.marks), pids(lc.sessions)].join(' | '));
+  check('u: ล็อกอินกลับ → ตั้งค่า (ชื่อ · ชั่วโมงว่าง) ไม่ถูกล้าง', lo.settings.name === 'วิน' && lo.settings.freeHours === 3
+    && lc.settings.name === 'วิน', JSON.stringify([lo.settings, lc.settings]));
+  check('u: ล็อกอินกลับ → งานอยู่ครบ (ของเดิม)', pids(lo.tasks) === 'l1' && pids(lc.tasks) === 'l1', pids(lo.tasks) + ' | ' + pids(lc.tasks));
 
   console.log(results.join('\n'));
   console.log(`\n${results.filter(r => r.startsWith('PASS')).length}/${results.length} passed`);

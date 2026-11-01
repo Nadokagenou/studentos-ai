@@ -146,6 +146,7 @@
   <link rel="stylesheet" href="board.css">
   <link rel="stylesheet" href="custom.css">
   <link rel="stylesheet" href="classrooms.css">
+  <link rel="stylesheet" href="vault.css">
   <link rel="stylesheet" href="halloween/invite-friend/invite-friend.css">
   <link rel="stylesheet" href="desktop.css" media="(min-width:1025px) and (hover:hover) and (pointer:fine)">
   <link rel="stylesheet" href="device-preview-controls.css">
@@ -456,6 +457,7 @@
     <g id="lu-coffee" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2M14 2v2M6 2v2"></path><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h14a4 4 0 1 1 0 8h-1"></path></g>
     <g id="lu-calendar" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect width="18" height="18" x="3" y="4" rx="2"></rect><path d="M3 10h18"></path><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path></g>
     <g id="lu-check-circle" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.801 10A10 10 0 1 1 17 3.335"></path><path d="m9 11 3 3L22 4"></path></g>
+    <g id="lu-archive" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"></rect><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"></path><path d="M10 12h4"></path></g>
     <g id="lu-book" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></g>
     <g id="lu-pencil" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"></path><path d="m15 5 4 4"></path></g>
 
@@ -1681,6 +1683,13 @@
               <em class="pe-v" id="peSubjCt"></em>
               <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
             </button>
+            <!-- 1 พ.ย. 69 · คลังงาน — รูปโจทย์ งานที่ทำเสร็จ โน้ต และพอร์ต · บรรทัดรองบอกจำนวนรูป (vaultPaintRow) -->
+            <button class="pe" id="peVault" onclick="openVault('scr-profile')">
+              <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#lu-archive"/></svg></span>
+              <span class="pe-tx"><b>คลังงาน</b></span>
+              <em class="pe-v" id="peVaultCt"></em>
+              <svg class="pe-go" viewBox="0 0 24 24"><use href="#lu-chevron"/></svg>
+            </button>
             <button class="pe" onclick="openDmInbox('scr-profile')">
               <span class="pe-ic"><svg viewBox="0 0 24 24"><use href="#sf-chat"/></svg></span>
               <span class="pe-tx"><b>ข้อความ<span class="pe-n" id="peDmN" hidden></span></b></span>
@@ -1761,6 +1770,52 @@
            (ส่งทันกำหนด · แยกตามวิชา · ช่วงเวลาที่ทำงานได้ดี) ย้ายมาอยู่ที่นี่
            เพราะมันเป็นของที่คนเข้ามาดูตอนอยากรู้ ไม่ใช่ของที่ต้องเลื่อนผ่านทุกครั้ง
            วาดจาก renderStatFull() -->
+      <!-- ============ SCREEN: คลังงาน (vault.js · 1 พ.ย. 69) ============
+           เข้าได้จากไทล์หน้าแรกกับแถวในแท็บ "ฉัน" · เนื้อในวาดจาก renderVault() / renderVaultTask() -->
+      <div class="screen flush" id="scr-vault">
+        <div class="scr-body pf-body vt-body">
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title">คลังงาน</h2><p class="sh-sub" id="vtSum"></p></div>
+            <button class="sh-btn" onclick="vaultBack()" aria-label="กลับ">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="vtTop"></div>
+          <div id="vtBody"></div>
+        </div>
+      </div>
+      <div class="screen flush" id="scr-vault-task">
+        <div class="scr-body pf-body vt-body">
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title" id="vtTaskTitle">งาน</h2></div>
+            <button class="sh-btn" onclick="renderVault();go('scr-vault')" aria-label="กลับไปคลังงาน">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="vtTask"></div>
+          <button type="button" class="btn primary vt-cta" id="vtStart" onclick="startFocus(vaultTaskId)">เริ่มทำ</button>
+        </div>
+      </div>
+
+      <!-- คลังงาน · พอร์ต (vault.js งาน 8): แก้ผลงาน · ทำ PDF -->
+      <div class="screen flush" id="scr-vault-item">
+        <div class="scr-body pf-body vt-body">
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title">ผลงาน</h2><p class="sh-sub" id="vtItemSaved"></p></div>
+            <button class="sh-btn" onclick="portBack()" aria-label="กลับไปพอร์ต">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="vtItem"></div>
+        </div>
+      </div>
+      <div class="screen flush" id="scr-vault-pdf">
+        <div class="scr-body pf-body vt-body">
+          <div class="sticky-head row sh-inline">
+            <div><h2 class="sh-title">ทำ PDF พอร์ต</h2></div>
+            <button class="sh-btn" onclick="portBack()" aria-label="กลับไปพอร์ต">
+              <svg viewBox="0 0 24 24"><use href="#lu-chevron"/></svg></button>
+          </div>
+          <div id="vtPdf"></div>
+        </div>
+      </div>
       <div class="screen flush" id="scr-stats">
         <div class="scr-body pf-body">
           <div class="sticky-head row sh-inline">
@@ -2486,6 +2541,11 @@
     <!-- โหมดโฟกัส — ทับทุกอย่างรวมถึงแถบล่าง เพราะระหว่างทำงานอยู่
          "ไปหน้าอื่น" ไม่ใช่สิ่งที่เราอยากให้ทำได้ง่าย · เนื้อในวาดจาก renderFocus() -->
     <div class="focus-wrap" id="focusWrap" hidden></div>
+    <!-- คลังงาน: แผ่นเพิ่มรูป · ตัวดูรูปเต็มจอ (z 93 เหนือโหมดโฟกัส ให้ "ดูโจทย์" เปิดทับได้) · ช่องเลือกไฟล์ซ่อน -->
+    <div class="vt-layer" id="vtSheet" hidden></div>
+    <div class="vt-layer" id="vtViewer" hidden></div>
+    <input type="file" id="vtPick" accept="image/*" multiple hidden>
+    <input type="file" id="vtCam" accept="image/*" capture="environment" hidden>
 
     <!-- แผ่นเลือกวิธีเพิ่มงาน (ปุ่ม + บนแถบล่าง) — วาดจาก openAddSheet()
          เป็นแผ่นเลื่อนขึ้น ไม่ใช่จอใหม่ เพราะการเพิ่มงานควรจบโดยไม่ต้องออกจากคำตอบที่กำลังดูอยู่ -->
@@ -2678,13 +2738,14 @@
 const noop=()=>null,deny=()=>false,unavailable=()=>{window.showToast?.({title:'เชื่อมต่อบัญชีเพื่อใช้รางวัล',body:'งานยังบันทึกได้ ยอดและของเดิมจะกลับมาเมื่อออนไลน์'});return null;},empty=()=>[],locked=new Set(['earth','ocean','magic','galaxy','meta','glitch','warm','space','deepocean','earth2','sweet','genesis','astral','thai-ghost']);
 window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0}),document:noop,vault:noop,roomOwned:empty,available:empty,admin:deny,ownsBadge:deny,ownsTheme:id=>locked.has(id)?false:null,daily:unavailable,paySpin:()=>{unavailable();return {ok:false,storage:true};},flip:noop,clearDraw:noop,buyTheme:unavailable,craftTheme:unavailable,buyFx:unavailable,roomBuy:unavailable,unlockSecret:unavailable,redeem:unavailable,adminGrant:unavailable,claimInvite:noop,feedback:noop,board:noop,startTask:noop,finishTask:noop,focusTick:noop});})();
 </script>
+<script src="vault.js"></script>
 <script src="app.js"></script>
 <script src="halloween/rewards/account-store.js?rev=signed-out-20261028"></script>
 <script src="economy/focus-checkpoints.js?rev=secure-20261026"></script>
 <script src="halloween/rewards/entitlements.js?rev=account-rights-20261026"></script>
 <script src="halloween/death-quest-main.js?rev=secure-rewards-20261026"></script>
 <link rel="stylesheet" href="halloween/death-quest-main.css">
-<script src="halloween/study-pact-main.js?rev=card-spot-20261031"></script>
+<script src="halloween/study-pact-main.js?rev=card-below-search2-20261101"></script>
 <link rel="stylesheet" href="halloween/study-pact-main.css?rev=card-look-20261031">
 <script src="desktop-entry.js"></script>
 <script src="halloween/rewards/theme-main.js?rev=switch-20261026"></script>

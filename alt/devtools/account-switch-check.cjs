@@ -102,6 +102,25 @@ if (block) {
     check('ยังไม่มีเจ้าของ → งานที่ทำก่อนล็อกอินตามไป', d.c.adoptAccountIfNeeded(B) === 'same' && d.c.__s().tasks.length === 1, JSON.stringify(d.c.__s()));
     check('ยังไม่มีเจ้าของ → ห้ามส่งจนรวมกับ cloud เสร็จ', d.c.cloudWritableFor(B) === false, 'อนุญาตให้ส่ง');
   }
+  // 4b) คลังงาน (1 พ.ย. 69) — รายการรูปอยู่ในงาน จึงไปกับบัญชีเอง · รูปในเครื่องของคนที่ยังไม่ล็อกอินต้องย้ายเจ้าของตาม (vault.js)
+  {
+    const d = device({});
+    fill(d, 'guest');
+    const calls = []; d.box.vaultAdoptGuest = uid => { calls.push(uid); };
+    d.c.adoptAccountIfNeeded(B);
+    check('คลังงาน: ใช้แบบไม่ล็อกอินแล้วล็อกอิน = ย้ายเจ้าของรูปในเครื่องไปบัญชีนั้น', calls.length === 1 && calls[0] === B, JSON.stringify(calls));
+  }
+  {
+    const d = device({ 'studentos.alt.owner': A });
+    fill(d, A);
+    d.c.__s().tasks[0].files = [{ id: 'fA', kind: 'q', up: true }];
+    const calls = []; d.box.vaultAdoptGuest = uid => { calls.push(uid); };
+    d.c.adoptAccountIfNeeded(B);
+    check('คลังงาน: สลับ A → B รายการรูปของ A ไม่ติดมา · ไม่ย้ายเจ้าของรูป', !JSON.stringify(d.c.__s()).includes('fA') && !calls.length, JSON.stringify(d.c.__s()));
+    d.c.setLocalOwner(B);
+    d.c.adoptAccountIfNeeded(A);
+    check('คลังงาน: สลับกลับ A รายการรูปกลับมาครบ', (d.c.__s().tasks[0].files || [])[0]?.id === 'fA', JSON.stringify(d.c.__s()));
+  }
   // 5) เครื่องเต็ม สำรองไม่ลง → ไม่สลับ ไม่ล้าง ไม่ส่ง
   {
     const d = device({ 'studentos.alt.owner': A });
@@ -131,6 +150,25 @@ if (block) {
     check('A ล็อกอินกลับ → ได้งาน · โทเคน · ตารางของ A คืนครบ', d.c.__s().tasks.some(t => t.id === 't-' + A)
       && JSON.parse(d.store['studentos.alt.tokens'] || '{}').bal === 100 && d.box.ctxNow && d.box.ctxNow.kind === 'ตารางของ ' + A,
       JSON.stringify([d.c.__s().tasks, d.store['studentos.alt.tokens'], d.box.ctxNow]));
+  }
+  // 6b) ออกแล้วล็อกอินกลับ = ทางสลับบัญชีปกติจากหน้าจอ (1 พ.ย. 69 · เจ้าของ: "เปลี่ยนแอคได้และข้อมูลยังอยู่")
+  // ฐานซิงก์ (SYNC_BASE_KEY) กลับมาจากที่สำรอง — ของทุกอย่างที่ฐานจำไว้ต้องกลับเข้าเครื่องด้วย
+  // ไม่งั้นรอบรวมกับคลาวด์อ่านว่า "เครื่องนี้ลบทิ้ง" แล้วล้างจากคลาวด์ (syncbench u)
+  {
+    const d = device({ 'studentos.alt.owner': A });
+    fill(d, A);
+    d.c.__s().portfolio = [{ id: 'p-' + A, title: 'ผลงานของ ' + A }];
+    d.c.__s().settings.freeHours = 3;
+    d.c.leaveAccount();
+    // ระหว่างออก เครื่องเปล่ามีของใหม่หนึ่งชิ้น — ต้องไม่หายและไม่ทับของบัญชี
+    d.c.__s().marks = [{ id: 'm-guest' }];
+    d.c.adoptAccountIfNeeded(A);
+    const s = d.c.__s(), ids = arr => (arr || []).map(x => x.id).sort().join(',');
+    check('ออกแล้วล็อกอินกลับ → พอร์ตของบัญชีกลับมา', ids(s.portfolio) === 'p-' + A, ids(s.portfolio));
+    check('ออกแล้วล็อกอินกลับ → รอบจับเวลากลับมา', ids(s.sessions) === 's-' + A, ids(s.sessions));
+    check('ออกแล้วล็อกอินกลับ → หมุดของบัญชีกลับมา และหมุดที่ปักตอนออกอยู่ด้วย', ids(s.marks) === ['m-guest', 'm-' + A].sort().join(','), ids(s.marks));
+    check('ออกแล้วล็อกอินกลับ → ตั้งค่าของบัญชีกลับมา (ไม่ใช่ชื่อว่างของเครื่องเปล่า)', s.settings.name === A && s.settings.freeHours === 3,
+      JSON.stringify(s.settings));
   }
 }
 
