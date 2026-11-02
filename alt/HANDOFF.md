@@ -1,3 +1,5 @@
+> 2 พ.ย. เจ้าของสั่งขึ้น ALT ก่อน: อ่าน docs/TASK-DETAILS-20261102.md เพิ่มรายละเอียดและรูปในฟอร์ม ใช้ note/files และ studentos-files ของคลังเดิม รูปสแกนแนบหลังครอปเมื่อบันทึก รูปใหม่ localOnly ไม่อัปโหลด คง1C60/คีย์/เว็บหลัก แคช task-details-20261102 ตรวจ browser fixture25 + adapter8 + vault33 + sync46 + account40 + SW14 ไม่เรียก Supabase/OCR จริง
+
 > 28 ต.ค. หน้าหลักหน้าตาเหมือน ALT ตามคำสั่งผู้ใช้: อ่าน ../devtools/MAIN-ALT-UI-20261028.md ปรับ root frontend/ฉากโหลด/ธีม/ตรา/อีเวนต์/ฉากรางวัล ใช้ไฟล์รางวัลร่วมใน alt/halloween/ คง main notifications=true และ config/manifest/ตัวเชื่อม/เซิร์ฟเวอร์เดิม113ไฟล์ คง1C60 สคริปต์ sync-to-root.py ยังปิดอยู่ ใช้ main-ui-parity.py เฉพาะ UI ที่ระบุ ก่อนส่งเว็บต้องมีคำสั่งผู้ใช้ตาม AGENTS
 
 > 27 ต.ค. นักเดินทางมือถือ: experience.css เคยใช้ #fff01a เป็นพื้นทึบเหลืองสด แก้พื้นม่วง/contrast และ grid minmax(0,1fr) กับ min-width:0 ป้องกันเนื้อหาดัน dialog กว้าง ปรับ header wrap ใน dungeon-ui.css คงกติกา/เพลง/เซฟ/1C60 หลักฐาน halloween/docs/visitor-fix-20261027.md และ contrast regression ใน palette.test.mjs

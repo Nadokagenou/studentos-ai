@@ -179,7 +179,7 @@ function vaultSync() {
 async function vaultUploadPending(uid) {
   const bucket = sb.storage.from(VAULT_BUCKET);
   for (const h of vaultHolders()) for (const m of vaultFiles(h).slice()) {
-    if (m.up) continue;
+    if (m.up || m.localOnly) continue;
     const rec = await VaultStore.getBlob(m.id);
     if (!rec || rec.owner !== uid) continue;            // อีกเครื่องถ่ายไว้ (ยังไม่ส่งจากเครื่องนั้น) หรือของบัญชีอื่น
     let ok = false;
@@ -411,7 +411,7 @@ function openVaultTask(id, hiKind) {
 function renderVaultTask(hiKind) {
   const box = document.getElementById('vtTask'), t = vaultFindHolder(vaultTaskId);
   if (!box || !t) return;
-  const now = new Date(), fs = vaultFiles(t), wait = fs.filter(m => !m.up).length;
+  const now = new Date(), fs = vaultFiles(t), wait = fs.filter(m => !m.up && !m.localOnly).length, local = fs.filter(m => m.localOnly).length;
   const ttl = document.getElementById('vtTaskTitle');
   if (ttl) ttl.textContent = t.subject || 'งาน';
   box.innerHTML = `<div class="vt-hub ${typeof subjClass === 'function' ? subjClass(t.subject) : ''}"><span class="vt-chipsj"><i></i>${vEsc(t.subject || 'ไม่มีวิชา')}</span>`
@@ -428,7 +428,7 @@ function renderVaultTask(hiKind) {
     }).join('')
     + `<div class="vt-rc-card" data-c="#E5484D"><div class="vt-h"><i style="background:#E5484D"></i>จดไว้<small class="vt-saved" id="vtSaved">บันทึกแล้ว ✓</small></div>`
     + `<textarea class="vt-note" id="vtNote" rows="3" placeholder="แตะเพื่อจด เช่น ข้อ 7 ถามครูก่อน">${vEsc(t.note || '')}</textarea></div></div>`
-    + `<p class="vt-store">${fs.length ? `เก็บแล้ว ${fs.length} รูป${wait ? ` · รอส่ง ${wait} รูป` : ' · ขึ้นคลาวด์ครบ'}` : ''}</p>`
+    + `<p class="vt-store">${fs.length ? `เก็บแล้ว ${fs.length} รูป${wait ? ` · รอส่ง ${wait} รูป` : ''}${local ? ` · เฉพาะเครื่องนี้ ${local} รูป` : wait ? '' : ' · ขึ้นคลาวด์ครบ'}` : ''}</p>`
     // งานที่ทำเสร็จแล้ว → ส่งเข้าพอร์ตได้ (งาน 8) · เหรียญไม่ใช่ดาว — ทองไว้ของที่สำเร็จจริงเท่านั้น
     + (t.done && vaultOn() ? `<button type="button" class="btn secondary vt-toport" data-ptask>${vIcon('medal')}ส่งเข้าพอร์ต</button>` : '');
   const cta = document.getElementById('vtStart');

@@ -175,6 +175,15 @@ async function check(label, fn) {
     assert.equal(t.files[0].up, false);
   });
 
+  await check('รูปจากฟอร์มที่ระบุเฉพาะเครื่องต้องไม่อัปโหลดเมื่อคลังซิงก์', async () => {
+    const sb = fakeSb(), t = { id: 't1', files: [{ id: 'local-photo', kind: 'q', up: false, localOnly: true }] }, { C, st } = world({ tasks: [t], sb });
+    st.blobs.set('local-photo', { id: 'local-photo', owner: 'u1', blob: blob(), pending: false, localOnly: true });
+    await C.vaultSync();
+    assert.equal(sb.log.upload.length, 0);
+    assert.equal(t.files[0].up, false);
+    assert.ok(await C.vaultLocalBlob('local-photo'));
+  });
+
   await check('คลังเหลือ 2 เลือก 5 = เก็บ 2 บอกว่าข้าม 3', async () => {
     const full = { id: 'old', files: Array.from({ length: 298 }, (_, i) => ({ id: 'x' + i, kind: 'q', up: true })) };
     const t = { id: 't1' }, { C } = world({ tasks: [full, t] });

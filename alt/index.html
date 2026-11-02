@@ -171,6 +171,7 @@
   <link rel="stylesheet" href="halloween/invite-friend/thai-layout.css?rev=thai-tiles-20261031">
   <link rel="stylesheet" href="halloween/season/biome-finishes.css?rev=reward-motion-20261027"><link rel="stylesheet" href="halloween/season/cinematic-variants.css?rev=reward-motion-20261027">
 <link rel="stylesheet" href="economy/client.css?rev=secure-20261026">
+<link rel="stylesheet" href="task-details.css">
 </head>
 <body>
 
@@ -1088,6 +1089,8 @@
             <button type="button" class="fs-alt" onclick="go('scr-scan')">
               <svg viewBox="0 0 24 24"><use href="#lu-mic"/></svg>พูดหรือถ่ายรูปแทนการพิมพ์</button>
           </section>
+
+          <div id="taskDetailsRoot"></div>
 
           <!-- บล็อก 2 · ประเภท — แถวเดียวต่อหนึ่งตัวเลือก มีจุดกลมบอกว่าเลือกอันไหนอยู่ -->
           <section class="fm-sec s2">
@@ -2739,6 +2742,8 @@ const noop=()=>null,deny=()=>false,unavailable=()=>{window.showToast?.({title:'�
 window.StudentOSEconomy=Object.freeze({ready:deny,refresh:deny,tokens:()=>({bal:0,skins:{},fx:[],fx3d:{},bought:[],freeSpins:0}),document:noop,vault:noop,roomOwned:empty,available:empty,admin:deny,ownsBadge:deny,ownsTheme:id=>locked.has(id)?false:null,daily:unavailable,paySpin:()=>{unavailable();return {ok:false,storage:true};},flip:noop,clearDraw:noop,buyTheme:unavailable,craftTheme:unavailable,buyFx:unavailable,roomBuy:unavailable,unlockSecret:unavailable,redeem:unavailable,adminGrant:unavailable,claimInvite:noop,feedback:noop,board:noop,startTask:noop,finishTask:noop,focusTick:noop});})();
 </script>
 <script src="vault.js"></script>
+<script src="task-details-store.js"></script>
+<script src="task-details-ui.js"></script>
 <script src="app.js"></script>
 <script src="halloween/rewards/account-store.js?rev=signed-out-20261028"></script>
 <script src="economy/focus-checkpoints.js?rev=secure-20261026"></script>

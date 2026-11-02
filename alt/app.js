@@ -13663,6 +13663,7 @@ function renderFocus() {
     <div class="fc-head">
       ${t.subject && t.subject !== 'อื่น ๆ' ? `<div class="fc-subj">${esc(t.subject)}</div>` : ''}
       <h2 class="fc-title">${esc(t.detail || 'งานนี้')}</h2>
+      ${window.StudentOSTaskDetails?.focusButton(t.id) || ''}
     </div>
 
     <div class="fc-clock">
@@ -14290,6 +14291,7 @@ function openForm(id, parsed) {
 
   let t = null;
   if (id) t = state.tasks.find(x => x.id === id);
+  window.StudentOSTaskDetails?.begin({taskId:t?.id || uid(),existing:!!t,legacyNote:t?.note || "",parsed});
 
   // 1B43 · เติมสามช่องใหม่ · ต้องล้างทุกครั้งด้วย ไม่งั้นค่าของงานใบก่อนค้างมาที่ใบใหม่
   const fSubs = document.getElementById('fSubs');
@@ -15312,7 +15314,8 @@ function spawnRepeat(t) {
   return copy;
 }
 
-function saveForm() {
+async function saveForm() {
+  if (window.StudentOSTaskDetails?.saving) return;
   typeFlush();   // ช่องที่ AI ยังพิมพ์ไม่จบ = เติมให้ครบก่อนอ่านค่า
   const detailEl = document.getElementById('fDetail');
   const detailErr = document.getElementById('fDetailErr');
@@ -15380,6 +15383,7 @@ function saveForm() {
   if (ti.schedulable && data.progress >= 100) data.done = true;
 
   const target = editingId ? state.tasks.find(x => x.id === editingId) : null;
+  if (window.StudentOSTaskDetails && !await window.StudentOSTaskDetails.save()) return;
   if (target) {
     // ตั้งกำหนดส่งใหม่เองในฟอร์ม = ตัดสินใจใหม่แล้ว ป้าย "เลื่อน" จึงหมดหน้าที่
     if (target.due !== data.due) {
@@ -15388,8 +15392,10 @@ function saveForm() {
     }
     if (target.doAt !== data.doAt) data.doAtShown = null;   // นัดใหม่ = ต้องเด้งได้อีกครั้ง
     Object.assign(target, data);
+    window.StudentOSTaskDetails?.applyTo(target);
   } else {
-    const nt = Object.assign({ id: uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data);
+    const nt = Object.assign({ id: window.StudentOSTaskDetails?.taskId() || uid(), done: false, createdAt: new Date().toISOString(), fromScan: formFromScan }, data);
+    window.StudentOSTaskDetails?.applyTo(nt);
     state.tasks.push(nt);
     // ตรวจจากแจ้งเตือน = งานไหลเข้ามาเอง ไม่ได้พิมพ์ — นับเป็นกล่องเข้า ไม่ใช่ "พิมพ์เอง" (capture rate)
     const viaInbox = typeof inboxFormItem !== 'undefined' && !!inboxFormItem;
@@ -15473,9 +15479,10 @@ function deleteFromForm() {
 // ---------- สถานะ "AI กำลังอ่าน" ----------
 // ให้ผู้ใช้เห็นว่าระบบกำลังทำงานอยู่ แทนที่จะกระโดดเข้าฟอร์มทันที
 let parsedPending = null;
-function runParsing(text, source) {
+function runParsing(text, source, taskDetailsScan) {
   // เฉพาะข้อความจากรูปเท่านั้นที่ให้ parser เดาคำที่เพี้ยน — ที่พิมพ์เองถือว่าถูกอยู่แล้ว
   parsedPending = parseAssignment(text, new Date(), { fuzzy: source === 'ocr' });
+  if (source === 'ocr') window.StudentOSTaskDetails?.linkScan(parsedPending, taskDetailsScan);
   parsedPending._src = source;   // 'ocr' · 'paste' · 'voice' — ใช้วัด capture rate (ดู openForm)
   if (source !== 'ocr') lastOcrLowWords = [];
   parsedPending._low = source === 'ocr' ? fieldsToDoubleCheck(parsedPending) : [];
@@ -17058,6 +17065,7 @@ async function runOcrOn(source, how) {
     return;
   }
   ocrRunning = true;
+  const taskDetailsScan = window.StudentOSTaskDetails?.captureScan(source);
   try {
     // ป้ายขั้นกับตัวเลขย้ายไปอยู่บนแถบโหลด (HaloProgress) — บรรทัดสถานะเดิมเว้นว่างระหว่างอ่าน
     // ไม่งั้นข้อความเดียวกันขึ้นสองที่ · บรรทัดสถานะยังใช้กับข้อความนอกช่วงอ่าน (โหลดล่วงหน้า · ผิดพลาด · cloud)
@@ -17112,7 +17120,7 @@ async function runOcrOn(source, how) {
             body: 'ช่วยตรวจก่อนบันทึก' });
     }
     renderCloudOcr();     // อ่านในเครื่องจบแล้ว ค่อยเสนอทางเลือกที่แม่นกว่า
-    runParsing(text, 'ocr');
+    runParsing(text, 'ocr', taskDetailsScan);
   } catch (e) {
     ocrProgress = null;
     lastOcrConfidence = null;
@@ -17230,6 +17238,8 @@ async function aiReadPhoto() {
     return 'empty';
   }
   ocrRunning = true;
+  const taskDetailsSourceJpeg = lastScanJpeg;
+  const taskDetailsScan = window.StudentOSTaskDetails?.captureScan(taskDetailsSourceJpeg);
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const btn = document.getElementById('cloudOcrBtn');
@@ -17239,7 +17249,7 @@ async function aiReadPhoto() {
   ocrHalo('AI กำลังวิเคราะห์ใบงาน…', null);
   startFunFacts(document.getElementById('scanFact'));
   try {
-    const b64 = lastScanJpeg.replace(/^data:[^,]+,/, '');
+    const b64 = taskDetailsSourceJpeg.replace(/^data:[^,]+,/, '');
     const { data, error } = await withTimeout(
       sb.functions.invoke('ocr-assist', {
         body: { image: b64, mime: 'image/jpeg', mode: 'task', today: ymdLocal(new Date()) } }),
@@ -17275,6 +17285,7 @@ async function aiReadPhoto() {
     }
     if (barWrap) barWrap.hidden = true;
     stopFunFacts(document.getElementById('scanFact'));
+    window.StudentOSTaskDetails?.linkScan(parsed, taskDetailsScan);
     openForm(null, parsed);
     return 'ok';
   } catch (e) {
