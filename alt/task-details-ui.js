@@ -22,15 +22,17 @@
   count();status(draft.scanError|| (draft.processing?'กำลังเตรียมรูป…':!draft.ready?'กำลังอ่านรายละเอียด…':draft.dirty?'ยังไม่บันทึก · กดปุ่มบันทึกงานเมื่อพร้อม':draft.updatedAt?'บันทึกในเครื่องแล้ว':'ใส่เพิ่มได้ ไม่บังคับ'),!!draft.scanError);
  }
  // Keep scan provenance outside parsed/task JSON. A result can only use its own captured image.
+ function scanSnapshot(source){if(typeof source==='string')return source;const scale=Math.min(1,2048/Math.max(source.width,source.height)),copy=document.createElement('canvas');copy.width=Math.max(1,Math.round(source.width*scale));copy.height=Math.max(1,Math.round(source.height*scale));copy.getContext('2d').drawImage(source,0,0,copy.width,copy.height);return copy.toDataURL('image/jpeg',.92);}
  function captureScan(source){const who=owner();let file,error;
-  try{let data=source;if(typeof source!=='string'){const scale=Math.min(1,2048/Math.max(source.width,source.height)),copy=document.createElement('canvas');copy.width=Math.max(1,Math.round(source.width*scale));copy.height=Math.max(1,Math.round(source.height*scale));copy.getContext('2d').drawImage(source,0,0,copy.width,copy.height);data=copy.toDataURL('image/jpeg',.92);}
+  try{const data=scanSnapshot(source);
    const match=/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(data);if(!match)throw Error('ไม่มีรูปสแกนที่พร้อมแนบ');const raw=atob(match[2]),bytes=Uint8Array.from(raw,c=>c.charCodeAt(0));file=new File([bytes],'รูปที่ใช้สแกน.'+(match[1]==='image/png'?'png':match[1]==='image/webp'?'webp':'jpg'),{type:match[1]});
   }catch(e){error=e.message;}
   const ready=error?Promise.resolve({error}):imageFrom(file).then(image=>({image:{...image,origin:'scan'}}),e=>({error:e.message}));return Object.freeze({owner:who,ready});
  }
+ function captureScans(sources){const who=owner(),snapshots=sources.map(source=>{try{return {source:scanSnapshot(source)};}catch(error){return {error:error.message};}});const ready=(async()=>{const images=[];for(const snapshot of snapshots){if(who!==owner())return {error:'บัญชีเปลี่ยนแล้ว กรุณาเริ่มชุดรูปใหม่'};if(snapshot.error)return {error:snapshot.error};const result=await captureScan(snapshot.source).ready;if(result.error)return result;images.push(result.image);}return {images};})();return Object.freeze({owner:who,batchId:sources.batchId,ready});}
  function linkScan(parsed,scan){if(parsed&&typeof parsed==='object'&&scan)scanSources.set(parsed,scan);}
- async function begin({taskId,legacyNote='',existing=false,parsed=null}){const token=++generation,scan=!existing&&parsed?scanSources.get(parsed):null;revoke(editorURLs);draft={taskId,owner:owner(),text:legacyNote,images:[],dirty:false,ready:!existing,processing:!!scan,saving:false,updatedAt:null,loadError:false,scanError:''};const current=draft;paint();
-  if(scan){const result=await scan.ready;if(token!==generation)return;current.processing=false;if(current.owner!==owner()||scan.owner!==current.owner){current.scanError='บัญชีเปลี่ยนแล้ว กรุณาสแกนรูปใหม่';current.loadError=true;paint();return;}if(result.error){current.scanError='แนบรูปสแกนไม่สำเร็จ · เลือกรูปใหม่ หรือข้ามรูปก่อนบันทึก';current.loadError=true;}else{current.images.push(result.image);current.dirty=true;}paint();return;}
+ async function begin({taskId,legacyNote='',existing=false,parsed=null}){const token=++generation,scan=!existing&&parsed?scanSources.get(parsed):null;revoke(editorURLs);draft={taskId,owner:owner(),text:existing?legacyNote:String(parsed?.note||legacyNote),images:[],dirty:!!(!existing&&parsed?.note),ready:!existing,processing:!!scan,saving:false,updatedAt:null,loadError:false,scanError:''};const current=draft;paint();
+  if(scan){const result=await scan.ready;if(token!==generation)return;current.processing=false;if(current.owner!==owner()||scan.owner!==current.owner){current.scanError='บัญชีเปลี่ยนแล้ว กรุณาสแกนรูปใหม่';current.loadError=true;paint();return;}if(result.error){current.scanError='แนบรูปสแกนไม่สำเร็จ · เลือกรูปใหม่ หรือข้ามรูปก่อนบันทึก';current.loadError=true;}else{current.images.push(...(result.images||[result.image]));current.scanBatch=scan.batchId;current.dirty=true;}paint();return;}
   if(!existing)return;
   try{const record=await db.get(draft.owner,taskId);if(token!==generation||owner()!==record.owner)return;Object.assign(draft,{text:record.updatedAt?record.text:legacyNote,images:record.images,updatedAt:record.updatedAt,ready:true});paint();}
   catch{if(token!==generation)return;draft.loadError=true;status('ยังอ่านรายละเอียดเดิมไม่ได้ กรุณาลองเปิดงานอีกครั้ง',true);}
@@ -46,7 +48,7 @@
  async function save(){const current=draft,token=generation;if(!current)return true;if(!current.ready||current.loadError||current.processing){status('รออ่านรายละเอียดหรือเตรียมรูปให้เสร็จก่อนนะครับ',true);root()?.querySelector('details')?.setAttribute('open','');return false;}if(current.saving)return false;if(current.owner!==owner()){status('บัญชีเปลี่ยนแล้ว เปิดงานอีกครั้งก่อนบันทึก',true);return false;}
   current.saving=true;buttons(true);status('กำลังบันทึกรายละเอียดและรูปในเครื่อง…');
   try{if(current.dirty||(!current.updatedAt&&(current.text||current.images.length))){const saved=await db.save(current.owner,current.taskId,current);current.updatedAt=saved.updatedAt;}if(token!==generation||owner()!==current.owner)return false;current.dirty=false;status('บันทึกในเครื่องแล้ว');return true;}
-  catch{status('ยังบันทึกไม่ได้ ข้อความและรูปยังอยู่ในหน้านี้ พื้นที่ในเครื่องอาจเต็ม',true);root()?.querySelector('details')?.setAttribute('open','');return false;}
+  catch(error){status(/บัญชี|เต็ม|รายละเอียด|ขนาด|รูปไม่พร้อม/.test(error?.message||'')?error.message:'ยังบันทึกไม่ได้ ข้อความและรูปยังอยู่ในหน้านี้ พื้นที่ในเครื่องอาจเต็ม',true);root()?.querySelector('details')?.setAttribute('open','');return false;}
   finally{current.saving=false;buttons(false);}
  }
  function dialog(id){let d=document.getElementById(id);if(!d){d=document.createElement('dialog');d.id=id;d.className='td-dialog';document.body.append(d);}return d;}
@@ -58,5 +60,5 @@
  document.addEventListener('click',e=>{const b=e.target.closest('[data-task-details-open]');if(b){e.preventDefault();e.stopPropagation();show(b.dataset.taskDetailsOpen);}});
  document.addEventListener('paste',e=>{if(!root()?.contains(document.activeElement))return;const files=[...e.clipboardData?.items||[]].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile()).filter(Boolean);if(files.length){e.preventDefault();add(files);}});
  window.addEventListener('beforeunload',e=>{if(draft?.dirty){e.preventDefault();e.returnValue='';}});
- window.StudentOSTaskDetails=Object.freeze({begin,save,show,captureScan,linkScan,applyTo:task=>Store.applyTo(task),get saving(){return !!draft?.saving;},taskId:()=>draft?.taskId,focusButton:id=>'<button type="button" class="td-focus-open" data-task-details-open="'+esc(id)+'">▤ รายละเอียดและรูปแนบ</button>'});
+ window.StudentOSTaskDetails=Object.freeze({begin,save,show,captureScan,captureScans,linkScan,applyTo:task=>{Store.applyTo(task);if(draft?.taskId===task.id)window.StudentOSTaskScanUI?.saved(draft.scanBatch);},get saving(){return !!draft?.saving;},taskId:()=>draft?.taskId,focusButton:id=>'<button type="button" class="td-focus-open" data-task-details-open="'+esc(id)+'">▤ รายละเอียดและรูปแนบ</button>'});
 })();

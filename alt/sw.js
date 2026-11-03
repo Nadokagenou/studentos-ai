@@ -6,7 +6,7 @@
 // จะเสิร์ฟโลโก้เก่าจากแคชต่อไปโดยไม่มีอะไรบอกว่ามีของใหม่
 // แยกชื่อแคช ALT จากเว็บหลัก: ปล่อยเฉพาะ ALT ต้องไม่ล้างแคชของเว็บหลักบน origin เดียวกัน
 const CACHE_PREFIX = 'studentos-alt-';
-const CACHE = CACHE_PREFIX + '1c60-task-details-20261102'; // Task vault (photos, notes, portfolio, PDF), 4x2 home tiles, logging out and back in keeps portfolio/pins/sessions/settings; app version unchanged.
+const CACHE = CACHE_PREFIX + '1c60-multipage-20261103'; // ALT multi-page local capture and separate task notes; app version unchanged.
 let HALLOWEEN_FILES = [];
 try { importScripts('halloween/cache-manifest.js'); HALLOWEEN_FILES = self.HALLOWEEN_SHELL || []; } catch (_) {}
 // ทุกไฟล์ที่ index.html อ้างถึงต้องอยู่ในรายการนี้ — ไฟล์ที่หน้าเรียกแต่ไม่ได้แคชไว้
@@ -33,7 +33,7 @@ const SHELL = [...new Set(['.', 'index.html', 'style.css', 'alt.css', 'inbox.css
   'halloween/season/cursed-ship/ship.webp', 'halloween/season/cursed-ship/ship-bg.webp', 'halloween/season/cursed-ship/yard.webp', 'halloween/season/cursed-ship/yard-bg.webp', 'halloween/season/cursed-ship/banner.webp', 'halloween/season/cursed-ship/seal.webp',
   'shortcut-draft.js', 'desktop.css', 'desktop-entry.js', 'desktop.js', 'desktop-navigation.mjs',
   // 15 ต.ค. 69 · ข่าวสารจากทีม — แคชไว้ให้เปิดจอข่าวตอนออฟไลน์ได้ (drafts.json ไม่แคช: แอปไม่ได้โหลดมัน)
-  'news/announcements.json', 'task-details-store.js', 'task-details-ui.js', 'task-details.css',
+  'news/announcements.json', 'task-details-store.js', 'task-details-ui.js', 'task-details.css', 'task-scan.js', 'task-scan-ui.js', 'task-scan.css',
   'icon-alt-192.png', 'icon-alt-512.png', 'icon-192.png', 'badge-96.png', 'icon-512.png', 'icon-maskable-512.png',
   'logo-mark.png', 'logo-splash.png', 'logo-splash-light.png',
   // หน้าน้องไซบนฟองแชท — ต้องอยู่ในแคชด้วย ไม่งั้นเปิดแอปตอนไม่มีเน็ตแล้วมาสคอตหายไปทั้งจอ

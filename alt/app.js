@@ -15483,6 +15483,7 @@ function runParsing(text, source, taskDetailsScan) {
   // เฉพาะข้อความจากรูปเท่านั้นที่ให้ parser เดาคำที่เพี้ยน — ที่พิมพ์เองถือว่าถูกอยู่แล้ว
   parsedPending = parseAssignment(text, new Date(), { fuzzy: source === 'ocr' });
   if (source === 'ocr') window.StudentOSTaskDetails?.linkScan(parsedPending, taskDetailsScan);
+  if (source === 'ocr') { const fields = StudentOSTaskScan.localFields(parsedPending.detail, text); parsedPending.detail = fields.title; parsedPending.note = fields.note; }
   parsedPending._src = source;   // 'ocr' · 'paste' · 'voice' — ใช้วัด capture rate (ดู openForm)
   if (source !== 'ocr') lastOcrLowWords = [];
   parsedPending._low = source === 'ocr' ? fieldsToDoubleCheck(parsedPending) : [];
@@ -16519,7 +16520,7 @@ let cropState = null;
 const CROP_MIN = 0.08;   // กรอบเล็กสุด 8% ของด้านนั้น กันลากพลาดจนเหลือจุดเดียว
 const CROP_GRAB = 26;    // ระยะที่นับว่าจับมุมอยู่ (px บนจอ)
 
-async function scanFromPhoto(file) { return openCropFor(file, 'ocr'); }
+async function scanFromPhoto(file) { return StudentOSTaskScanUI.pick([file]); }
 async function pickWidgetPhoto(file) { return openCropFor(file, 'widget'); }
 
 // mode: 'ocr' = ครอบเพื่ออ่านตัวหนังสือ · 'widget' = ครอบเพื่อเอาไปเป็นภาพวิดเจ็ต
@@ -16535,9 +16536,9 @@ async function openCropFor(file, mode) {
     const h2 = document.querySelector('#scr-crop .scan-h');
     if (h2) h2.textContent = mode === 'widget' ? 'ครอบภาพสำหรับวิดเจ็ต' : 'ครอบเฉพาะส่วนที่เป็นโจทย์';
     const okBtn = document.querySelector('#scr-crop .fm-save');
-    if (okBtn) okBtn.textContent = mode === 'widget' ? 'ใช้ภาพนี้' : 'อ่านเฉพาะกรอบนี้';
+    if (okBtn) okBtn.textContent = mode === 'widget' ? 'ใช้ภาพนี้' : 'เพิ่มเฉพาะกรอบนี้';
     const wholeBtn = document.querySelector('#scr-crop .crop-act .fm-cancel');
-    if (wholeBtn) wholeBtn.textContent = mode === 'widget' ? 'ใช้ทั้งรูป' : 'อ่านทั้งรูป';
+    if (wholeBtn) wholeBtn.textContent = mode === 'widget' ? 'ใช้ทั้งรูป' : 'เพิ่มทั้งรูป';
     const stage = document.getElementById('cropStage');
     const img = document.getElementById('cropImg');
     img.src = URL.createObjectURL(file);
@@ -16618,8 +16619,10 @@ function initCrop() {
 }
 
 function cancelCrop() {
+  const taskCrop = cropState && cropState.mode === 'ocr';
   if (cropState && cropState.bmp.close) cropState.bmp.close();
   cropState = null;
+  if (taskCrop) { StudentOSTaskScanUI.cancelCrop(); return; }
   go('scr-scan');
 }
 
@@ -16634,9 +16637,10 @@ async function confirmCrop(whole) {
   c.getContext('2d').drawImage(bmp, sx, sy, sw, sh, 0, 0, sw, sh);
   cropState = null;
 
+  if (bmp.close) bmp.close();
   if (mode === 'widget') { saveWidgetPhoto(c); return; }
   go('scr-scan');
-  await readPhoto(c, whole ? 'ทั้งรูป' : 'ครอบกรอบ');
+  await StudentOSTaskScanUI.accept(c);
 }
 
 // ---------- ALT: รูปโปรไฟล์ของตัวเอง ----------
@@ -17065,7 +17069,7 @@ async function runOcrOn(source, how) {
     return;
   }
   ocrRunning = true;
-  const taskDetailsScan = window.StudentOSTaskDetails?.captureScan(source);
+  const taskDetailsScan = window.StudentOSTaskDetails?.captureScans(Array.isArray(source) ? source : [source]);
   try {
     // ป้ายขั้นกับตัวเลขย้ายไปอยู่บนแถบโหลด (HaloProgress) — บรรทัดสถานะเดิมเว้นว่างระหว่างอ่าน
     // ไม่งั้นข้อความเดียวกันขึ้นสองที่ · บรรทัดสถานะยังใช้กับข้อความนอกช่วงอ่าน (โหลดล่วงหน้า · ผิดพลาด · cloud)
@@ -17082,9 +17086,12 @@ async function runOcrOn(source, how) {
     };
     // ปรับภาพก่อน แล้วค่อยโหลดโมเดล — ผู้ใช้จะได้เห็นความคืบหน้าตั้งแต่วินาทีแรก
     // เตรียมภาพ / เตรียมโมเดล ไม่มีตัวเลขให้ → แถบวิ่งวน · รอบอ่านซ้ำหลังอ่านจบ → คงแถบไว้ เปลี่ยนแค่ป้าย
-    const r = await ocrReadCanvas(source, stage => {
-      ocrHalo(OCR_STAGE_TEXT[stage] || '', ['prep', 'lang', 'model'].includes(stage) ? null : undefined);
+    const r = await StudentOSTaskScan.readPages(source, {
+      read: canvas => ocrReadCanvas(canvas, stage => ocrHalo(OCR_STAGE_TEXT[stage] || '', ['prep', 'lang', 'model'].includes(stage) ? null : undefined)),
+      decode: blob => ocrLoadBitmap(blob),
+      onPage: (page, total) => ocrHalo('อ่านรูปที่ ' + page + ' / ' + total, null),
     });
+    if (taskDetailsScan && taskDetailsScan.owner !== vaultOwner()) throw Error('บัญชีเปลี่ยนแล้ว กรุณาเริ่มชุดรูปใหม่');
 
     ocrProgress = null;
     stopFunFacts(document.getElementById('scanFact'));
@@ -17232,14 +17239,16 @@ async function readPhoto(canvas, how) {
 }
 
 // คืน 'ok' (เปิดหน้าตรวจแล้ว) · 'empty' (AI ดูแล้วไม่มีตัวหนังสือ — อ่านในเครื่องก็ไม่ดีกว่า) · 'fail'
-async function aiReadPhoto() {
+async function aiReadPhoto(taskPages) {
   if (ocrRunning) {
     showToast({ title: 'กำลังอ่านใบก่อนหน้าอยู่', body: 'รออีกนิดเดียว เดี๋ยวถึงคิวใบนี้' });
     return 'empty';
   }
   ocrRunning = true;
-  const taskDetailsSourceJpeg = lastScanJpeg;
-  const taskDetailsScan = window.StudentOSTaskDetails?.captureScan(taskDetailsSourceJpeg);
+  const taskDetailsPages = taskPages || [lastScanJpeg];
+  const taskDetailsSourceJpeg = taskDetailsPages[0];
+  const taskDetailsMimes = taskDetailsPages.map(image => /^data:([^;,]+)/.exec(image)?.[1] || 'image/jpeg');
+  const taskDetailsScan = window.StudentOSTaskDetails?.captureScans(taskDetailsPages);
   const st = document.getElementById('ocrStatus');
   const barWrap = document.getElementById('ocrBarWrap');
   const btn = document.getElementById('cloudOcrBtn');
@@ -17252,7 +17261,7 @@ async function aiReadPhoto() {
     const b64 = taskDetailsSourceJpeg.replace(/^data:[^,]+,/, '');
     const { data, error } = await withTimeout(
       sb.functions.invoke('ocr-assist', {
-        body: { image: b64, mime: 'image/jpeg', mode: 'task', today: ymdLocal(new Date()) } }),
+        body: { ...(taskDetailsPages.length === 1 ? { image: b64, mime: taskDetailsMimes[0] } : { images: taskDetailsPages.map((image, i) => ({ image: image.replace(/^data:[^,]+,/, ''), mime: taskDetailsMimes[i] })) }), mode: 'task', taskFormat: 'title-note-v2', today: ymdLocal(new Date()) } }),
       60_000, 'AI วิเคราะห์ใบงาน');
 
     // supabase-js คืน error สำหรับสถานะที่ไม่ใช่ 2xx โดยเนื้อความจริงอยู่ใน context
@@ -17265,6 +17274,8 @@ async function aiReadPhoto() {
       console.warn('[ALT OCR/ai]', payload?.code || error?.message || 'no payload');
       return 'fail';
     }
+    if (taskDetailsPages.length > 1 && payload.imageCount !== taskDetailsPages.length) throw Error('บริการยังไม่ได้ยืนยันว่าอ่านรูปครบทุกหน้า');
+    if (taskDetailsScan && taskDetailsScan.owner !== vaultOwner()) throw Error('บัญชีเปลี่ยนแล้ว กรุณาเริ่มชุดรูปใหม่');
     const text = normalizeOcrText(payload.text || '');
     const task = payload.task || null;
     console.debug(`[ALT OCR/ai] provider=${payload.provider} kind=${task?.kind ?? '-'} `
@@ -17285,6 +17296,7 @@ async function aiReadPhoto() {
     }
     if (barWrap) barWrap.hidden = true;
     stopFunFacts(document.getElementById('scanFact'));
+    if (!task) { const fields = StudentOSTaskScan.localFields(parsed.detail, text); parsed.detail = fields.title; parsed.note = fields.note; }
     window.StudentOSTaskDetails?.linkScan(parsed, taskDetailsScan);
     openForm(null, parsed);
     return 'ok';
@@ -17342,15 +17354,14 @@ function aiTaskParsed(task, text) {
   const scorePct = task.score || base.scorePct || null;
   const estMin = task.estMin || (base.detected.est ? base.estMin
     : type === 'exam' ? 120 : (type === 'activity' || type === 'reminder') ? 15 : 30);
-  // ช่องนี้คือชื่องานบนการ์ดทุกจอ — ใช้ title ของ AI อย่างเดียว
-  // ลองกับ Gemini จริง (8 ต.ค. 69) แล้ว task.detail ซ้ำกับ title เกือบทั้งก้อน
-  // ("ทำแบบฝึกหัด 2.3 … — ใบงานที่ 4 เรื่องเซต … ทำลงในสมุด") ต่อกันแล้วยาวสองเท่าโดยไม่ได้อะไรเพิ่ม
-  const detail = String(task.title || task.detail || base.detail || '').trim().slice(0, 200);
+  // หัวข้ออยู่บนการ์ด ส่วนคำสั่ง/เกณฑ์และต้นฉบับอยู่ใน note ไม่ทิ้งรายละเอียดจากโมเดล
+  const fields = StudentOSTaskScan.fields(task.title || base.detail, task.detail, text);
+  const detail = fields.title;
 
   return {
     subject, teacher, scorePct,
     due: due ? due.toISOString() : null,
-    estMin, type, isExam: type === 'exam', detail, raw: text,
+    estMin, type, isExam: type === 'exam', detail, note: fields.note, raw: text,
     detected: { type: true, subject: subject !== 'อื่น ๆ', teacher: !!teacher, due: !!due,
       score: !!scorePct, est: !!task.estMin, detail: !!detail },
     _src: 'ocr-ai',
@@ -17361,14 +17372,7 @@ function aiTaskParsed(task, text) {
 
 // ปุ่ม "ให้ AI วิเคราะห์รูปนี้" บนจอสแกน — โผล่หลังอ่านในเครื่องไปแล้ว (ออฟไลน์/ไม่ยินยอม/AI ล้ม)
 async function cloudOcrRetry() {
-  const st = cloudOcrState();
-  if (st !== 'ready') { renderCloudOcr(); return; }
-  if (!(await cloudOcrConsent(true))) return;
-  const r = await aiReadPhoto();
-  if (r === 'fail') {
-    scanNotice('AI วิเคราะห์รูปไม่สำเร็จ', [
-      navigator.onLine === false ? 'ตอนนี้ออฟไลน์อยู่ ต่อเน็ตแล้วลองใหม่' : 'ลองใหม่อีกครั้ง หรือแปะข้อความแทน']);
-  }
+  showToast({title:'บริการ AI ยังหยุดชั่วคราว',body:'เพิ่มรูปทุกหน้าแล้วเลือกอ่านในเครื่องได้'});
 }
 
 // ---------- profile ----------
@@ -19712,7 +19716,7 @@ function tickClock() {
 
 for (const id of ['cameraInput', 'galleryInput']) {
   document.getElementById(id).addEventListener('change', e => {
-    if (e.target.files[0]) scanFromPhoto(e.target.files[0]);
+    if (e.target.files.length) StudentOSTaskScanUI.pick(Array.from(e.target.files));
     e.target.value = '';
   });
 }
