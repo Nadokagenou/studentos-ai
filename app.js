@@ -13797,7 +13797,12 @@ function toggleStep(stepId) {
   renderFocus();
   haptic('tap');
   // ขั้นสุดท้ายถูกติ๊ก = งานเสร็จจริง ไม่ต้องให้กดซ้ำอีกปุ่ม
-  if (t.steps.every(x => x.done)) setTimeout(() => finishFocus(), 350);
+  if (t.steps.every(x => x.done)) setTimeout(() => {
+    // ช่วงภาพเคลื่อนไหวอาจปิดจอ สลับงาน หรือยกเลิกติ๊กไปแล้ว
+    const current = state.tasks.find(x => x.id === t.id);
+    if (focusId === t.id && current && !current.done && !current.deleted
+      && current.steps?.length && current.steps.every(x => x.done)) finishFocus();
+  }, 350);
 }
 
 function renderFocus() {

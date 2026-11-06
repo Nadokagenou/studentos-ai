@@ -42,6 +42,26 @@ test('finishing an already completed occurrence cannot create another repeat',()
  const t={id:'weekly',detail:'Homework',due:'2026-11-06T13:00:00.000Z',repeatDays:7,done:true};
  const h=focusCompletion(t);h.box.finishFocus();assert.equal(h.state.tasks.length,1);assert.equal(h.done(),0);
 });
+function focusSteps(){
+ const queued=[],finished=[],box={state:{tasks:[{id:'a',done:false,steps:[{id:'step-a',done:false}]},{id:'b',done:false,steps:[{id:'step-b',done:false}]}]},focusId:'a',_planCache:null,
+  syncProgress(){},save(){},renderFocus(){},haptic(){},setTimeout:fn=>queued.push(fn),finishFocus:()=>finished.push(box.focusId)};
+ vm.runInNewContext(grab(app,'toggleStep'),box);return {box,finished,flush(){queued.splice(0).forEach(fn=>fn());}};
+}
+test('completing the last focus step still completes the task after its animation',()=>{
+ const h=focusSteps();h.box.toggleStep('step-a');assert.equal(h.finished.length,0);h.flush();assert.deepEqual(h.finished,['a']);
+});
+test('a delayed last-step callback cannot complete a different focus task',()=>{
+ const h=focusSteps();h.box.toggleStep('step-a');h.box.focusId='b';h.flush();assert.deepEqual(h.finished,[]);
+});
+test('undoing the last focus step before the animation ends cancels automatic completion',()=>{
+ const h=focusSteps();h.box.toggleStep('step-a');h.box.toggleStep('step-a');h.flush();assert.deepEqual(h.finished,[]);
+});
+test('closing focus before the last-step animation ends cannot trigger completion',()=>{
+ const h=focusSteps();h.box.toggleStep('step-a');h.box.focusId=null;h.flush();assert.deepEqual(h.finished,[]);
+});
+test('a delayed focus completion checks the current task data after a remote replacement',()=>{
+ const h=focusSteps();h.box.toggleStep('step-a');h.box.state.tasks[0]={id:'a',done:false,steps:[{id:'step-a',done:false}]};h.flush();assert.deepEqual(h.finished,[]);
+});
 test('main public assets and entry links do not depend on the retired ALT entry',()=>{
  const html=read('index.html').replace(/<!--[\s\S]*?-->/g,'');
  for(const m of html.matchAll(/(?:src|href)="([^"]+)"/g)){assert.doesNotMatch(m[1],/^(?:\.\/)?alt\//);if(/^(https?:|#|data:)/.test(m[1]))continue;const p=m[1].split(/[?#]/)[0];assert.ok(fs.existsSync(path.join(root,p)),p);}
