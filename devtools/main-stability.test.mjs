@@ -10,6 +10,38 @@ test('audio or cosmetic failures cannot turn a committed quest into a failed sav
 const root=path.resolve(import.meta.dirname,'..'),baseline=process.env.STUDENTOS_STABILITY_BASELINE?JSON.parse(fs.readFileSync(process.env.STUDENTOS_STABILITY_BASELINE,'utf8')):null,read=p=>(baseline?.[p]??fs.readFileSync(path.join(root,p),'utf8')).replaceAll('\r\n','\n');
 const app=read('app.js'),event=read('halloween/event/experience.js');
 function grab(s,name){const a=s.indexOf('function '+name+'(');assert.ok(a>=0,name);const h=s.slice(a).match(/\)\s*\{/);let depth=0,start=a+h.index+h[0].lastIndexOf('{');for(let i=start;i<s.length;i++){if(s[i]==='{')depth++;if(s[i]==='}'&&!--depth)return s.slice(a,i+1);}throw Error(name);}
+function focusCompletion(task) {
+ const wrap={innerHTML:''},state={tasks:[task]},saved=[];let ids=0,done=0;
+ const box={state,focusId:task.id,focusTimer:null,_planCache:null,Date,
+  document:{querySelector:s=>s.includes('.fc-sheet.done')&&wrap.innerHTML.includes('fc-sheet done')?{}:null,getElementById:()=>wrap},
+  stopWork(){},funnelDone(){done++;},save(){saved.push(JSON.parse(JSON.stringify(state)));},haptic(){},
+  focusPlan:()=>({now:null,plan:{slots:[]}}),clearInterval(){},workedMin:()=>0,liveTasks:()=>state.tasks.filter(t=>!t.deleted),
+  doneCount:()=>state.tasks.filter(t=>t.done).length,window:{},icon:()=>'',esc:s=>s,taskTitleText:t=>t.detail,
+  mascot:()=>({avatar:''}),celebrate(){},setTimeout(){},checkBadges(){},uid:()=>`repeat-${++ids}`,closeFocus(){}};
+ vm.runInNewContext(grab(app,'spawnRepeat')+'\n'+grab(app,'finishFocus'),box);
+ return {box,state,saved,wrap,done:()=>done};
+}
+test('finishing a recurring task in focus creates and saves exactly one next occurrence',()=>{
+ const t={id:'weekly',detail:'Homework',due:'2026-11-06T13:00:00.000Z',doAt:'2026-11-06T12:00:00.000Z',repeatDays:7,done:false,subs:[{text:'A',done:false}]};
+ const h=focusCompletion(t);h.box.finishFocus();h.box.finishFocus();
+ assert.equal(h.state.tasks.length,2);assert.equal(h.done(),1);assert.equal(h.saved.at(-1).tasks.length,2);
+ const next=h.state.tasks[1];assert.equal(next.due,'2026-11-13T13:00:00.000Z');assert.equal(next.doAt,'2026-11-13T12:00:00.000Z');
+ assert.equal(next.done,false);assert.equal(next.progress,0);assert.equal(next.subs[0].done,false);
+});
+test('focus completion checks every subtask just as completing from the task list does',()=>{
+ const t={id:'one-off',detail:'Homework',done:false,subs:[{text:'A',done:false},{text:'B',done:true}]};
+ const h=focusCompletion(t);h.box.finishFocus();assert.ok(t.subs.every(s=>s.done));assert.equal(h.state.tasks.length,1);
+ assert.ok(h.saved.at(-1).tasks[0].subs.every(s=>s.done));
+});
+test('a recurring task starts with fresh focus steps without changing the completed occurrence',()=>{
+ const t={id:'weekly',detail:'Homework',due:'2026-11-06T13:00:00.000Z',repeatDays:7,done:true,steps:[{id:'read',title:'Read',min:10,done:true}]};
+ const h=focusCompletion(t),next=h.box.spawnRepeat(t);assert.equal(next.steps[0].done,false);assert.equal(next.steps[0].title,'Read');
+ next.steps[0].title='New title';assert.equal(t.steps[0].title,'Read');assert.equal(t.steps[0].done,true);
+});
+test('finishing an already completed occurrence cannot create another repeat',()=>{
+ const t={id:'weekly',detail:'Homework',due:'2026-11-06T13:00:00.000Z',repeatDays:7,done:true};
+ const h=focusCompletion(t);h.box.finishFocus();assert.equal(h.state.tasks.length,1);assert.equal(h.done(),0);
+});
 test('main public assets and entry links do not depend on the retired ALT entry',()=>{
  const html=read('index.html').replace(/<!--[\s\S]*?-->/g,'');
  for(const m of html.matchAll(/(?:src|href)="([^"]+)"/g)){assert.doesNotMatch(m[1],/^(?:\.\/)?alt\//);if(/^(https?:|#|data:)/.test(m[1]))continue;const p=m[1].split(/[?#]/)[0];assert.ok(fs.existsSync(path.join(root,p)),p);}

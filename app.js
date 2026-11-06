@@ -13857,10 +13857,14 @@ function finishFocus() {
   if (document.querySelector('#focusWrap .fc-sheet.done')) return;
   stopWork(true);
   // ทางนี้คือปลายลูกโซ่หลัก (เริ่มทำ → ทำเสร็จ) แต่เดิมไม่ได้นับ doneEver เลย — ตัวเลขทำเสร็จจึงต่ำกว่าจริง
-  if (!t.done) funnelDone();
+  const wasDone = t.done;
+  if (!wasDone) funnelDone();
   t.done = true;
   t.progress = 100;
   t.doneAt = new Date().toISOString();
+  if (Array.isArray(t.subs)) t.subs.forEach(s => { s.done = true; });
+  // โหมดโฟกัสต้องสร้างรอบถัดไปเหมือนติ๊กเสร็จจากรายการงาน
+  if (!wasDone && t.repeatDays) spawnRepeat(t);
   save();
   _planCache = null;
   haptic('done');
@@ -15452,6 +15456,7 @@ function spawnRepeat(t) {
     doAtShown: null,
     subs: Array.isArray(t.subs) ? t.subs.map(x => ({ text: x.text, done: false })) : [],
   });
+  if (Array.isArray(copy.steps)) copy.steps = copy.steps.map(s => ({ ...s, done: false }));
   state.tasks.push(copy);
   return copy;
 }
