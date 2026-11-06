@@ -1441,10 +1441,16 @@ function adoptAccountIfNeeded(uid) {
     let bk = null;
     try { bk = JSON.parse(localStorage.getItem(ACCOUNT_BACKUP_PREFIX + uid) || 'null'); } catch (_) {}
     if (bk && bk.owner === uid && bk.state) {
-      const byId = {};
-      for (const t of bk.state.tasks || []) byId[t.id] = t;
-      for (const t of state.tasks || []) byId[t.id] = t;
-      state.tasks = Object.values(byId);
+      // คืนทุกชุดที่ฐานซิงก์จำไว้ ไม่งั้นรอบถัดไปจะอ่านของที่ยังไม่คืนว่าเราลบทิ้ง
+      for (const k of ['tasks', 'sessions', 'marks']) {
+        if (!Array.isArray(bk.state[k]) && !Array.isArray(state[k])) continue;
+        const byId = new Map();
+        for (const items of [bk.state[k], state[k]]) {
+          if (Array.isArray(items)) for (const x of items) if (x && x.id != null) byId.set(x.id, x);
+        }
+        state[k] = [...byId.values()];
+      }
+      state.settings = Object.assign({}, state.settings, bk.state.settings);
       for (const [k, v] of Object.entries(bk.keys || {})) {
         try { if (localStorage.getItem(k) == null) localStorage.setItem(k, v); } catch (_) {}
       }
