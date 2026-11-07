@@ -10,6 +10,8 @@ AI Decision Assistant สำหรับนักเรียนมัธยม 
 2. `alt/BUILD-SPEC.md` — เป้าหมาย · สเปก Priority Engine · บั๊ก §7 · Design System
 3. `alt/PATCHNOTES.md` — ประวัติทุกรุ่น **รุ่นใหม่อยู่บนสุด** (อ่าน 120 บรรทัดแรกพอ)
 
+**ทำงานที่แอปหลัก (ราก)?** อ่าน `docs/ARCHITECTURE.md` ส่วน 0 ก่อน — แผนที่ไฟล์ · ลำดับโหลด · วิธีย้ายฟีเจอร์ไปโหลดตอนใช้
+
 เสริมเมื่อต้องใช้: `alt/README-ALT.md` · `alt/AUDIT-2026-08-15.md` · `docs/supabase-setup.md`
 · **ร่างข่าวสารถึงผู้ใช้ (จอ "ข่าวสาร")** → `alt/news/README.md` — ทุกประโยคต้องมีหลักฐาน และต้องผ่าน `node alt/devtools/news.mjs check`
 
@@ -143,6 +145,8 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
 | ตัวกรองผล read-day (Edge Function) | `node --test supabase/functions/read-day/__tests__/clean.test.mjs` | 6/6 (18 ต.ค. 69) |
 | ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
+| ตัวโหลดฟีเจอร์ตอนใช้ · 3D (src/core/feature-registry.js · fx3d.js · hoop.js) | `node --test devtools/feature-registry.test.mjs` | 10/10 (7 พ.ย. 69) |
+| ย้าย/แก้ชื่อในไฟล์ใดก็ตามของราก | `node devtools/architecture-map.mjs <ไฟล์>` (ดูว่าใครใช้ · ไม่ใช่เทสต์ผ่าน/ตก) | — |
 | เติมโทเคน: ราคา · ลายเซ็น Stripe · ใบเสร็จ (supabase/functions/_shared/topup.mjs + TOPUP_PACKS ใน app.js) | `node --test supabase/functions/token-webhook/__tests__/topup.test.mjs` | 8/8 (30 ต.ค. 69) |
 
 **เทสต์ที่ต้องฉีดเข้าแอปในพรีวิว** (`<script src>` เท่านั้น ห้าม `eval`) — parser · OCR · เอนจินตัดสินใจ:
