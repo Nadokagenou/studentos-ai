@@ -1,13 +1,14 @@
 // Main URL offline shell and cache isolation. Run directly with Node.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-const handlers={},removed=[],matches=[];let shell=[],selected='';
+class FakeRequest{constructor(url,init={}){this.url=url;this.cache=init.cache;}}
+const handlers={},removed=[],matches=[];let shell=[],precache=[],selected='';
 const caches={
  async keys(){return ['studentos-main-previous','studentos-1c57','studentos-alt-previous','other-app',selected];},
  async delete(key){removed.push(key);},
- async open(key){selected=key;return {async addAll(files){shell=files;},async match(request,options){matches.push({key,request,options});return 'main-desktop-css';}};}
+ async open(key){selected=key;return {async addAll(files){precache=files;shell=files.map(f=>typeof f==='string'?f:f.url);},async match(request,options){matches.push({key,request,options});return 'main-desktop-css';}};}
 };
-vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+vm.runInNewContext(source,{URL,Request:FakeRequest,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
  self:{addEventListener:(event,fn)=>{handlers[event]=fn;},skipWaiting:async()=>{},clients:{claim:async()=>{}},registration:{scope:'https://example.test/studentos-ai/'}}});
 const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pending.push(p);}});await Promise.all(pending);};
 (async()=>{
@@ -15,6 +16,8 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
  // 31 Oct 2026 · Chrome rejects the whole addAll on a duplicate request, so the worker never installs (hit ALT live 25-31 Oct)
  {const dup=shell.filter((f,i)=>shell.indexOf(f)!==i);assert.equal(dup.length,0,'duplicate precache entries: '+dup.join(', '));console.log('PASS precache list has no duplicates');}
  for(const file of shell)assert.ok(fs.existsSync(path.join(root,file)),'Missing SHELL file: '+file);console.log('PASS all main shell files exist');
+ // 7 Nov 2026 · install must bypass the browser HTTP cache (GitHub Pages max-age=600) or the offline shell can mix releases
+ assert.ok(precache.every(r=>typeof r==='object'&&r.cache==='reload'),'precache requests must use cache: reload');console.log('PASS precache bypasses the HTTP cache so one install holds one release');
  await lifecycle('activate');assert.deepEqual(removed,['studentos-main-previous','studentos-1c57']);console.log('PASS update preserves ALT and other application caches');
  let response;handlers.fetch({request:{method:'GET',url:'https://example.test/studentos-ai/desktop.css?v=review'},respondWith(p){response=p;}});
  assert.equal(await response,'main-desktop-css');assert.equal(matches[0].key,selected);assert.equal(matches[0].options.ignoreSearch,true);console.log('PASS offline desktop uses the current main cache');
@@ -24,7 +27,7 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
  assert.ok(shell.includes('sai-face-sleepy.webp'));assert.ok(shell.includes('hook-hat-avatar.svg'));
  // 31 Oct 2026 · notifications like other apps: transparent status-bar badge, app icon count = notifications left in the tray
  const ph={},shown=[],badges=[];let tray=[{},{}];
- vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+ vm.runInNewContext(source,{URL,Request:FakeRequest,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
   self:{addEventListener:(event,fn)=>{ph[event]=fn;},skipWaiting:async()=>{},clients:{claim:async()=>{}},
    navigator:{async setAppBadge(n){badges.push(n);},async clearAppBadge(){badges.push(0);}},
    registration:{scope:'https://example.test/studentos-ai/',async showNotification(t,o){shown.push({t,o});},async getNotifications(){return tray;}}}});
@@ -36,7 +39,7 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
  // 31 Oct 2026 · do-at reminders show as a system notification while the app is open; tapping one starts that task in the open page
  const clickRun=async taskId=>{const log=[],ch={};
   const win={url:'https://example.test/studentos-ai/',postMessage(m){log.push(['msg',m]);},async focus(){log.push(['focus']);return win;},async navigate(u){log.push(['nav',u]);return win;}};
-  vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+  vm.runInNewContext(source,{URL,Request:FakeRequest,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
    self:{addEventListener:(event,fn)=>{ch[event]=fn;},skipWaiting:async()=>{},
     clients:{claim:async()=>{},async matchAll(){return [win];},async openWindow(u){log.push(['open',u]);}},
     registration:{scope:'https://example.test/studentos-ai/',async getNotifications(){return [];}}}});
@@ -46,7 +49,7 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
  assert.equal((await clickRun(null))[0][0],'nav');console.log('PASS a plain notification still navigates to its url');
  // 31 Oct 2026 · do-at pushes from the server get the start button, stay on desktop, and carry the task id (no send-reminders deploy needed)
  {const ds=[],dh={},opened=[];
-  vm.runInNewContext(source,{URL,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
+  vm.runInNewContext(source,{URL,Request:FakeRequest,location:{origin:'https://example.test'},caches,fetch:async()=>{throw Error('offline');},
    self:{addEventListener:(event,fn)=>{dh[event]=fn;},skipWaiting:async()=>{},
     clients:{claim:async()=>{},async matchAll(){return [];},async openWindow(u){opened.push(u);}},
     registration:{scope:'https://example.test/studentos-ai/',async showNotification(t,o){ds.push(JSON.parse(JSON.stringify(o)));},async getNotifications(){return [];}}}});
@@ -59,5 +62,5 @@ const lifecycle=async event=>{const pending=[];handlers[event]({waitUntil(p){pen
   await fire('notificationclick',{action:'start',notification:{close(){},data:{url:'/studentos-ai/',taskId:'t-42'}}});
   assert.equal(opened[0],'https://example.test/studentos-ai/?do=t-42');
   console.log('PASS tapping start with the app closed opens it with ?do=<task>');}
- console.log('Main service worker: 14/14');
+ console.log('Main service worker: 15/15');
 })().catch(error=>{console.error(error);process.exitCode=1;});

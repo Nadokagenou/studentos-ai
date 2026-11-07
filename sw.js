@@ -282,7 +282,10 @@ const SHELL = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: 'reload' = ข้าม HTTP cache ของเบราว์เซอร์ตอนติดตั้ง (7 พ.ย. 69) — GitHub Pages ส่ง max-age=600
+  // ติดตั้งภายใน 10 นาทีหลัง deploy เดิมอาจได้ไฟล์รุ่นเก่าปนรุ่นใหม่ในแคชออฟไลน์ · ไฟล์ที่ไม่ได้โหลดตอนเปิดแอป
+  // (fx3d.js · โหลดตอนใช้) จะไม่ถูกรอบ network-first เขียนทับ จึงค้างเป็นของเก่านานที่สุด
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
