@@ -81,9 +81,18 @@ function fx3dPost(run) {
   comp.setSize(run.W, run.H);
   run.comp = comp; run.bloom = bloom;
 }
+// 7 พ.ย. 69 · เดิมสร้าง canvas + WebGL context ใหม่ทุกครั้งที่เปิดเกม 3D แล้วไม่คืน (วัดในพรีวิว: เปิด-ปิด 3 รอบ = context ค้าง 3 ตัว)
+// เบราว์เซอร์ให้มี context พร้อมกันได้จำกัด — เช็คครั้งเดียวต่อหน้า แล้วคืน context ของตัวเช็คทันที
+let FX3D_OK = null;
 function fx3dSupported() {
-  try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }
-  catch (_) { return false; }
+  if (FX3D_OK !== null) return FX3D_OK;
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    FX3D_OK = !!gl;
+    try { const ext = gl && gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); } catch (_) {}
+  } catch (_) { FX3D_OK = false; }
+  return FX3D_OK;
 }
 function fx3dFallback(id, title, onClose, preview, why) {
   if (id === 'hoop') openHoop(title, onClose, preview); else openFxGame(id, title, onClose, preview);

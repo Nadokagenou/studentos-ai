@@ -133,6 +133,20 @@ test('the real fx3d.js replaces the stub and covers every 3D id the app sells', 
   assert.deepEqual(Object.keys(vm.runInContext('FX3D_GAMES', ctx)).sort(), [...ids].sort());
 });
 
+test('the WebGL support probe runs once and releases its context (no context piles up per 3D open)', () => {
+  const made = [], lost = [];
+  const ctx = vm.createContext({console, document: {createElement: () => ({getContext: kind => {
+    const gl = {kind, getExtension: n => n === 'WEBGL_lose_context' ? {loseContext: () => lost.push(gl)} : null};
+    made.push(gl); return gl;
+  }})}});
+  vm.runInContext(read('fx3d.js'), ctx, {filename: 'fx3d.js'});
+  assert.equal(vm.runInContext('fx3dSupported()', ctx), true);
+  assert.equal(vm.runInContext('fx3dSupported()', ctx), true);
+  assert.equal(vm.runInContext('fx3dSupported()', ctx), true);
+  assert.equal(made.length, 1, 'probe once per page, not once per 3D open');
+  assert.equal(lost.length, 1, 'probe context released right away');
+});
+
 test('hoop.js no longer needs FX3D_GAMES before 3D has loaded', () => {
   const hoop = read('hoop.js');
   assert.ok(!/FX3D_GAMES/.test(hoop), 'preview check uses FX3D_IDS (app.js) instead');
