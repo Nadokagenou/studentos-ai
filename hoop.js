@@ -108,7 +108,8 @@ function previewFx(id) { if (fxOpenNow()) return; openDoneFx('ตัวอย่
 // เล่นได้ครบ แต่เป็นโหมดตัวอย่าง: ไม่นับงานเสร็จ ไม่ปลดล็อกอะไร · ใช้จริงตอนงานเสร็จยังต้องสุ่มได้ก่อน
 function previewFx3d(id) {
   if (fxOpenNow()) return;
-  if (typeof open3D === 'function' && typeof FX3D_GAMES === 'object' && FX3D_GAMES[id])
+  // เช็ครายชื่อจาก FX3D_IDS (app.js) — ตารางเกมของ fx3d.js ยังไม่มีจนกว่าจะเปิดเกม 3D ครั้งแรก (src/core/feature-registry.js)
+  if (typeof open3D === 'function' && typeof FX3D_IDS === 'object' && FX3D_IDS.includes(id))
     return open3D(id, fx3dUsable(id) ? 'ตัวอย่าง 3D · เล่นได้เลย' : 'ตัวอย่าง 3D · สุ่มได้ในกาชา', null, true);
   previewFx(id);
 }

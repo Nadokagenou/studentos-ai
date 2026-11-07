@@ -2655,9 +2655,11 @@
      (renderShop · renderAppearance) เห็น FX_SHOP แล้ว — ไม่งั้นแถวเอฟเฟกต์โผล่ช้าไปหนึ่งรอบ -->
 <!-- fxgames.js ก่อน hoop.js: hoop.js อ่าน FX_ICONS/FX_GAMES ตอนวาดร้านรอบแรก -->
 <script src="fxgames.js"></script>
-<!-- โหมด 3D — ไฟล์นี้เล็ก · Three.js (vendor/) โหลดตอนเปิดเกม 3D ครั้งแรกเท่านั้น -->
-<script src="fx3d.js"></script>
-<script src="hoop.js?rev=main-ui-20261028"></script>
+<!-- โหมด 3D (fx3d.js 165 KB) ไม่โหลดตอนเปิดแอปแล้ว (7 พ.ย. 69) — ตัวลงทะเบียนนี้สร้าง open3D ตัวแทน
+     แล้วโหลด fx3d.js ตอนเปิดเกม 3D ครั้งแรก · Three.js (vendor/) ยังโหลดตามหลังอีกทีเหมือนเดิม
+     ถอยกลับ: เปลี่ยนบรรทัดล่างเป็น <script src="fx3d.js"></script> (ตัวลงทะเบียนเห็นของจริงแล้วจะไม่สร้างตัวแทน) -->
+<script src="src/core/feature-registry.js?rev=lazy-fx3d-20261107"></script>
+<script src="hoop.js?rev=lazy-fx3d-20261107"></script>
 <script src="gacha-fx.js"></script>
 <!-- ปุ่มลัดเพิ่มงานจากตัวเครื่อง (แผ่นเพิ่มงานด่วน + กุญแจคำสั่งลัด iPhone) -->
 <script src="quickadd.js"></script>
