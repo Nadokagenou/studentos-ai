@@ -131,13 +131,13 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 
 | แตะอะไร | รัน | ผล 17 ต.ค. 69 |
 |---|---|---|
-| ซิงก์ / merge ข้ามเครื่อง (app.js) | `node alt/devtools/syncbench.cjs` | 36/36 |
-| ล็อกอิน / สลับบัญชี (app.js) | `node alt/devtools/account-switch-check.cjs` | 33/33 |
+| ซิงก์ / merge ข้ามเครื่อง (app.js) | `node alt/devtools/syncbench.cjs` · รากใช้ `node devtools/main-sync-check.cjs` | 36/36 · ราก 42 ผ่าน + 1 ข้าม (7 พ.ย. 69 · ข้ามเคสพอร์ตผลงานที่รากไม่มี) |
+| ล็อกอิน / สลับบัญชี (app.js) | `node alt/devtools/account-switch-check.cjs` · รากใช้ `node devtools/main-account-switch-check.cjs` | 33/33 · ราก 38/38 + ข้าม 2 (7 พ.ย. 69 · คลังรูป/พอร์ตเป็นของ alt) |
 | สมัครรับแจ้งเตือน (app.js) | `node alt/devtools/push-claim-check.cjs` | 12/12 |
 | กล่องจดหมาย LINE (linelink.js) | `node alt/devtools/inbox-live-check.cjs` | 18/18 |
 | บริบทที่ส่งให้ AI รีวิวแผน | `node alt/devtools/review-check.cjs` | 3/3 |
 | ฉากพื้นหลังธีม (alt.css) | `node alt/devtools/scene-check.cjs` | ผ่าน |
-| service worker (sw.js) | `node alt/devtools/sw-check.cjs` · รากใช้ `node devtools/main-sw-check.cjs` | 14/14 ทั้งคู่ (31 ต.ค. 69 · รวมเคสแคชติดตั้งห้ามมีชื่อซ้ำ — ซ้ำ = Chrome ไม่ยอมติดตั้ง SW · ปุ่มเริ่มเลยของการ์ด do-) |
+| service worker (sw.js) | `node alt/devtools/sw-check.cjs` · รากใช้ `node devtools/main-sw-check.cjs` | alt 14/14 · ราก 15/15 (7 พ.ย. 69 · + ติดตั้งแคชแบบข้าม HTTP cache) · เดิม 14/14 ทั้งคู่ (31 ต.ค. 69 · รวมเคสแคชติดตั้งห้ามมีชื่อซ้ำ — ซ้ำ = Chrome ไม่ยอมติดตั้ง SW · ปุ่มเริ่มเลยของการ์ด do-) |
 | นัด "เตือนให้ทำตอน" ตอนเปิดแอป (doAtTick ใน app.js) | `node alt/devtools/doat-check.cjs` · ราก: `… doat-check.cjs .` | 9/9 ทั้งคู่ (31 ต.ค. 69) |
 | ข้อความแจ้งเตือนจากเซิร์ฟเวอร์ (send-reminders/index.ts) | ทำตาม `supabase/functions/send-reminders/__tests__/README.md` (bundle ใหม่ทุกครั้ง) | 88/104 (31 ต.ค. 69) — **16 เคสตกอยู่ก่อนแล้ว** (แชท · คำขอเพื่อน · การ์ดงานปกติ) ยังไม่ได้ไล่ · เคส doAt ผ่านหมด |
 | วิชาที่เพิ่มเอง (app.js + engine.js) | `node alt/devtools/subjects-check.cjs` · ราก: `… subjects-check.cjs .` | 8/8 ทั้งคู่ (31 ต.ค. 69) |
@@ -145,7 +145,7 @@ C:\Users\User\OneDrive\code\StudentOS-AI\     ← repo จริง (เคร�
 | บริบทรายวัน · ปิดเทอม · คำเดา (context.js + app.js) | `node alt/devtools/ctx-day-check.cjs` | 29/29 (18 ต.ค. 69) |
 | ตัวกรองผล read-day (Edge Function) | `node --test supabase/functions/read-day/__tests__/clean.test.mjs` | 6/6 (18 ต.ค. 69) |
 | ทางลัด (devtools/ ที่ราก) | `node --test devtools/shortcuts.test.mjs` | 10/10 |
-| ตัวโหลดฟีเจอร์ตอนใช้ · 3D (src/core/feature-registry.js · fx3d.js · hoop.js) | `node --test devtools/feature-registry.test.mjs` | 10/10 (7 พ.ย. 69) |
+| ตัวโหลดฟีเจอร์ตอนใช้ · 3D (src/core/feature-registry.js · fx3d.js · hoop.js) | `node --test devtools/feature-registry.test.mjs` | 11/11 (7 พ.ย. 69) |
 | ย้าย/แก้ชื่อในไฟล์ใดก็ตามของราก | `node devtools/architecture-map.mjs <ไฟล์>` (ดูว่าใครใช้ · ไม่ใช่เทสต์ผ่าน/ตก) | — |
 | เติมโทเคน: ราคา · ลายเซ็น Stripe · ใบเสร็จ (supabase/functions/_shared/topup.mjs + TOPUP_PACKS ใน app.js) | `node --test supabase/functions/token-webhook/__tests__/topup.test.mjs` | 8/8 (30 ต.ค. 69) |
 

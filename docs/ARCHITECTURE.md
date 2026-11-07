@@ -97,9 +97,31 @@ StudentOSFeatures.list()           // ['fx3d']
 
 **ถอยกลับ:** เปลี่ยน `<script src="src/core/feature-registry.js...">` ใน index.html กลับเป็น `<script src="fx3d.js"></script>` — ตัวลงทะเบียนเห็นของจริงแล้วจะไม่สร้างตัวแทน (มีเทสต์ "an already loaded export is left alone")
 
-ฟีเจอร์ถัดไปที่น่าย้าย (ยังไม่ทำ · ต้องผ่านเช็คลิสต์ก่อน):
-`fxgames.js` (83 KB · แต่ hoop.js อ่าน `FX_GAMES`/`FX_ICONS` ตอนวาดร้าน = ข้อ 2 ไม่ผ่าน ต้องแยกรายชื่อออกก่อน) ·
-`halloween/season/cursed-ship.js` (ลงทะเบียน `FX_SHOP` + ตั้งค่า dataset ตอนโหลด = ต้องแยกส่วนลงทะเบียนกับส่วนเล่นฉาก)
+### 10 อันดับไฟล์ที่ควรพิจารณาโหลดตอนใช้ (วัด 7 พ.ย. 69 · Phase 2)
+
+"เวลาบูต" = ช่วงที่สคริปต์นั้นบล็อก main thread ตอนเปิดแอป (performance.mark ก่อน/หลังแท็ก · เดสก์ท็อป · ค่ากลางหลายรอบ)
+ไฟล์ส่วนใหญ่ใช้ < 2 ms เพราะเบราว์เซอร์คอมไพล์แบบขี้เกียจ — **ประโยชน์หลักของการโหลดตอนใช้คือไบต์ที่ไม่ต้องดึงทุกครั้งที่เปิดแอป**
+(sw.js ดึงทุกไฟล์ใหม่จากเน็ตแบบ `no-store` ทุกครั้งที่ออนไลน์) ไม่ใช่เวลาประมวลผล
+
+| # | ไฟล์ | ขนาด | ใครเรียก | ตัดสิน |
+|---|---|---|---|---|
+| 1 | `fx3d.js` | 165 KB | hoop.js (`open3D`) ตอนกด | ✅ ย้ายแล้ว |
+| 2 | `fxgames.js` | 83 KB | hoop.js อ่าน `FX_GAMES`/`FX_ICONS` ตอนวาดร้าน · fx3d ใช้ตัวช่วย 11 ตัว | แยกรายชื่อ/ไอคอนออกเป็นไฟล์เล็กก่อน แล้วย้ายตัวเกม |
+| 3 | `halloween/season/cursed-ship.js` | 37 KB | hoop · app · runtime เรียกแบบรอคำตอบทันที (`canPlay` · `skinOn` · `scene()` · `playVariant` ของฉากรางวัลทุกแบบ) | ⛔ ยังไม่ปลอดภัย — ดูแผนข้างล่าง |
+| 4 | `board.js` | 33 KB | app.js (`openBoard` · `paintBoardEntry` · `boardWarm`) | เช็คก่อนว่า `paintBoardEntry`/`boardWarm` ถูกเรียกตอนวาดหน้าแรกไหม |
+| 5 | `classrooms.js` | 18 KB | app.js ตอนเข้าจอ (`classroomsEnter`) + hook บัญชีที่มี `typeof` กันอยู่แล้ว | ผู้สมัครดี · แต่ไฟล์ใช้ `document` ตอนโหลด ต้องดูก่อน |
+| 6 | `gacha-fx.js` | 14 KB | app.js ตอนสุ่ม (`gcCardFace` คืน HTML ทันที) | ⛔ ติดระบบสุ่ม/รางวัล ไม่แตะ |
+| 7 | `bug-reports.js` | 9 KB | ปุ่มในจอแจ้งบั๊ก (onclick 5 ตัวใน index.html) | ผู้สมัครดี · ต้องทำตัวแทนครบทั้ง 5 ชื่อ |
+| 8 | `news.js` + `staff-news.js` | 27 KB | inbox.js อ่านข่าวปักหมุดตอนวาดกระดิ่ง | ไม่ใช่ — ใช้ตอนเปิดแอป |
+| 9 | `halloween/invite-friend/invite-friend.js` | 43 KB | events.js เรียก 20+ ชื่อ · ผูกสิทธิ์ธีม | ⛔ ติดระบบรางวัล |
+| 10 | CSS Halloween 14 ไฟล์ | 247 KB | ทุกจอเมื่อใส่ธีม Halloween | ต้องออกแบบโหลดตามธีม + กันจอกะพริบ ให้เจ้าของดูก่อน |
+
+**จุดร้อนตอนบูตที่วัดได้ (ไม่ใช่เรื่องโหลดตอนใช้):** `app.js` 60–79 ms · `economy/client.js` 17–26 ms (เรียก `refresh()` ทันที + `setInterval` ทุก 5 วิสองตัว + ห่อ `go`) ·
+`halloween/rewards/featured-badge.js` 16–17 ms (เรียก `renderProfileHead()` ตอนโหลด + ห่อ `go`/`renderUser`) — ทั้งสองไฟล์อยู่ในระบบรางวัล ต้องให้เจ้าของอนุญาตก่อนแตะ
+
+**แผนแยก cursed-ship.js (ยังไม่ทำ):** แยกเป็น (ก) ส่วนลงทะเบียน ~3 KB ที่โหลดตอนเปิดแอป: `FX_SHOP` · ค่าตั้งการเคลื่อนไหว · `skinOn` · `canPlay` · `preload` ·
+`active`/`skip` แบบไม่มีฉาก และ (ข) ตัวเล่นฉาก `playFx`/`playVariant`/`scene` โหลดผ่าน registry ตอนงานเสร็จ ·
+ติดที่ `scene()` ซึ่งจอ "เสร็จแล้ว" ของโหมดโฟกัสเรียกแบบรอ HTML ทันที → ต้องโหลดล่วงหน้าเมื่อ `skinOn()` เป็นจริง · ต้องเทียบภาพฉากก่อน/หลังทุกแบบ
 
 ## 6. CSS
 
@@ -120,7 +142,9 @@ StudentOSFeatures.list()           // ['fx3d']
 3. **ชีต/โมดอล/ยืนยัน ไม่มีตัวกลาง** — มี `openAddSheet`/`openSoonSheet`/`openDaySheet`/`openPlanRowSheet` แยกกัน · ก่อนสร้าง component กลางให้ทำม็อกอัปให้เจ้าของดูก่อน (กฎ UI)
 4. **`localStorage` ถูกเรียกตรง 175 จุดใน app.js** — ทำ wrapper ได้ แต่ต้องคงชื่อคีย์เดิมทุกตัว
 5. CSS โหลดทันที 42 ไฟล์ รวม CSS ของ Halloween ทั้งหมด แม้ผู้ใช้ไม่ได้ใส่ธีม Halloween
-6. `devtools/main-sync-check.cjs` พังที่ตัวฮาร์เนส (`HARNESS ERROR ... reading 'push'`) และ `account-switch-check.cjs app.js` ตก 2/40 — **เป็นอยู่ก่อนรอบนี้** (วัด 7 พ.ย. 69 ก่อนแก้)
+6. ~~main-sync-check พัง · account-switch ตก 2/40~~ แก้แล้ว 7 พ.ย. (Phase 2) — เป็นปัญหาของชุดเทสต์: เคสพอร์ตผลงาน/คลังรูปเป็นฟีเจอร์ของ alt ที่รากไม่มี · ตัวรันของรากข้ามเฉพาะเคสที่ฟีเจอร์ไม่มีจริงและพิมพ์ SKIP
+8. ออฟไลน์หลังอัปเดตแอปทุกครั้ง เกม 3D ถอยเป็น 2D จนกว่าจะเล่นออนไลน์หนึ่งรอบ — Three.js (`vendor/`) ถูกแคชตอนใช้ และแคชเก่าถูกลบตอนเปลี่ยนชื่อ `CACHE` (พฤติกรรมเดิม · ไม่พัง)
+9. `go()` ถูกห่อซ้อนโดยหลายไฟล์ (economy/client · featured-badge · ฯลฯ) — ลำดับโหลดเปลี่ยนเมื่อไหร่ ลำดับการห่อเปลี่ยนตาม
 7. `halloween-countdown.js/.css` อยู่ใน SHELL ของ sw.js แต่ index.html ไม่ได้โหลด — เช็คก่อนว่ายังมีหน้าอื่นใช้ไหม
 
 ## 8. ทำงานหลายคนพร้อมกัน
