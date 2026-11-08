@@ -115,7 +115,8 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
 .rc-bottom img{width:19mm;height:19mm;flex:none}
 .rc-bottom p{margin:0;font-size:8.6pt;color:var(--mute);line-height:1.5}
 .kicker.crit{text-transform:none;letter-spacing:0;font-family:'IBM Plex Sans Thai',sans-serif;font-size:9.4pt;font-weight:700;border-left:1mm solid var(--blue);padding-left:2.5mm}
-.refs td{padding:1.1mm 2.4mm}
+.refs td{padding:.5mm 2.4mm}
+.rs{font-size:8.3pt}.rs td{padding:1.1mm 2mm}.rs th{padding:1.4mm 2mm}
 .bar{height:3.2mm;border-radius:2mm;background:var(--blue)}
 .kpi td:nth-child(3){font-weight:600;color:var(--navy)}
 .neg{color:var(--red);font-weight:600}.pos{color:var(--green);font-weight:600}
@@ -145,12 +146,12 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
   <div class="rc-toc">
     <div class="rc-toc-h">สารบัญ</div>
     <table>
-      <tr><td class="n">1</td><td>แนวคิดและรูปแบบธุรกิจ <span>(Business Concept)</span></td><td class="p">2</td></tr>
-      <tr><td class="n">2</td><td>แผนการประยุกต์ใช้ปัญญาประดิษฐ์ <span>(AI Implementation Plan)</span></td><td class="p">4</td></tr>
-      <tr><td class="n">3</td><td>แนวทางการพัฒนาต้นแบบ <span>(MVP Development Plan)</span></td><td class="p">5</td></tr>
-      <tr><td class="n">4</td><td>แผนการทดสอบตลาด <span>(Market Validation Plan)</span></td><td class="p">6</td></tr>
-      <tr><td class="n">5</td><td>โครงสร้างราคาและประมาณการรายได้ <span>(Pricing &amp; Revenue Estimation)</span></td><td class="p">7–9</td></tr>
-      <tr><td class="n"></td><td>บทสรุปและแหล่งอ้างอิง</td><td class="p">10</td></tr>
+      <tr><td class="n">1</td><td>แนวคิดและรูปแบบธุรกิจ <span>(Business Concept)</span></td><td class="p">2–4</td></tr>
+      <tr><td class="n">2</td><td>แผนการประยุกต์ใช้ปัญญาประดิษฐ์ <span>(AI Implementation Plan)</span></td><td class="p">5</td></tr>
+      <tr><td class="n">3</td><td>แนวทางการพัฒนาต้นแบบ <span>(MVP Development Plan)</span></td><td class="p">6</td></tr>
+      <tr><td class="n">4</td><td>แผนการทดสอบตลาด <span>(Market Validation Plan)</span></td><td class="p">7</td></tr>
+      <tr><td class="n">5</td><td>โครงสร้างราคาและประมาณการรายได้ <span>(Pricing &amp; Revenue Estimation)</span></td><td class="p">8–10</td></tr>
+      <tr><td class="n"></td><td>บทสรุปและแหล่งอ้างอิง</td><td class="p">11</td></tr>
     </table>
   </div>
 
@@ -215,6 +216,52 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
   <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">02</span></span></div>
 </section>
 
+<!-- ============ 1. RESEARCH ============ -->
+<section class="page dense">
+  <div class="kicker crit">1) แนวคิดและรูปแบบธุรกิจ (Business Concept) — หลักฐานงานวิจัย</div>
+  <h2>งานวิจัยที่รองรับปัญหาและแนวทางแก้</h2>
+  <p class="lead">ปัญหา “ไม่รู้จะเริ่มอะไรก่อน” แยกได้เป็น 3 ส่วน: <b>ผัดวันประกันพรุ่ง · ตัวเลือกมากเกินไป · การวางแผนและเริ่มลงมือ</b> ตารางบอกงานวิจัยที่รองรับ ผลที่พบ ข้อจำกัด และวิธีที่แอปตอบ</p>
+
+  <table class="rs">
+    <tr><th style="width:19%">ประเด็น · งานวิจัย</th><th style="width:27%">สิ่งที่พบ</th><th style="width:28%">ข้อจำกัด</th><th>แอปตอบอย่างไร</th></tr>
+    <tr><td><b>ผัดวันประกันพรุ่งพบได้กว้างขวาง</b><br><span class="note">Steel (2007)<br>Psychological Bulletin 133(1):65–94</span></td>
+        <td>วิเคราะห์อภิมาน 691 ค่าความสัมพันธ์ ระบุว่าเป็นความล้มเหลวในการกำกับตนเองที่พบบ่อย · อ้างประมาณการว่านักศึกษา 80–95% ผัดวันประกันพรุ่ง</td>
+        <td>ตัวเลข 80–95% Steel อ้างจากงานก่อนหน้า และเป็นกลุ่มนักศึกษา ไม่ใช่มัธยม</td>
+        <td>ลดแรงเสียดทานการเริ่ม: บอกงานแรกพร้อมเหตุผล และกดเริ่มได้ทันที</td></tr>
+    <tr><td><b>ตัวเลือกมากทำให้ไม่ลงมือ</b><br><span class="note">Iyengar &amp; Lepper (2000)<br>J. Personality and Social Psychology</span></td>
+        <td>ผู้เรียนเขียนเรียงความแลกคะแนนพิเศษมากขึ้นเมื่อได้เลือกจาก 6 หัวข้อ เทียบกับ 30 หัวข้อ</td>
+        <td>งานทบทวนของ Scheibehenne และคณะพบว่าผลไม่คงที่ในทุกสถานการณ์ จึงไม่ควรอ้างเป็นกฎตายตัว</td>
+        <td>แสดงงานเดียวที่ควรทำก่อน แทนรายการทั้งหมด (ต้องพิสูจน์กับนักเรียนจริง)</td></tr>
+    <tr><td><b>ระบุ “เมื่อไหร่ ที่ไหน จะทำ” ช่วยให้ทำตามเป้า</b><br><span class="note">Gollwitzer &amp; Sheeran (2006)<br>Advances in Experimental Social Psychology</span></td>
+        <td>94 การทดสอบ ขนาดผล d = 0.65 (ปานกลางถึงใหญ่)</td>
+        <td>งานทบทวนใหม่ (Sheeran, Listrom &amp; Gollwitzer, 2024, 642 การทดสอบ) ปรับแก้อคติแล้วเหลือราว d = 0.15–0.35 <span class="note">(จากบทสรุปรอง)</span> — ผลมีจริงแต่เล็กกว่าเดิม</td>
+        <td>แผนวันนี้วางงานลงเวลาว่างจริง พร้อมปุ่มเริ่มทันที</td></tr>
+    <tr><td><b>สอนวางแผนและกำกับตนเองช่วยนักเรียน</b><br><span class="note">Dignath &amp; Büttner (2008)<br>Metacognition and Learning</span></td>
+        <td>วิเคราะห์อภิมานโปรแกรมฝึกกำกับตนเอง 49 งานระดับประถม + 35 งานระดับมัธยม (357 ค่าผล) ขนาดผลเฉลี่ยราว 0.69</td>
+        <td>เป็นโปรแกรมที่ครูสอน ไม่ใช่แอป · งานคู่กันของผู้แต่งกลุ่มเดียวกันรายงาน 0.61 จึงควรตรวจค่าจากต้นฉบับ</td>
+        <td>อธิบายเหตุผลของลำดับงานทุกครั้ง ให้นักเรียนเห็นวิธีคิดการจัดลำดับ</td></tr>
+    <tr><td><b>กลุ่มนักเรียนไทย</b><br><span class="note">งานวิจัย ม.2 กรุงเทพฯ (n = 49) · วารสาร OJED</span></td>
+        <td>ฝึกการอนุมานสาเหตุ 10 ครั้ง (ครั้งละ 50 นาที) ไม่พบความแตกต่างอย่างมีนัยสำคัญระหว่างกลุ่มทดลองกับกลุ่มควบคุม</td>
+        <td>กลุ่มตัวอย่างเล็ก · <b>ไม่พบตัวเลขความชุกของนักเรียนมัธยมไทย</b></td>
+        <td>เป็นช่องว่างที่ทีมจะเติม: แบบสำรวจ 13 คนเป็นสัญญาณเบื้องต้น และการทดสอบหัวข้อ 4 จะเป็นหลักฐานชุดแรก</td></tr>
+  </table>
+
+  <div style="margin-top:3mm">
+    <div class="box blue"><h4>สรุปตรง ๆ</h4><p style="margin:0">งานวิจัยสนับสนุน<b>ทิศทาง</b>ของแอป (ลดตัวเลือก · ระบุเวลาเริ่ม · อธิบายเหตุผล) แต่<b>ยังไม่มีงานไหนทดสอบแอปแบบนี้กับนักเรียนมัธยมไทยโดยตรง</b> จึงไม่อ้างว่าแอปได้ผลตามตัวเลขข้างต้น — สิ่งนี้คือเหตุผลของแผนทดสอบ 5 → 30 คนในหัวข้อ 4</p></div>
+  </div>
+
+  <h3 style="margin-top:2.5mm;margin-bottom:1mm">แหล่งอ้างอิงงานวิจัย</h3>
+  <table class="refs" style="font-size:7.2pt">
+    <tr><td style="width:24%">Steel (2007)</td><td><a href="https://prism.ucalgary.ca/handle/1880/47914">prism.ucalgary.ca/handle/1880/47914</a></td></tr>
+    <tr><td>Iyengar &amp; Lepper (2000)</td><td><a href="https://faculty.washington.edu/jdb/345/345%20Articles/Iyengar%20&%20Lepper%20(2000).pdf">faculty.washington.edu/jdb/345 (ไฟล์ PDF ของบทความ)</a></td></tr>
+    <tr><td>Gollwitzer &amp; Sheeran (2006) · Sheeran et al. (2024)</td><td><a href="https://stafforini.com/works/gollwitzer-2006-implementation-intentions-and/">stafforini.com/works/gollwitzer-2006-implementation-intentions-and</a> · ฉบับ 2024 อ้างจาก <a href="https://goalsandprogress.com/implementation-intentions-research/">goalsandprogress.com/implementation-intentions-research</a></td></tr>
+    <tr><td>Dignath &amp; Büttner (2008)</td><td><a href="https://doi.org/10.1007/s11409-008-9029-x">doi.org/10.1007/s11409-008-9029-x</a></td></tr>
+    <tr><td>งานวิจัย ม.2 กรุงเทพฯ</td><td><a href="https://so01.tci-thaijo.org/index.php/OJED/article/view/180126">so01.tci-thaijo.org/index.php/OJED/article/view/180126</a></td></tr>
+  </table>
+  <p class="note" style="margin-top:1.5mm">สรุปจากบทคัดย่อและแหล่งทุติยภูมิ ทีมยังไม่ได้อ่านฉบับเต็มทุกเรื่อง จะตรวจตัวเลขกับต้นฉบับก่อนนำเสนอ</p>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">03</span></span></div>
+</section>
+
 <!-- ============ 1. BUSINESS CONCEPT (2/2) — product + competitors ============ -->
 <section class="page">
   <div class="kicker crit">1) แนวคิดและรูปแบบธุรกิจ (Business Concept) — ต่อ</div>
@@ -245,10 +292,10 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     <div class="box blue"><h4>กลยุทธ์ขยายธุรกิจ 3 ขั้น</h4>
       <p style="margin:0"><b>A · ผู้ช่วยส่วนตัว</b> (ตอนนี้) → <b>B · เพื่อนช่วยติดตาม</b> นัดโฟกัสกับเพื่อน เมื่อพบว่าคนเริ่มได้แต่ไม่กลับมาใช้ → <b>C · ห้องเรียน</b> ครูลงงานครั้งเดียวทั้งห้อง เมื่อพบว่างานหายตั้งแต่ต้นทาง</p></div>
     <div class="box"><h4>หลักการออกแบบ</h4>
-      <p style="margin:0">ทุกฟีเจอร์ต้องตอบได้ว่า “ช่วยลดการตัดสินใจของนักเรียน หรือเพิ่ม?” ถ้าเพิ่ม จะไม่อยู่บนหน้าแรก — หน้าแรกต้องเห็นครบโดยไม่ต้องเลื่อน</p></div>
+      <p style="margin:0">ทุกฟีเจอร์ต้องตอบได้ว่า “ช่วยลดการตัดสินใจของนักเรียน หรือเพิ่ม?” ถ้าเพิ่ม จะไม่อยู่บนหน้าแรก</p></div>
   </div>
   <p class="note" style="margin-top:3mm">ข้อมูลคู่แข่งจากเว็บไซต์ทางการ: mystudylife.com/tour · todoist.com/pricing · notion.com/help/notion-for-education (ตรวจ 6 พ.ย. 2569) — ข้อได้เปรียบด้านภาษาไทยเป็นสมมติฐานที่จะพิสูจน์ในการทดสอบตลาด</p>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">03</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">04</span></span></div>
 </section>
 
 <!-- ============ 2. AI IMPLEMENTATION ============ -->
@@ -300,7 +347,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         <p style="margin:0">เรียก AI เฉพาะงานที่กฎในเครื่องทำไม่ได้ · ทดลองใช้ Gemini ฟรี · เมื่อผู้ใช้มากย้ายไป gateway 9arm (199 ฿/เดือน ไม่ต้องแก้โค้ด) หลังตรวจเพดานและการรับรูป · โควตารายบัญชี · วัด “ต้นทุนต่องานที่ผู้ใช้ยืนยันสำเร็จ”</p></div>
     </div>
   </div>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>2</b> แผนการประยุกต์ใช้ปัญญาประดิษฐ์ · <span class="num">04</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>2</b> แผนการประยุกต์ใช้ปัญญาประดิษฐ์ · <span class="num">05</span></span></div>
 </section>
 
 <!-- ============ 3. MVP ============ -->
@@ -342,7 +389,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     <tr><td class="num"><b>6</b></td><td>สรุปต้นทุนต่อผู้ใช้ · ทดสอบหน้าราคา (ระบุว่ายังไม่เปิดขาย) · เลือกทิศทาง A / B / C</td><td>ตัดสินใจจากหลักฐาน · ไม่สรุปผลวันที่ 14 ก่อนครบ 14 วันจริง</td></tr>
   </table>
   <p class="note" style="margin-top:2.5mm">* เซิร์ฟเวอร์ (Supabase แผนฟรี) ถูกจำกัดการใช้งานเพราะเกินโควตาตั้งแต่ราว 30 ต.ค. 2569 ฟีเจอร์ที่ทำงานในเครื่องยังใช้ได้ตามปกติ ส่วนที่ต้องใช้เซิร์ฟเวอร์จะกลับมาเมื่อขยายแผน — เป็นงานของสัปดาห์ที่ 1 · ทีมมีชุดทดสอบอัตโนมัติที่รันด้วย Node สำหรับการซิงก์ สลับบัญชี service worker การชำระเงิน และสิทธิ์ฐานข้อมูล</p>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>3</b> แนวทางการพัฒนาต้นแบบ · <span class="num">05</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>3</b> แนวทางการพัฒนาต้นแบบ · <span class="num">06</span></span></div>
 </section>
 
 <!-- ============ 4. MARKET VALIDATION ============ -->
@@ -395,8 +442,8 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
       <div><span class="num" style="font-size:15pt;font-weight:800;color:var(--navy)">884</span> งานที่ถูกเพิ่ม<br><span class="note">ทำเสร็จ 680 งาน · มาจากการสแกน 153 งาน</span></div>
       <div><span class="num" style="font-size:15pt;font-weight:800;color:var(--navy)">14.5</span> งานต่อบัญชี (มัธยฐาน)<br><span class="note">11 บัญชีเพิ่มงาน ≥10 ชิ้น</span></div>
     </div>
-    <p style="margin:0;font-size:9pt">ตัวเลขนับจากฐานข้อมูลของต้นแบบ (ยอดรวม ไม่ระบุตัวตน) <b>รวมบัญชีของทีมผู้พัฒนาเอง</b> และไม่นับผู้ใช้ที่ไม่ได้ล็อกอิน จึงเป็นสัญญาณว่ามีคนใช้ต่อเนื่องได้ แต่ยังไม่ใช่ผลการทดสอบแบบควบคุมตามแผนนี้ — เกณฑ์ในตารางข้างบนคือเป้าหมายที่ตั้งก่อนทดสอบ</p></div>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>4</b> แผนการทดสอบตลาด · <span class="num">06</span></span></div>
+    <p style="margin:0;font-size:9pt">ตัวเลขนับจากฐานข้อมูลของต้นแบบ (ยอดรวม ไม่ระบุตัวตน) <b>อาจรวมบัญชีของทีมผู้พัฒนาเอง</b> และไม่นับผู้ใช้ที่ไม่ได้ล็อกอิน จึงเป็นสัญญาณว่ามีคนใช้ต่อเนื่องได้ แต่ยังไม่ใช่ผลการทดสอบแบบควบคุมตามแผนนี้ — เกณฑ์ในตารางข้างบนคือเป้าหมายที่ตั้งก่อนทดสอบ</p></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>4</b> แผนการทดสอบตลาด · <span class="num">07</span></span></div>
 </section>
 
 <!-- ============ 5. PRICING ============ -->
@@ -413,7 +460,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
 
   <table>
     <tr><th style="width:24%">สินค้า</th><th style="width:22%">ราคา</th><th>รายละเอียด</th></tr>
-    <tr><td><b>แพ็กเติมโทเคน</b></td><td class="num">29 · 49 · 99 ฿</td><td>160 · 280 · 600 โทเคน (ยิ่งเติมมากยิ่งคุ้ม) · จ่ายผ่าน PromptPay / TrueMoney ซึ่งนักเรียนใช้ได้โดยไม่ต้องมีบัตร</td></tr>
+    <tr><td><b>แพ็กเติมโทเคน</b></td><td class="num">29 · 49 · 99 ฿</td><td>160 · 280 · 600 โทเคน (ยิ่งเติมมากยิ่งคุ้ม) · จ่ายผ่าน PromptPay ซึ่งนักเรียนใช้ได้โดยไม่ต้องมีบัตร (เพิ่มช่องทางอื่น เช่น TrueMoney เมื่อผู้ให้บริการรับชำระรองรับ)</td></tr>
     <tr><td><b>Pass 30 วัน</b></td><td class="num">39 ฿ หรือ 220 โทเคน</td><td>ไม่มีโฆษณา · AI 150 ครั้ง · อ่านตารางเรียนจากรูป · ซิงก์ข้ามเครื่อง · ธีมประจำเดือน — <b>ไม่ต่ออายุอัตโนมัติ</b> ซื้อเมื่ออยากใช้ เช่น ช่วงสอบ</td></tr>
     <tr><td><b>เครดิต AI เพิ่ม</b></td><td class="num">3 โทเคน / ครั้ง</td><td>ใช้โทเคนเติมเงินเมื่อโควตาฟรีหมด (≈0.5 ฿ ต่อครั้ง) · ตั้งไว้เพื่อกันการใช้หนักจนชนเพดานของผู้ให้บริการ AI</td></tr>
     <tr><td><b>ของตกแต่ง</b></td><td class="num">20–300 โทเคน</td><td>ธีม เอฟเฟกต์ 3D ตัวละคร — ต้นทุนเพิ่มต่อชิ้นเกือบเป็นศูนย์ จึงเป็นกำไรหลัก</td></tr>
@@ -428,7 +475,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         <li><b>คนไม่มีเงินก็ได้ของ</b> — ดูโฆษณาหรือเช็กอินก็ได้โทเคนโบนัสแลกของตกแต่ง ผู้ใช้ฟรีจึงยังสร้างรายได้ผ่านโฆษณา</li>
         <li><b>ระบบมีอยู่แล้วในต้นแบบ</b> — โทเคน เช็กอิน ร้านค้าธีม และหน้าเติมโทเคนสร้างไว้แล้ว เหลือเชื่อมระบบรับชำระและโฆษณา</li>
         <li><b>ไม่เสียค่าธรรมเนียมร้านแอป</b> — แอปเป็นเว็บแอป (PWA) จ่ายผ่าน PromptPay ตรง จึงไม่ต้องเสียส่วนแบ่ง 15–30% ให้ App Store / Play Store</li>
-        <li><b>ราคาต่ำสุด 29 ฿</b> — ถ้าจ่ายด้วยบัตร ค่าธรรมเนียมคงที่ 10 ฿ จะกินแพ็ก 19 ฿ ไปกว่าครึ่ง</li>
+        <li><b>ราคาต่ำสุด 29 ฿</b> — ถ้าจ่ายด้วยบัตร ค่าธรรมเนียมคงที่ 10 ฿ จะกินแพ็ก 19 ฿ ไปกว่าครึ่ง <span class="note">(อัตรา 3.65% + 10 ฿ จากแหล่งทุติยภูมิ ต้องยืนยันกับผู้ให้บริการ)</span></li>
       </ul>
     </div>
     <div>
@@ -443,7 +490,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     </div>
   </div>
   <p class="note" style="margin-top:2mm">ต้นแบบตอนนี้ยังแสดง Pro 49 / Pro Max 67 และแพ็กโทเคน 19–249 ฿ ซึ่งยังไม่เปิดขาย จะปรับให้ตรงกับโครงสร้างนี้ก่อนเริ่มทดสอบขาย</p>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">07</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">08</span></span></div>
 </section>
 
 <!-- ============ 5. REVENUE ============ -->
@@ -527,7 +574,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         </ul></div>
     </div>
   </div>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">08</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">09</span></span></div>
 </section>
 
 <!-- ============ 5. OPTIONS ============ -->
@@ -539,7 +586,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
   <h3 style="margin-top:0">1) รูปแบบรายได้</h3>
   <table>
     <tr><th style="width:21%">ทางเลือก</th><th style="width:19%">ผู้จ่าย</th><th>ข้อดี</th><th style="width:34%">ข้อเสีย / เหตุผลที่ไม่เลือก</th></tr>
-    <tr><td><b>ก. สมาชิกรายเดือน/รายภาคเรียน</b><br><span class="note">Pro 49 · Pro Max 67 หรือ Plus 199/ภาคเรียน</span></td><td>นักเรียน</td><td>รายได้สม่ำเสมอ คาดการณ์ง่าย</td><td>ทีมประเมินว่านักเรียนจ่ายรายเดือนหลักร้อยไม่ไหว · ต้องล็อกฟีเจอร์เพื่อให้คนจ่าย · ใต้สมมติฐานต้นทุนเดียวกัน ส่วนเหลือที่ 2,000 ผู้ใช้ราว +211 ฿</td></tr>
+    <tr><td><b>ก. สมาชิกรายเดือน/รายภาคเรียน</b><br><span class="note">Pro 49 · Pro Max 67 หรือ Plus 199/ภาคเรียน</span></td><td>นักเรียน</td><td>รายได้สม่ำเสมอ คาดการณ์ง่าย</td><td>ทีมประเมินว่านักเรียนจ่ายรายเดือนหลักร้อยไม่ไหว (ยังไม่ได้ทดสอบ) · ต้องล็อกฟีเจอร์เพื่อให้คนจ่าย · ใต้สมมติฐานต้นทุนเดียวกัน ส่วนเหลือที่ 2,000 ผู้ใช้ราว +211 ฿</td></tr>
     <tr><td><b>ข. ขายผ่านผู้ปกครอง/โรงเรียน</b><br><span class="note">Family · School</span></td><td>ผู้ปกครอง · โรงเรียน</td><td>กำลังซื้อสูงกว่า ขายได้ทั้งห้อง</td><td>ยังไม่มีหลักฐานว่ามีผู้ปกครอง/โรงเรียนยอมจ่าย รอบตัดสินใจนาน จึงเก็บเป็นการทดลองระยะถัดไป ไม่นับในประมาณการ</td></tr>
     <tr><td><b>ค. ใช้ฟรี + โทเคน + โฆษณาเลือกดู</b><br><span class="note">(ทางที่เลือก)</span></td><td>นักเรียน (ครั้งละน้อย)</td><td>จ่ายได้ตามกำลัง ไม่ผูกมัด · ผู้ใช้ฟรีสร้างรายได้ผ่านโฆษณา · ของตกแต่งต้นทุนเพิ่มต่อชิ้นแทบเป็นศูนย์ · ระบบโทเคน ร้านค้า เช็กอินมีในต้นแบบแล้ว</td><td>รายได้ขึ้นกับว่านักเรียนอยากซื้อของตกแต่งจริงไหม ซึ่งต้องพิสูจน์ · ใต้สมมติฐานต้นทุนเดียวกัน ส่วนเหลือที่ 2,000 ผู้ใช้ราว +1,842 ฿ (ผู้จ่ายต่างกัน: 4% เติม + 2% Pass)</td></tr>
   </table>
@@ -562,9 +609,9 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
 
   <div class="grid2" style="margin-top:3.5mm">
     <div class="box green"><h4>ข้อมูลที่รู้จริง</h4><p style="margin:0">ผู้ใช้ 24 บัญชี เพิ่มงาน 884 งาน (รวมบัญชีทีม) · ระบบโทเคน เช็กอิน ร้านค้า หน้าเติมโทเคนอยู่ในต้นแบบแล้ว · โค้ดรองรับสลับผู้ให้บริการ AI</p></div>
-    <div class="box amber"><h4>ตัวเลขที่ยังเป็นสมมติฐาน</h4><p style="margin:0">สัดส่วนผู้จ่าย (3–5%) · ยอดเติมเฉลี่ย 49 ฿ · eCPM โฆษณาไทย ($3) · ต้นทุน AI ต่อครั้ง · เงื่อนไขแพ็ก 9arm — ทั้งหมดจะวัดจริงในการทดสอบหัวข้อ 4</p></div>
+    <div class="box amber"><h4>ตัวเลขที่ยังเป็นสมมติฐาน</h4><p style="margin:0">สัดส่วนผู้จ่าย (3–5%) · ยอดเติมเฉลี่ย 49 ฿ · eCPM โฆษณาไทย ($3) · ต้นทุน AI ต่อครั้ง · เงื่อนไขแพ็ก 9arm · ความเป็นไปได้ของโฆษณาแบบรางวัลบนเว็บแอปสำหรับผู้ใช้เยาวชน — ทั้งหมดจะวัดจริงในการทดสอบหัวข้อ 4</p></div>
   </div>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">09</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">10</span></span></div>
 </section>
 
 <!-- ============ SUMMARY ============ -->
@@ -605,11 +652,11 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     <tr><td>MyStudyLife</td><td>https://mystudylife.com/tour/</td></tr>
     <tr><td>Todoist Pricing</td><td>https://www.todoist.com/pricing/</td></tr>
     <tr><td>Notion for Education</td><td>https://www.notion.com/help/notion-for-education</td></tr>
-    <tr><td>Stripe Thailand Pricing</td><td>https://stripe.com/th/pricing</td></tr>
+    <tr><td>ค่าธรรมเนียมรับชำระ (Stripe ไทย)</td><td>stripe.com/th/pricing — ยังไม่ได้ยืนยันกับหน้าทางการ ใช้ค่าเผื่อ 3%</td></tr>
     <tr><td>ราคา Gemini API / Supabase</td><td>ai.google.dev/gemini-api/docs/pricing · supabase.com/pricing (ค่าเผื่อจากหน้าราคาและตัวติดตามราคา พ.ย. 2569)</td></tr>
     <tr><td>ซอร์สโค้ดและแอป</td><td>https://github.com/nadokagenou/studentos-ai · https://nadokagenou.github.io/studentos-ai/</td></tr>
   </table>
-  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span>สรุป · <span class="num">10</span></span></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span>สรุป · <span class="num">11</span></span></div>
 </section>
 
 </body>
