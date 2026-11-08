@@ -273,8 +273,8 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         <tr><td><b>อ่านรูปใบงาน</b></td><td>โมเดลภาพ (Google Gemini) ผ่าน Supabase Edge Function <code>ocr-assist</code> · ขอความยินยอมก่อนส่งรูป · ออฟไลน์/ไม่ยินยอม ใช้ Tesseract ในเครื่อง</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span><br><span class="tag t-done" style="margin-top:1mm">สำรองในเครื่อง</span></td></tr>
         <tr><td><b>อ่านตารางเรียน</b></td><td>ถ่ายรูปตารางเรียน → AI แปลงเป็นช่วงเรียน/ช่วงว่าง (<code>read-timetable</code>, <code>read-day</code>)</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span></td></tr>
         <tr><td><b>เลือกงานแรก</b></td><td>Priority Engine (<code>priorityInfo</code>) ให้คะแนนจากความใกล้กำหนดส่ง สัดส่วนคะแนน งานสอบ และเวลาที่ต้องใช้ แล้ว <code>studyPlan()</code> วางลงช่องว่างจริง — ทุกจอใช้แผนก้อนเดียวกัน</td><td><span class="tag t-done">ในเครื่อง</span></td></tr>
-        <tr><td><b>ผู้ช่วยแชต</b></td><td>LLM (<code>ask-sai</code>) ได้รับบริบทงาน ตาราง และแผนวันนี้ ตอบในขอบเขตการเรียน</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span></td></tr>
-        <tr><td><b>ลายมือไทย</b></td><td>เพิ่มชุดตัวอย่างลายมือและเลือกผู้ให้บริการที่อ่านลายมือไทยได้ดีที่สุด</td><td><span class="tag t-next">รอบถัดไป</span></td></tr>
+        <tr><td><b>ผู้ช่วยแชต</b></td><td>LLM (<code>ask-sai</code>) ผ่าน Gemini หรือ gateway 9arm (สลับได้โดยไม่แก้โค้ด) ได้รับบริบทงาน ตาราง และแผนวันนี้ ตอบในขอบเขตการเรียน</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span></td></tr>
+        <tr><td><b>ลายมือไทย</b></td><td>เพิ่มชุดตัวอย่างลายมือ เลือกผู้ให้บริการที่อ่านได้ดีที่สุด</td><td><span class="tag t-next">รอบถัดไป</span></td></tr>
       </table>
     </div>
     <div style="width:38mm">
@@ -287,7 +287,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     <div>
       <h3 style="margin-top:0">ทำไมไม่ให้ LLM เลือกงานเองทั้งหมด</h3>
       <p>คำแนะนำ “ทำอะไรก่อน” ต้องเหมือนเดิมทุกครั้งที่ข้อมูลเหมือนเดิม ต้องไม่เกินเวลาว่าง และต้องอธิบายได้ เอนจินแบบกำหนดกฎจึงเป็นผู้ตัดสิน ส่วน LLM ทำหน้าที่อ่านข้อมูลเข้าและสื่อสารเหตุผลกับนักเรียน — ลดต้นทุนต่อการใช้ และลดความเสี่ยงที่ AI จะ “แต่ง” คำตอบ</p>
-      <h3>วัดคุณภาพ AI อย่างไร</h3>
+      <h3 style="margin-top:3mm">วัดคุณภาพ AI อย่างไร</h3>
       <ul>
         <li>ตามบันทึกผลทดสอบของทีม: ตัวอ่านข้อความภาษาไทยผ่าน <b>49/49</b> เคส · อ่านรูปจริงถูก <b>33/36</b> ภาพ — เป็นชุดเล็กที่ทีมรวบรวมเอง ยังไม่ใช่ความแม่นยำทั่วไป</li>
         <li>เป้ารอบหน้า: ชุด ≥200 ตัวอย่าง แยกพิมพ์/ลายมือ · วิชาและกำหนดส่งถูก ≥95% · เพิ่มงานเสร็จใน 30 วินาที · แผนไม่เกินเวลาว่าง 100%</li>
@@ -295,9 +295,9 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     </div>
     <div>
       <div class="box green" style="margin-bottom:3mm"><h4>ความเป็นส่วนตัว</h4>
-        <p style="margin:0">ข้อมูลงานเก็บในเครื่องเป็นหลัก ใช้ได้โดยไม่ต้องสมัคร · ขอความยินยอมก่อนส่งรูปให้ AI ครั้งแรก · ไม่มีบริการวิเคราะห์ของบุคคลที่สาม · ปฏิเสธได้และยังใช้ทางสำรองในเครื่องได้</p></div>
+        <p style="margin:0">ข้อมูลงานเก็บในเครื่องเป็นหลัก ใช้ได้โดยไม่ต้องสมัคร · ขอความยินยอมก่อนส่งรูปให้ AI ครั้งแรก · ไม่มีบริการวิเคราะห์ของบุคคลที่สาม · ปฏิเสธได้และยังใช้ทางสำรองในเครื่องได้ · แพ็กฟรีบางเจ้าอาจนำข้อมูลไปปรับปรุงโมเดล ต้องตรวจเงื่อนไขก่อนเปิดกว้าง</p></div>
       <div class="box amber"><h4>ควบคุมต้นทุน AI</h4>
-        <p style="margin:0">เรียก AI เฉพาะงานที่กฎในเครื่องทำไม่ได้ · มีเพดานเวลา/ขนาดคำขอใน Edge Function · แผนต่อไป: โควตารายบัญชี งบรวมต่อวัน และหยุดบริการที่มีต้นทุนอัตโนมัติเมื่อถึงเพดาน · วัด “ต้นทุนต่องานที่ผู้ใช้ยืนยันสำเร็จ”</p></div>
+        <p style="margin:0">เรียก AI เฉพาะงานที่กฎในเครื่องทำไม่ได้ · ทดลองใช้ Gemini ฟรี · เมื่อผู้ใช้มากย้ายไป gateway 9arm (199 ฿/เดือน ไม่ต้องแก้โค้ด) หลังตรวจเพดานและการรับรูป · โควตารายบัญชี · วัด “ต้นทุนต่องานที่ผู้ใช้ยืนยันสำเร็จ”</p></div>
     </div>
   </div>
   <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>2</b> แผนการประยุกต์ใช้ปัญญาประดิษฐ์ · <span class="num">04</span></span></div>
@@ -407,17 +407,17 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
 
   <div class="grid3" style="margin-bottom:3.5mm">
     <div class="box blue"><h4>① ฟรีตลอด</h4><p style="margin:0">เพิ่มงาน · เลือกงานพร้อมเหตุผล · แผน · โฟกัส · แจ้งเตือน · AI 20 ครั้ง/เดือน — ส่วนที่ช่วยให้งานเสร็จจะไม่ถูกล็อกด้วยเงิน</p></div>
-    <div class="box blue"><h4>② โทเคน = เงินในแอป</h4><p style="margin:0">ได้ฟรีจากการทำงานเสร็จ/เช็กอิน/ดูโฆษณา หรือเติมเงิน แล้วใช้แลกธีม เอฟเฟกต์ เครดิต AI เพิ่ม หรือ Pass 30 วัน</p></div>
-    <div class="box blue"><h4>③ โฆษณาแบบเลือกดูเอง</h4><p style="margin:0">กดดูวิดีโอ 15–30 วินาทีเพื่อรับโทเคน · ไม่มีโฆษณาเด้งขึ้นเอง และไม่มีโฆษณาในหน้าแผนหรือโหมดโฟกัส</p></div>
+    <div class="box blue"><h4>② โทเคน = เงินในแอป</h4><p style="margin:0"><b>โทเคนเติมเงิน</b>ใช้ได้ทุกอย่าง (ของตกแต่ง เครดิต AI Pass) · <b>โทเคนโบนัส</b>ที่ได้ฟรีจากเช็กอินและดูโฆษณา แลกได้เฉพาะของตกแต่ง</p></div>
+    <div class="box blue"><h4>③ โฆษณาแบบเลือกดูเอง</h4><p style="margin:0">กดดูวิดีโอ 15–30 วินาทีเพื่อรับโทเคนโบนัส · ไม่มีโฆษณาเด้งขึ้นเอง และไม่มีโฆษณาในหน้าแผนหรือโหมดโฟกัส</p></div>
   </div>
 
   <table>
     <tr><th style="width:24%">สินค้า</th><th style="width:22%">ราคา</th><th>รายละเอียด</th></tr>
     <tr><td><b>แพ็กเติมโทเคน</b></td><td class="num">29 · 49 · 99 ฿</td><td>160 · 280 · 600 โทเคน (ยิ่งเติมมากยิ่งคุ้ม) · จ่ายผ่าน PromptPay / TrueMoney ซึ่งนักเรียนใช้ได้โดยไม่ต้องมีบัตร</td></tr>
     <tr><td><b>Pass 30 วัน</b></td><td class="num">39 ฿ หรือ 220 โทเคน</td><td>ไม่มีโฆษณา · AI 150 ครั้ง · อ่านตารางเรียนจากรูป · ซิงก์ข้ามเครื่อง · ธีมประจำเดือน — <b>ไม่ต่ออายุอัตโนมัติ</b> ซื้อเมื่ออยากใช้ เช่น ช่วงสอบ</td></tr>
-    <tr><td><b>เครดิต AI เพิ่ม</b></td><td class="num">3 โทเคน / ครั้ง</td><td>เมื่อโควตาฟรีหมด (≈0.5 ฿ ต่อครั้ง เทียบต้นทุน ~0.2 ฿)</td></tr>
+    <tr><td><b>เครดิต AI เพิ่ม</b></td><td class="num">3 โทเคน / ครั้ง</td><td>ใช้โทเคนเติมเงินเมื่อโควตาฟรีหมด (≈0.5 ฿ ต่อครั้ง) · ตั้งไว้เพื่อกันการใช้หนักจนชนเพดานของผู้ให้บริการ AI</td></tr>
     <tr><td><b>ของตกแต่ง</b></td><td class="num">20–300 โทเคน</td><td>ธีม เอฟเฟกต์ 3D ตัวละคร — ต้นทุนเพิ่มต่อชิ้นเกือบเป็นศูนย์ จึงเป็นกำไรหลัก</td></tr>
-    <tr><td><b>โฆษณาแลกรางวัล</b></td><td class="num">ผู้ใช้ไม่เสียเงิน</td><td>ดู 1 ครั้ง = 5 โทเคน · สูงสุด 5 ครั้ง/วัน · ผู้ลงโฆษณาจ่ายเราราว 0.1 ฿ ต่อการดู (eCPM ~$3)</td></tr>
+    <tr><td><b>โฆษณาแลกรางวัล</b></td><td class="num">ผู้ใช้ไม่เสียเงิน</td><td>ดู 1 ครั้ง = 3 โทเคนโบนัส · สูงสุด 3 ครั้ง/วัน (≤270 ต่อเดือน ≈ 47 ฿ น้อยกว่าแพ็ก 49 ฿) · แลกได้เฉพาะของตกแต่ง · ผู้ลงโฆษณาจ่ายเราราว 0.1 ฿ ต่อการดู (eCPM ~$3)</td></tr>
   </table>
 
   <div class="grid2" style="margin-top:3.5mm">
@@ -425,7 +425,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
       <h3 style="margin-top:0">ทำไมโมเดลนี้เหมาะกับนักเรียน</h3>
       <ul>
         <li><b>จ่ายครั้งละน้อย ไม่ผูกมัด</b> — 29–49 ฿ เท่ากับค่าขนมหนึ่งวัน ไม่มีการตัดเงินรายเดือน</li>
-        <li><b>คนไม่มีเงินก็ได้ของ</b> — ดูโฆษณาหรือทำงานให้เสร็จก็ได้โทเคน ผู้ใช้ฟรีจึงยังสร้างรายได้ผ่านโฆษณา</li>
+        <li><b>คนไม่มีเงินก็ได้ของ</b> — ดูโฆษณาหรือเช็กอินก็ได้โทเคนโบนัสแลกของตกแต่ง ผู้ใช้ฟรีจึงยังสร้างรายได้ผ่านโฆษณา</li>
         <li><b>ระบบมีอยู่แล้วในต้นแบบ</b> — โทเคน เช็กอิน ร้านค้าธีม และหน้าเติมโทเคนสร้างไว้แล้ว เหลือเชื่อมระบบรับชำระและโฆษณา</li>
         <li><b>ไม่เสียค่าธรรมเนียมร้านแอป</b> — แอปเป็นเว็บแอป (PWA) จ่ายผ่าน PromptPay ตรง จึงไม่ต้องเสียส่วนแบ่ง 15–30% ให้ App Store / Play Store</li>
         <li><b>ราคาต่ำสุด 29 ฿</b> — ถ้าจ่ายด้วยบัตร ค่าธรรมเนียมคงที่ 10 ฿ จะกินแพ็ก 19 ฿ ไปกว่าครึ่ง</li>
@@ -450,13 +450,13 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
 <section class="page dense">
   <div class="kicker crit">5) โครงสร้างราคาและประมาณการรายได้ (Pricing &amp; Revenue Estimation) — ต่อ</div>
   <h2>ประมาณการรายได้ 3 สถานการณ์</h2>
-  <p class="lead">ต้นทุนผู้ใช้ฟรีทุกคนถูกนับรวมแล้ว ตัวเลขที่ไม่รู้จริงตั้งไว้แบบระมัดระวัง และจะแทนด้วยค่าที่วัดได้จากการทดสอบในหัวข้อ 4</p>
+  <p class="lead">ค่า AI ตั้งเป็นค่าคงที่ตามแผนใช้ gateway 9arm เมื่อผู้ใช้เพิ่ม ส่วนตัวเลขที่ยังไม่รู้จริงตั้งไว้แบบระมัดระวัง และจะแทนด้วยค่าที่วัดได้จากการทดสอบในหัวข้อ 4</p>
 
   <div class="grid2" style="margin-bottom:3mm">
     <div class="box" style="font-size:9pt"><h4>สมมติฐานรายได้</h4>
       ผู้เติมโทเคนจ่ายเฉลี่ย 49 ฿/เดือน · Pass 39 ฿ · ผู้ใช้ 25% ดูโฆษณาเฉลี่ย 12 ครั้ง/เดือน · eCPM $3 → 0.105 ฿/ครั้ง (35 ฿/USD)</div>
     <div class="box" style="font-size:9pt"><h4>สมมติฐานต้นทุน</h4>
-      ค่ารับชำระ 3% (เผื่อไว้) · AI ~0.2 ฿/ครั้ง → ผู้ใช้ฟรี ~1.30 ฿/คน · ผู้ถือ Pass ~8 ฿/คน · เครดิต AI ที่ขาย ~6% ของยอดโทเคน · ค่าคงที่ 1,000 ฿/เดือน (Supabase Pro ~875 ฿ + อื่น ๆ)</div>
+      ค่ารับชำระ 3% (เผื่อไว้) · <b>ค่า AI:</b> ระยะทดลองใช้ Gemini แพ็กฟรี (0 ฿) · เมื่อผู้ใช้มากย้ายไป gateway 9arm <b>199 ฿/เดือน</b> เป็นค่าคงที่ (เงื่อนไขและเพดานการใช้ยังไม่ยืนยัน) · ค่าคงที่อื่น 1,000 ฿ (Supabase Pro ~875 ฿ + อื่น ๆ)</div>
   </div>
 
   <div class="row">
@@ -470,12 +470,11 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         <tr><td>รายได้ Pass</td><td class="r num">117</td><td class="r num">1,560</td><td class="r num">9,360</td></tr>
         <tr><td>รายได้โฆษณา</td><td class="r num">94</td><td class="r num">630</td><td class="r num">2,520</td></tr>
         <tr><td><b>รายรับรวม</b></td><td class="r num"><b>652</b></td><td class="r num"><b>6,110</b></td><td class="r num"><b>31,480</b></td></tr>
-        <tr><td>ค่ารับชำระ + AI ที่ขาย</td><td class="r num">−43</td><td class="r num">−399</td><td class="r num">−2,045</td></tr>
-        <tr><td>AI ของผู้ถือ Pass</td><td class="r num">−24</td><td class="r num">−320</td><td class="r num">−1,920</td></tr>
-        <tr><td>ต้นทุนผู้ใช้ฟรี</td><td class="r num">−386</td><td class="r num">−2,548</td><td class="r num">−10,088</td></tr>
-        <tr><td>ค่าคงที่</td><td class="r num">−1,000</td><td class="r num">−1,000</td><td class="r num">−1,000</td></tr>
-        <tr><td><b>ส่วนเหลือ / เดือน</b></td><td class="r num neg">−801</td><td class="r num pos">+1,842</td><td class="r num pos">+16,427</td></tr>
-        <tr><td><b>ส่วนเหลือ / ปี</b> <span class="note">(10 เดือนเปิดเทอม)</span></td><td class="r num neg">−8,008</td><td class="r num pos">+18,424</td><td class="r num pos">+164,272</td></tr>
+        <tr><td>ค่ารับชำระ 3%</td><td class="r num">−17</td><td class="r num">−164</td><td class="r num">−869</td></tr>
+        <tr><td>ค่า AI (Gemini ฟรี → 9arm)</td><td class="r num">0</td><td class="r num">−199</td><td class="r num">−199</td></tr>
+        <tr><td>ค่าคงที่อื่น</td><td class="r num">−1,000</td><td class="r num">−1,000</td><td class="r num">−1,000</td></tr>
+        <tr><td><b>ส่วนเหลือ / เดือน</b></td><td class="r num neg">−365</td><td class="r num pos">+4,747</td><td class="r num pos">+29,412</td></tr>
+        <tr><td><b>ส่วนเหลือ / ปี</b> <span class="note">(10 เดือนเปิดเทอม)</span></td><td class="r num neg">−3,650</td><td class="r num pos">+47,470</td><td class="r num pos">+294,120</td></tr>
       </table>
     </div>
     <div style="flex:1">
@@ -490,17 +489,17 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
         <text x="0" y="104" font-size="11" font-weight="600" fill="#0e2346">ส่วนเหลือต่อเดือน (บาท)</text>
         <line x1="10" y1="160" x2="296" y2="160" stroke="#c9d1de"/>
         <rect x="30" y="160" width="56" height="2.7" fill="#c2372e"/>
-        <rect x="122" y="153.8" width="56" height="6.2" fill="#178a4a"/>
-        <rect x="214" y="105" width="56" height="55" fill="#178a4a"/>
-        <text x="58" y="176" text-anchor="middle" font-size="9.5" fill="#c2372e" font-family="Inter">−801</text>
-        <text x="150" y="148" text-anchor="middle" font-size="9.5" fill="#178a4a" font-family="Inter">+1,842</text>
-        <text x="242" y="100" text-anchor="middle" font-size="9.5" fill="#178a4a" font-weight="700" font-family="Inter">+16,427</text>
+        <rect x="122" y="151.1" width="56" height="8.9" fill="#178a4a"/>
+        <rect x="214" y="109" width="56" height="51" fill="#178a4a"/>
+        <text x="58" y="176" text-anchor="middle" font-size="9.5" fill="#c2372e" font-family="Inter">−365</text>
+        <text x="150" y="146" text-anchor="middle" font-size="9.5" fill="#178a4a" font-family="Inter">+4,747</text>
+        <text x="242" y="104" text-anchor="middle" font-size="9.5" fill="#178a4a" font-weight="700" font-family="Inter">+29,412</text>
         <text x="58" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">300</text>
         <text x="150" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">2,000</text>
         <text x="242" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">8,000 MAU</text>
       </svg>
       <div class="box green" style="margin-top:2mm"><h4>จุดคุ้มทุน</h4>
-        <p style="margin:0">ที่ 2,000 MAU และ Pass 2% ต้องมีผู้เติมโทเคนอย่างน้อย <b>2%</b> (40 คน)</p></div>
+        <p style="margin:0">ที่ 2,000 MAU (ค่าคงที่รวม 1,199 ฿): ถ้านับโฆษณา ต้องมี<b>ผู้เติม 49 ฿ ราว 12 คน หรือผู้ซื้อ Pass 16 คน</b> (0.6–0.8%) · ถ้าไม่นับโฆษณา ราว 25–32 คน (1.3–1.6%)</p></div>
     </div>
   </div>
 
@@ -509,20 +508,21 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
       <h3 style="margin-top:0">ถ้าสมมติฐานเปลี่ยน (ที่ 2,000 MAU)</h3>
       <table>
         <tr><th>ถ้า…</th><th class="r">ส่วนเหลือ/เดือน</th></tr>
-        <tr><td>ตามสมมติฐานหลัก</td><td class="r num pos">+1,842</td></tr>
-        <tr><td>ไม่มีโฆษณาเลย</td><td class="r num pos">+1,212</td></tr>
-        <tr><td>eCPM ต่ำเหลือ $1</td><td class="r num pos">+1,422</td></tr>
-        <tr><td>ผู้เติมจ่ายเฉลี่ย 29 ฿ แทน 49 ฿</td><td class="r num pos">+386</td></tr>
-        <tr><td>ผู้เติมโทเคนเหลือ 2%</td><td class="r num pos">+59</td></tr>
-        <tr><td>ผู้ใช้ฟรีมีต้นทุน 3 ฿ แทน 1.30 ฿</td><td class="r num neg">−1,490</td></tr>
+        <tr><td>ตามสมมติฐานหลัก (ค่า AI คงที่ 199 ฿)</td><td class="r num pos">+4,747</td></tr>
+        <tr><td>ไม่มีโฆษณาเลย</td><td class="r num pos">+4,117</td></tr>
+        <tr><td>ผู้เติมจ่ายเฉลี่ย 29 ฿ แทน 49 ฿</td><td class="r num pos">+3,195</td></tr>
+        <tr><td>ผู้เติมโทเคนเหลือ 2% (40 คน)</td><td class="r num pos">+2,846</td></tr>
+        <tr><td>ค่า AI ต้องเพิ่มเป็น 3 เท่า (597 ฿)</td><td class="r num pos">+4,349</td></tr>
+        <tr><td><b>กรณีเลวร้าย:</b> 9arm รับไม่ไหว ต้องกลับไปจ่าย Gemini ตามครั้ง (~0.2 ฿/ครั้ง)*</td><td class="r num pos">+1,842</td></tr>
       </table>
+      <p class="note" style="margin-top:1.5mm">* ตัวเลขนี้คำนวณจากการประมาณโทเคนต่อครั้ง ไม่ใช่ค่าที่วัดจริง · ที่ 8,000 MAU ตารางหลักสมมติว่าแพ็ก 199 ฿ รองรับปริมาณใช้งานได้ ซึ่งยังไม่ยืนยัน (กรณีจ่ายตามครั้งได้ราว +16,400 ฿)</p>
     </div>
     <div>
       <div class="box amber" style="height:100%"><h4>มองแบบผู้ประกอบการ</h4>
         <ul style="margin:0">
-          <li><b>โฆษณาอย่างเดียวไม่พอ</b> — ที่ 2,000 MAU ได้ราว 630 ฿/เดือน พอจ่ายต้นทุน AI ของผู้ใช้ฟรีบางส่วน แต่ไม่ใช่แหล่งกำไร</li>
+          <li><b>ความเสี่ยงใหญ่สุดคือเพดานของผู้ให้บริการ AI</b> ไม่ใช่ราคา — ต้องตรวจจำนวนคำขอต่อนาทีและต่อเดือน และว่ารับรูปได้ไหมก่อนเปิดกว้าง</li>
+          <li><b>โฆษณาอย่างเดียวไม่พอ</b> — ที่ 2,000 MAU ได้ราว 630 ฿/เดือน ช่วยจ่ายค่า AI และค่าคงที่ แต่ไม่ใช่แหล่งกำไร</li>
           <li><b>กำไรมาจากของตกแต่ง</b> ซึ่งมีต้นทุนเพิ่มต่อชิ้นเกือบเป็นศูนย์</li>
-          <li><b>ความเสี่ยงใหญ่สุดคือผู้ใช้ฟรีใช้ AI หนัก</b> — โควตา 20 ครั้งจึงจำเป็น</li>
           <li>ยังไม่รวมค่าแรงทีม การตลาด และภาษี · eCPM ไทยและค่าธรรมเนียม TrueMoney/PromptPay ต้องวัดจริง · ทุกตัวเลขเป็นสถานการณ์สมมติ</li>
         </ul></div>
     </div>
@@ -541,7 +541,7 @@ ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;heigh
     <div class="box"><h4>2 · การใช้ AI</h4><p style="margin:0">AI อ่านข้อความ รูปใบงาน และตารางเรียน · เอนจินที่อธิบายได้เป็นผู้เลือกงาน · นักเรียนยืนยันก่อนบันทึก · ขอความยินยอมและมีทางสำรองในเครื่อง</p></div>
     <div class="box"><h4>3 · ต้นแบบ (MVP)</h4><p style="margin:0">ต้นแบบบนเว็บทำลูกโซ่ รับงาน → เลือกให้ → เริ่ม → เสร็จ → งานถัดไป ได้ครบในเครื่อง · 6 สัปดาห์ต่อไป: คืนบริการเซิร์ฟเวอร์ ทำให้เสถียร และพิสูจน์วงจรหลัก</p></div>
     <div class="box"><h4>4 · ทดสอบตลาด</h4><p style="margin:0">มีผู้ใช้ช่วงแรก 24 บัญชี 884 งาน · แผนต่อไป 5 → 30 คน วัด capture rate ≥70% · การกลับมาใช้วันที่ 8–14 ≥40% · ทำตามคำแนะนำ ≥50% พร้อมกติกาตัดสินใจที่ตั้งไว้ก่อนเห็นผล</p></div>
-    <div class="box" style="grid-column:1/3"><h4>5 · ราคาและรายได้</h4><p style="margin:0">ใช้ฟรีทุกส่วนที่ช่วยให้งานเสร็จ · รายได้จากเติมโทเคน 29–99 ฿ (ของตกแต่ง · เครดิต AI · Pass 30 วัน 39 ฿) และโฆษณาแลกรางวัล · คุ้มทุนที่ 2,000 MAU เมื่อมีผู้เติมโทเคน 2% · ที่ 8,000 MAU มีส่วนเหลือราว 16,000 ฿/เดือน ก่อนค่าแรงและภาษี</p></div>
+    <div class="box" style="grid-column:1/3"><h4>5 · ราคาและรายได้</h4><p style="margin:0">ใช้ฟรีทุกส่วนที่ช่วยให้งานเสร็จ · รายได้จากเติมโทเคน 29–99 ฿ (ของตกแต่ง · เครดิต AI · Pass 30 วัน 39 ฿) และโฆษณาแลกรางวัล · ค่า AI เป็นค่าคงที่ 199 ฿/เดือน (9arm) · คุ้มทุนที่ 2,000 MAU เมื่อมีผู้เติม/ซื้อ Pass เพียง 0.6–0.8% · ส่วนเหลือราว 4,700 ฿/เดือน ก่อนค่าแรงและภาษี (ขึ้นกับเพดานของ 9arm ซึ่งยังไม่ยืนยัน)</p></div>
   </div>
 
   <div class="row" style="align-items:center;gap:7mm;margin-bottom:2mm">
