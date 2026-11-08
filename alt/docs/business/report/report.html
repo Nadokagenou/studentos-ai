@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>StudentOS AI · SPU AI Hackathon 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Inter:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#1b63d6; --blue2:#3b82f6; --navy:#0e2346; --ink:#1c2333; --mute:#5a6375; --faint:#8a93a5;
+  --line:#e2e7ef; --soft:#f3f6fb; --soft2:#eaf1fd; --green:#178a4a; --gsoft:#e7f6ee; --amber:#a95f00; --asoft:#fff4e2; --red:#c2372e;
+}
+@page{size:A4;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:var(--ink);font-family:'IBM Plex Sans Thai',sans-serif;font-size:10.4pt;line-height:1.55;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;padding:15mm 16mm 13mm;position:relative;overflow:hidden;page-break-after:always;break-after:page;display:flex;flex-direction:column}
+.page:last-child{page-break-after:auto}
+.num{font-family:Inter,sans-serif}
+.kicker{font-family:Inter,sans-serif;font-size:8pt;font-weight:700;letter-spacing:.16em;color:var(--blue);text-transform:uppercase;margin:0 0 3mm}
+h1{font-size:26pt;line-height:1.2;margin:0 0 3mm;color:var(--navy);font-weight:700}
+h2{font-size:19pt;line-height:1.25;margin:0 0 2mm;color:var(--navy);font-weight:700}
+h3{font-size:11.6pt;margin:5mm 0 2mm;color:var(--navy);font-weight:700}
+p{margin:0 0 2mm}
+.lead{font-size:11.2pt;color:var(--mute);margin-bottom:5mm}
+.foot{position:absolute;left:16mm;right:16mm;bottom:8mm;display:flex;justify-content:space-between;font-size:7.6pt;color:var(--faint);border-top:1px solid var(--line);padding-top:2mm}
+.foot b{color:var(--blue);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:9.3pt;line-height:1.45}
+th{background:var(--navy);color:#fff;text-align:left;font-weight:600;padding:2mm 2.6mm}
+th:first-child{border-radius:2mm 0 0 0} th:last-child{border-radius:0 2mm 0 0}
+td{padding:1.9mm 2.6mm;border-bottom:1px solid var(--line);vertical-align:top}
+tr:nth-child(even) td{background:#fafbfd}
+td.r,th.r{text-align:right}
+.tag{display:inline-block;font-size:7.6pt;font-weight:600;padding:.3mm 2mm;border-radius:10mm;white-space:nowrap}
+.t-done{background:var(--gsoft);color:var(--green)} .t-test{background:var(--asoft);color:var(--amber)} .t-next{background:var(--soft2);color:var(--blue)}
+.box{background:var(--soft);border-radius:3mm;padding:3.5mm 4.5mm}
+.box.blue{background:var(--soft2)} .box.green{background:var(--gsoft)} .box.amber{background:var(--asoft)}
+.box h4{margin:0 0 1mm;font-size:10.2pt;color:var(--navy)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4mm}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3.5mm}
+.row{display:flex;gap:5mm}
+.note{font-size:8pt;color:var(--faint);line-height:1.45}
+ul{margin:0;padding-left:5mm} li{margin:0 0 1mm}
+ul.check{list-style:none;padding:0} ul.check li{padding-left:5.5mm;position:relative}
+ul.check li:before{content:"";position:absolute;left:0;top:1.6mm;width:3mm;height:3mm;border-radius:50%;background:var(--blue)}
+/* phone */
+.phone{border-radius:6mm;padding:1.6mm;background:#0e1626;box-shadow:0 2mm 6mm rgba(14,35,70,.18);flex:none}
+.phone .scr{border-radius:4.6mm;overflow:hidden;background:#eef3fb;position:relative}
+.phone img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+.cap{font-size:8.3pt;color:var(--mute);text-align:center;margin-top:2mm;line-height:1.35}
+.cap b{color:var(--navy);display:block;font-size:9pt}
+/* chain */
+.chain{display:flex;align-items:stretch;gap:0;margin:2mm 0 4mm}
+.chain .st{flex:1;background:var(--soft2);padding:2.4mm 2mm;text-align:center;font-size:8.8pt;font-weight:600;color:var(--navy);position:relative;line-height:1.3}
+.chain .st small{display:block;font-weight:400;color:var(--mute);font-size:7.6pt}
+.chain .st:not(:last-child):after{content:"";position:absolute;right:-3mm;top:50%;transform:translateY(-50%);border:3mm solid transparent;border-left-color:var(--soft2);border-right:0;z-index:2}
+.chain .st:first-child{border-radius:2mm 0 0 2mm}.chain .st:last-child{border-radius:0 2mm 2mm 0}
+.chain .st.hl{background:var(--blue);color:#fff}.chain .st.hl small{color:#dbe7ff}.chain .st.hl:after{border-left-color:var(--blue)}
+.stat{background:#fff;border:1px solid var(--line);border-radius:3mm;padding:3mm 4mm}
+.stat .v{font-family:Inter,sans-serif;font-size:21pt;font-weight:800;color:var(--blue);line-height:1.1}
+.stat .l{font-size:8.6pt;color:var(--mute);line-height:1.35;margin-top:1mm}
+.secnum{font-family:Inter,sans-serif;font-weight:800;color:var(--blue)}
+/* cover */
+.cover{padding:0;background:linear-gradient(160deg,#0e2346 0%,#163a78 55%,#1b63d6 100%);color:#fff}
+.cover .in{padding:17mm 16mm 0;flex:1;display:flex;flex-direction:column}
+.cover .brand{display:flex;align-items:center;gap:3mm;font-family:Inter,sans-serif;font-weight:700;font-size:12pt;letter-spacing:.02em}
+.cover .brand img{width:11mm;height:11mm;border-radius:2.6mm;background:#fff}
+.cover .event{margin-left:auto;font-size:8.4pt;letter-spacing:.14em;font-weight:600;opacity:.85}
+.cover h1{color:#fff;font-size:33pt;line-height:1.15;margin:13mm 0 4mm}
+.cover h1 em{font-style:normal;color:#9cc3ff}
+.cover .sub{font-size:12pt;color:#d7e4fb;max-width:84mm;line-height:1.55}
+.cover .phones{display:flex;gap:4mm;position:absolute;right:13mm;top:76mm}
+.cover .phones .phone{background:#050b17;box-shadow:0 4mm 12mm rgba(0,0,0,.35)}
+.cover .linkcard{margin-top:auto;margin-bottom:8mm;display:flex;gap:5mm;align-items:center;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:4mm;padding:4mm;width:86mm}
+.cover .linkcard .qr{background:#fff;padding:2mm;border-radius:2mm;width:27mm;height:27mm;flex:none}
+.cover .linkcard .qr img{width:100%;height:100%;display:block}
+.cover .linkcard .u{font-family:Inter,sans-serif;font-weight:600;font-size:9.6pt;word-break:break-all;color:#fff}
+.cover .linkcard small{display:block;color:#bcd2f5;font-size:8.4pt;line-height:1.45;margin-top:1mm}
+.cover .toc{background:#fff;color:var(--ink);padding:7mm 16mm 9mm;border-radius:7mm 7mm 0 0}
+.cover .toc h3{margin:0 0 2.5mm;font-size:10pt;color:var(--mute);font-weight:600}
+.toc .it{display:flex;align-items:center;gap:3mm;padding:1.55mm 0;border-bottom:1px dashed var(--line);font-size:10.2pt}
+.toc .it:last-child{border-bottom:0}
+.toc .ck{width:4.6mm;height:4.6mm;border-radius:1.2mm;background:var(--green);color:#fff;display:grid;place-items:center;font-size:8pt;font-weight:700;flex:none}
+.toc .pg{margin-left:auto;font-family:Inter,sans-serif;color:var(--mute);font-size:9pt}
+.toc .en{color:var(--faint);font-size:8.8pt}
+.team{display:flex;justify-content:space-between;font-size:8.6pt;color:var(--mute);margin-top:3mm}
+/* diagram */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:2.4mm;margin:1mm 0 3mm}
+.flow .n{border:1.4px solid var(--line);border-radius:2.6mm;padding:2.4mm 2.2mm;background:#fff;font-size:8.3pt;line-height:1.35;position:relative}
+.flow .n b{display:block;color:var(--navy);font-size:9.1pt;margin-bottom:.6mm}
+.flow .n .who{display:inline-block;font-size:7pt;font-weight:600;padding:.2mm 1.6mm;border-radius:5mm;margin-bottom:1.2mm}
+.who.ai{background:#efe8ff;color:#5b37b8}.who.rule{background:var(--soft2);color:var(--blue)}.who.hu{background:var(--gsoft);color:var(--green)}
+.flow .n:not(:last-child):after{content:"→";position:absolute;right:-2.5mm;top:50%;transform:translate(50%,-50%);color:var(--faint);font-weight:700;font-size:10pt}
+.dense table{font-size:8.8pt}.dense td{padding:1.4mm 2.4mm}.dense li{margin:0 0 .5mm}.dense h3{margin:3.5mm 0 1.5mm}.dense .lead{margin-bottom:3.5mm}
+
+.rc{padding:18mm 22mm 14mm}
+.rc-top{display:flex;align-items:center;gap:4mm;font-size:9.6pt;color:var(--mute);line-height:1.4}
+.rc-top img{width:13mm;height:13mm;border-radius:3mm}
+.rc-top b{color:var(--navy);font-size:10.6pt}
+.rc-rule{height:1.2mm;background:var(--navy);margin:5mm 0 0;box-shadow:0 2.2mm 0 -0.8mm var(--blue)}
+.rc-type{margin-top:30mm;font-size:12pt;font-weight:600;color:var(--blue);line-height:1.45}
+.rc-type span{font-family:Inter,sans-serif;font-weight:500;color:var(--faint);font-size:10pt}
+.rc-title{font-family:Inter,sans-serif;font-size:38pt;font-weight:800;color:var(--navy);margin:5mm 0 3mm;letter-spacing:-.01em}
+.rc-sub{font-size:13.5pt;color:var(--ink);line-height:1.6;margin:0 0 12mm;padding-left:4mm;border-left:1.2mm solid var(--blue)}
+.rc-meta{width:auto;font-size:10.4pt;margin-bottom:12mm}
+.rc-meta td{border:0;padding:1.1mm 0;background:none!important}
+.rc-meta td:first-child{color:var(--mute);width:42mm}
+.rc-meta td:last-child{color:var(--navy);font-weight:600}
+.rc-toc-h{font-size:11pt;font-weight:700;color:var(--navy);padding-bottom:2mm;border-bottom:1.4px solid var(--navy)}
+.rc-toc table{font-size:10.4pt}
+.rc-toc td{padding:2.1mm 0;border-bottom:1px dotted #c3cad6;background:none!important}
+.rc-toc td.n{width:8mm;font-family:Inter,sans-serif;font-weight:700;color:var(--blue)}
+.rc-toc td span{color:var(--faint);font-size:9pt}
+.rc-toc td.p{text-align:right;font-family:Inter,sans-serif;color:var(--mute);width:12mm}
+.rc-bottom{margin-top:auto;display:flex;gap:4mm;align-items:center;border-top:1px solid var(--line);padding-top:4mm}
+.rc-bottom img{width:19mm;height:19mm;flex:none}
+.rc-bottom p{margin:0;font-size:8.6pt;color:var(--mute);line-height:1.5}
+.kicker.crit{text-transform:none;letter-spacing:0;font-family:'IBM Plex Sans Thai',sans-serif;font-size:9.4pt;font-weight:700;border-left:1mm solid var(--blue);padding-left:2.5mm}
+.refs td{padding:1.1mm 2.4mm}
+.bar{height:3.2mm;border-radius:2mm;background:var(--blue)}
+.kpi td:nth-child(3){font-weight:600;color:var(--navy)}
+.neg{color:var(--red);font-weight:600}.pos{color:var(--green);font-weight:600}
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="page rc">
+  <div class="rc-top">
+    <img src="img/logo-mark.png" alt="">
+    <div><b>SPU AI Hackathon 2026</b><br>เอกสารประกอบการแข่งขัน</div>
+  </div>
+  <div class="rc-rule"></div>
+
+  <div class="rc-type">รายงานแผนธุรกิจและแผนพัฒนาต้นแบบ<br><span>Business &amp; MVP Development Report</span></div>
+  <h1 class="rc-title">StudentOS AI</h1>
+  <p class="rc-sub">ผู้ช่วยตัดสินใจด้วยปัญญาประดิษฐ์สำหรับนักเรียนมัธยมศึกษา<br>เพื่อตอบคำถาม “ตอนนี้ควรทำงานอะไรก่อน”</p>
+
+  <table class="rc-meta">
+    <tr><td>ผู้จัดทำ</td><td>ทีม MasterpieceX</td></tr>
+    <tr><td>การแข่งขัน</td><td>SPU AI Hackathon 2026</td></tr>
+    <tr><td>ต้นแบบที่ใช้งานได้</td><td>https://nadokagenou.github.io/studentos-ai/ &nbsp;<span class="note">(รุ่น 1C62)</span></td></tr>
+    <tr><td>วันที่จัดทำ</td><td>พฤศจิกายน 2569</td></tr>
+  </table>
+
+  <div class="rc-toc">
+    <div class="rc-toc-h">สารบัญ</div>
+    <table>
+      <tr><td class="n">1</td><td>แนวคิดและรูปแบบธุรกิจ <span>(Business Concept)</span></td><td class="p">2</td></tr>
+      <tr><td class="n">2</td><td>แผนการประยุกต์ใช้ปัญญาประดิษฐ์ <span>(AI Implementation Plan)</span></td><td class="p">4</td></tr>
+      <tr><td class="n">3</td><td>แนวทางการพัฒนาต้นแบบ <span>(MVP Development Plan)</span></td><td class="p">5</td></tr>
+      <tr><td class="n">4</td><td>แผนการทดสอบตลาด <span>(Market Validation Plan)</span></td><td class="p">6</td></tr>
+      <tr><td class="n">5</td><td>โครงสร้างราคาและประมาณการรายได้ <span>(Pricing &amp; Revenue Estimation)</span></td><td class="p">7</td></tr>
+      <tr><td class="n"></td><td>บทสรุปและแหล่งอ้างอิง</td><td class="p">9</td></tr>
+    </table>
+  </div>
+
+  <div class="rc-bottom">
+    <img src="img/qr.svg" alt="QR">
+    <p>สแกนเพื่อทดลองใช้ต้นแบบบนมือถือ (ไม่ต้องติดตั้งหรือสมัครสมาชิก) · ภาพหน้าจอทั้งหมดในรายงานถ่ายจากต้นแบบนี้โดยใช้ข้อมูลตัวอย่าง</p>
+  </div>
+</section>
+
+<!-- ============ 1. BUSINESS CONCEPT (1/2) ============ -->
+<section class="page">
+  <div class="kicker crit">1) แนวคิดและรูปแบบธุรกิจ (Business Concept)</div>
+  <h2>ปัญหาของนักเรียนไม่ใช่ “ลืมงาน” แต่คือ “ไม่รู้จะเริ่มอะไรก่อน”</h2>
+  <p class="lead">To-do list ทั่วไปแสดงงานทั้งหมดแล้วโยนการตัดสินใจกลับให้ผู้ใช้ StudentOS ทำตรงข้าม: ตัดสินใจให้ แล้วอธิบายว่าทำไม</p>
+
+  <div class="grid3" style="margin-bottom:4mm">
+    <div class="stat"><div class="v">76.9%</div><div class="l">“งานเยอะ ไม่รู้จะเริ่มอะไรก่อน” — ปัญหาอันดับ 1 จากแบบสำรวจนักเรียน</div></div>
+    <div class="stat"><div class="v">46.2%</div><div class="l">“ลืมการบ้าน” — งานมาทางปากเปล่า LINE กลุ่ม และกระดาน แล้วไม่ถูกจดทันที</div></div>
+    <div class="stat"><div class="v">9 / 13</div><div class="l">ใช้ Notes หรือ LINE จดงาน — เป็นเครื่องมือ “จด” ไม่ใช่เครื่องมือ “วางแผน” และมีเพียง 1 คนใช้ Google Classroom</div></div>
+  </div>
+  <p class="note" style="margin-top:-2mm">ที่มา: แบบสำรวจนักเรียนของทีม 18 ก.ค. 2569 (n = 13 · ส่วนใหญ่ ม.4) — ใช้เป็นสัญญาณตั้งต้นเพื่อกำหนดปัญหา ไม่ใช่ตัวแทนตลาดทั้งประเทศ จึงมีแผนทดสอบกับผู้ใช้จริงในหัวข้อ 4</p>
+
+  <h3>ทางออก: ปิดลูกโซ่ตั้งแต่ “ไม่รู้จะเริ่ม” จนถึง “ทำเสร็จ”</h3>
+  <div class="chain">
+    <div class="st">รับงานเข้า<small>พิมพ์ · แปะข้อความ · ถ่ายรูป · LINE</small></div>
+    <div class="st hl">เลือกงานให้<small>AI + เอนจินลำดับงาน พร้อมเหตุผล</small></div>
+    <div class="st">เริ่มทำ<small>โหมดโฟกัส จับเวลา</small></div>
+    <div class="st">ทำเสร็จ<small>บันทึกผลจริง</small></div>
+    <div class="st">งานถัดไป<small>เสนอชิ้นต่อไปทันที</small></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3 style="margin-top:0">คุณค่าที่ส่งมอบ (Value Proposition)</h3>
+      <ul class="check">
+        <li><b>ตัดสินใจแทน</b> — หน้าแรกบอกงานเดียวที่ควรทำตอนนี้ ไม่ใช่รายการยาว</li>
+        <li><b>อธิบายได้</b> — ทุกคำแนะนำมีเหตุผล เช่น “วันนี้เป็นโอกาสสุดท้ายที่จะทำทัน · คะแนน 20%”</li>
+        <li><b>อิงเวลาว่างจริง</b> — คิดจากตารางเรียน เวลาเดินทาง และกิจวัตร ไม่ยัดงานเกินเวลาที่มี</li>
+        <li><b>รับงานได้ในไม่กี่วินาที</b> — เข้าใจภาษาไทยแบบที่ครูพูด เช่น “ส่งศุกร์นี้ก่อนเที่ยงคืน”</li>
+        <li><b>เป็นภาษาไทยตั้งแต่ต้น</b> และใช้บนมือถือได้ทันทีโดยไม่ต้องติดตั้ง</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0">กลุ่มลูกค้า</h3>
+      <table>
+        <tr><th>กลุ่ม</th><th>บทบาท</th></tr>
+        <tr><td><b>นักเรียน ม.1–ม.6</b><br><span class="note">ใช้มือถือเป็นหลัก รับงานหลายช่องทาง กำหนดส่งทับกัน</span></td><td>ผู้ใช้และผู้จ่าย · เติมโทเคนครั้งละน้อย</td></tr>
+        <tr><td><b>ผู้ลงโฆษณา</b></td><td>จ่ายต่อการดูโฆษณาแลกรางวัล (ผ่านเครือข่ายโฆษณา)</td></tr>
+        <tr><td><b>ครู</b> <span class="note">(ระยะถัดไป)</span></td><td>ช่องทางกระจายแอป ไม่ใช่ผู้จ่าย</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>รูปแบบธุรกิจ (Business Model)</h3>
+  <table>
+    <tr><th style="width:24%">องค์ประกอบ</th><th>รายละเอียด</th></tr>
+    <tr><td><b>รายได้</b></td><td><b>Free-to-use + โทเคนในแอป + โฆษณาแบบเลือกดูเอง</b> — ส่วนที่ช่วยให้งานเสร็จใช้ฟรี · รายได้หลักจากเติมโทเคน 29–99 ฿ (ของตกแต่ง เครดิต AI Pass 30 วัน 39 ฿) · รายได้เสริมจากโฆษณาวิดีโอที่ผู้ใช้กดดูเพื่อรับโทเคน</td></tr>
+    <tr><td><b>ช่องทาง</b></td><td>เว็บแอป PWA (แชร์ลิงก์/QR ได้ทันที) · LINE ซึ่งเป็นช่องทางที่นักเรียนรับงานอยู่แล้ว · ชวนเพื่อนด้วยรหัสเชิญ · กลุ่มนักเรียนและครูที่ปรึกษา</td></tr>
+    <tr><td><b>ต้นทุนหลัก</b></td><td>ค่าเรียกใช้โมเดล AI (อ่านรูป/แชต) · ฐานข้อมูลและซิงก์ (Supabase) · ค่าธรรมเนียมรับชำระ · เวลาทีมพัฒนาและดูแลผู้ใช้</td></tr>
+    <tr><td><b>ความได้เปรียบ</b></td><td>เอนจินเลือกงานที่อธิบายเหตุผลได้ + ตัวอ่านข้อความงานภาษาไทย + บริบทชีวิตนักเรียนไทย (ตารางเรียน เวลาเดินทาง LINE) ซึ่งเครื่องมือสากลยังไม่ได้ออกแบบมาเพื่อสิ่งนี้</td></tr>
+  </table>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">02</span></span></div>
+</section>
+
+<!-- ============ 1. BUSINESS CONCEPT (2/2) — product + competitors ============ -->
+<section class="page">
+  <div class="kicker crit">1) แนวคิดและรูปแบบธุรกิจ (Business Concept) — ต่อ</div>
+  <h2>เห็นภาพจากแอปจริง</h2>
+  <p class="lead">ทุกภาพในหน้านี้ถ่ายจากต้นแบบที่ nadokagenou.github.io/studentos-ai โดยใช้ข้อมูลงานตัวอย่าง</p>
+
+  <div class="row" style="justify-content:space-between;margin-bottom:5mm">
+    <div style="width:40mm"><div class="phone"><div class="scr" style="height:72mm"><img src="img/parsed.jpg" alt=""></div></div>
+      <div class="cap"><b>① รับงาน</b>แปะข้อความครู ตัวอ่านภาษาไทยแยกวิชา กำหนดส่ง คะแนน แล้วให้ตรวจก่อนบันทึก</div></div>
+    <div style="width:40mm"><div class="phone"><div class="scr" style="height:72mm"><img src="img/why.jpg" alt=""></div></div>
+      <div class="cap"><b>② เลือกให้ + เหตุผล</b>“ทำไมอันนี้ก่อน” อธิบายด้วยกำหนดส่ง คะแนน และเวลาที่ต้องใช้</div></div>
+    <div style="width:40mm"><div class="phone"><div class="scr" style="height:72mm"><img src="img/plan.jpg" alt=""></div></div>
+      <div class="cap"><b>③ แผนวันนี้</b>วางงานลงช่วงว่างจริงหลังเลิกเรียน มีเวลาพัก กดเริ่มจับเวลาได้</div></div>
+    <div style="width:40mm"><div class="phone"><div class="scr" style="height:72mm"><img src="img/coach.jpg" alt=""></div></div>
+      <div class="cap"><b>④ น้องฮูก (AI)</b>ผู้ช่วยแชตที่รู้แผนวันนี้ ช่วยวางแผนและอธิบายการบ้าน</div></div>
+  </div>
+
+  <h3>เทียบกับทางเลือกที่นักเรียนใช้อยู่</h3>
+  <table>
+    <tr><th style="width:22%">ทางเลือก</th><th style="width:36%">จุดแข็ง</th><th>ช่องว่างที่ StudentOS เข้าไปแก้</th></tr>
+    <tr><td><b>LINE / Notes / สมุด</b></td><td>ใช้อยู่แล้ว ไม่ต้องเปลี่ยนนิสัย</td><td>จดได้แต่ไม่จัดลำดับ ไม่เตือน ข้อความจมในแชตกลุ่ม — StudentOS รับงานจาก LINE และข้อความที่แปะมาได้โดยตรง</td></tr>
+    <tr><td><b>MyStudyLife</b></td><td>มีตารางเรียนและผู้ช่วย AI (Scout)</td><td>ไม่ได้ออกแบบมาเพื่อข้อความงานภาษาไทย — StudentOS อ่านข้อความงานภาษาไทยและคิดจากบริบทโรงเรียนไทย</td></tr>
+    <tr><td><b>Todoist / Notion</b></td><td>ยืดหยุ่น มีแผนฟรี</td><td>ผู้ใช้ต้องจัดระบบและตัดสินใจเอง — StudentOS ตั้งค่าน้อยและเลือกงานแรกให้ทันที</td></tr>
+    <tr><td><b>Google Classroom</b></td><td>ครูลงงานเป็นระบบ</td><td>ใช้ในโรงเรียนไทยไม่ทั่วถึง (1/13 ในแบบสำรวจ) และไม่ช่วยตัดสินใจว่าทำอะไรก่อน</td></tr>
+  </table>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div class="box blue"><h4>กลยุทธ์ขยายธุรกิจ 3 ขั้น</h4>
+      <p style="margin:0"><b>A · ผู้ช่วยส่วนตัว</b> (ตอนนี้) → <b>B · เพื่อนช่วยติดตาม</b> นัดโฟกัสกับเพื่อน เมื่อพบว่าคนเริ่มได้แต่ไม่กลับมาใช้ → <b>C · ห้องเรียน</b> ครูลงงานครั้งเดียวทั้งห้อง เมื่อพบว่างานหายตั้งแต่ต้นทาง</p></div>
+    <div class="box"><h4>หลักการออกแบบ</h4>
+      <p style="margin:0">ทุกฟีเจอร์ต้องตอบได้ว่า “ช่วยลดการตัดสินใจของนักเรียน หรือเพิ่ม?” ถ้าเพิ่ม จะไม่อยู่บนหน้าแรก — หน้าแรกต้องเห็นครบโดยไม่ต้องเลื่อน</p></div>
+  </div>
+  <p class="note" style="margin-top:3mm">ข้อมูลคู่แข่งจากเว็บไซต์ทางการ: mystudylife.com/tour · todoist.com/pricing · notion.com/help/notion-for-education (ตรวจ 6 พ.ย. 2569) — ข้อได้เปรียบด้านภาษาไทยเป็นสมมติฐานที่จะพิสูจน์ในการทดสอบตลาด</p>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>1</b> แนวคิดและรูปแบบธุรกิจ · <span class="num">03</span></span></div>
+</section>
+
+<!-- ============ 2. AI IMPLEMENTATION ============ -->
+<section class="page dense">
+  <div class="kicker crit">2) แผนการประยุกต์ใช้ปัญญาประดิษฐ์ (AI Implementation Plan)</div>
+  <h2>AI อ่าน · เอนจินตัดสิน · นักเรียนยืนยัน</h2>
+  <p class="lead">ใช้ AI ในจุดที่มนุษย์เสียแรงมากที่สุด (อ่านและแปลงข้อมูล) ส่วนการเลือกงานใช้เอนจินที่ตรวจสอบได้และอธิบายเหตุผลได้ทุกครั้ง</p>
+
+  <div class="flow">
+    <div class="n"><span class="who hu">นักเรียน</span><b>ส่งงานเข้า</b>ข้อความ · รูปใบงาน · เสียง · ข้อความจาก LINE</div>
+    <div class="n"><span class="who ai">AI</span><b>อ่านและแยกช่อง</b>Gemini อ่านรูป/ข้อความ · parser ภาษาไทยในเครื่อง · Tesseract สำรอง</div>
+    <div class="n"><span class="who hu">นักเรียน</span><b>ตรวจก่อนบันทึก</b>เห็นว่า AI อ่านได้กี่ช่อง แก้ได้ทันที</div>
+    <div class="n"><span class="who rule">เอนจิน</span><b>จัดลำดับ + แผน</b>กำหนดส่ง คะแนน เวลาที่ใช้ เวลาว่างจริง</div>
+    <div class="n"><span class="who ai">AI</span><b>อธิบาย + โค้ช</b>น้องฮูกตอบตามแผนเดียวกับหน้าแรก</div>
+  </div>
+
+  <div class="row">
+    <div style="flex:1">
+      <table>
+        <tr><th style="width:22%">ส่วน</th><th>เทคนิคที่ใช้</th><th style="width:17%">ทำงานที่</th></tr>
+        <tr><td><b>อ่านข้อความงาน</b></td><td>parser ภาษาไทย (กฎ + พจนานุกรมวิชา) ทำงานในเครื่อง ไม่ต้องใช้เน็ต เข้าใจคำอย่าง “ศุกร์นี้” “เที่ยงคืน” (= 23:59 ของวันนั้น)</td><td><span class="tag t-done">ในเครื่อง</span></td></tr>
+        <tr><td><b>อ่านรูปใบงาน</b></td><td>โมเดลภาพ (Google Gemini) ผ่าน Supabase Edge Function <code>ocr-assist</code> · ขอความยินยอมก่อนส่งรูป · ออฟไลน์/ไม่ยินยอม ใช้ Tesseract ในเครื่อง</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span><br><span class="tag t-done" style="margin-top:1mm">สำรองในเครื่อง</span></td></tr>
+        <tr><td><b>อ่านตารางเรียน</b></td><td>ถ่ายรูปตารางเรียน → AI แปลงเป็นช่วงเรียน/ช่วงว่าง (<code>read-timetable</code>, <code>read-day</code>)</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span></td></tr>
+        <tr><td><b>เลือกงานแรก</b></td><td>Priority Engine (<code>priorityInfo</code>) ให้คะแนนจากความใกล้กำหนดส่ง สัดส่วนคะแนน งานสอบ และเวลาที่ต้องใช้ แล้ว <code>studyPlan()</code> วางลงช่องว่างจริง — ทุกจอใช้แผนก้อนเดียวกัน</td><td><span class="tag t-done">ในเครื่อง</span></td></tr>
+        <tr><td><b>ผู้ช่วยแชต</b></td><td>LLM (<code>ask-sai</code>) ได้รับบริบทงาน ตาราง และแผนวันนี้ ตอบในขอบเขตการเรียน</td><td><span class="tag t-test">เซิร์ฟเวอร์*</span></td></tr>
+        <tr><td><b>ลายมือไทย</b></td><td>เพิ่มชุดตัวอย่างลายมือและเลือกผู้ให้บริการที่อ่านลายมือไทยได้ดีที่สุด</td><td><span class="tag t-next">รอบถัดไป</span></td></tr>
+      </table>
+    </div>
+    <div style="width:38mm">
+      <div class="phone"><div class="scr" style="height:66mm"><img src="img/scan.jpg" alt=""></div></div>
+      <div class="cap"><b>เพิ่มงาน 3 ทาง</b>พูด · ถ่ายรูปใบงาน · แปะข้อความแล้วกด “ให้ AI อ่าน”</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div>
+      <h3 style="margin-top:0">ทำไมไม่ให้ LLM เลือกงานเองทั้งหมด</h3>
+      <p>คำแนะนำ “ทำอะไรก่อน” ต้องเหมือนเดิมทุกครั้งที่ข้อมูลเหมือนเดิม ต้องไม่เกินเวลาว่าง และต้องอธิบายได้ เอนจินแบบกำหนดกฎจึงเป็นผู้ตัดสิน ส่วน LLM ทำหน้าที่อ่านข้อมูลเข้าและสื่อสารเหตุผลกับนักเรียน — ลดต้นทุนต่อการใช้ และลดความเสี่ยงที่ AI จะ “แต่ง” คำตอบ</p>
+      <h3>วัดคุณภาพ AI อย่างไร</h3>
+      <ul>
+        <li>ตามบันทึกผลทดสอบของทีม: ตัวอ่านข้อความภาษาไทยผ่าน <b>49/49</b> เคส · อ่านรูปจริงถูก <b>33/36</b> ภาพ — เป็นชุดเล็กที่ทีมรวบรวมเอง ยังไม่ใช่ความแม่นยำทั่วไป</li>
+        <li>เป้ารอบหน้า: ชุด ≥200 ตัวอย่าง แยกพิมพ์/ลายมือ · วิชาและกำหนดส่งถูก ≥95% · เพิ่มงานเสร็จใน 30 วินาที · แผนไม่เกินเวลาว่าง 100%</li>
+      </ul>
+    </div>
+    <div>
+      <div class="box green" style="margin-bottom:3mm"><h4>ความเป็นส่วนตัว</h4>
+        <p style="margin:0">ข้อมูลงานเก็บในเครื่องเป็นหลัก ใช้ได้โดยไม่ต้องสมัคร · ขอความยินยอมก่อนส่งรูปให้ AI ครั้งแรก · ไม่มีบริการวิเคราะห์ของบุคคลที่สาม · ปฏิเสธได้และยังใช้ทางสำรองในเครื่องได้</p></div>
+      <div class="box amber"><h4>ควบคุมต้นทุน AI</h4>
+        <p style="margin:0">เรียก AI เฉพาะงานที่กฎในเครื่องทำไม่ได้ · มีเพดานเวลา/ขนาดคำขอใน Edge Function · แผนต่อไป: โควตารายบัญชี งบรวมต่อวัน และหยุดบริการที่มีต้นทุนอัตโนมัติเมื่อถึงเพดาน · วัด “ต้นทุนต่องานที่ผู้ใช้ยืนยันสำเร็จ”</p></div>
+    </div>
+  </div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>2</b> แผนการประยุกต์ใช้ปัญญาประดิษฐ์ · <span class="num">04</span></span></div>
+</section>
+
+<!-- ============ 3. MVP ============ -->
+<section class="page dense">
+  <div class="kicker crit">3) แนวทางการพัฒนาต้นแบบ (MVP Development Plan)</div>
+  <h2>ต้นแบบทำวงจรหลักได้แล้ว — 6 สัปดาห์ต่อไปคือพิสูจน์กับผู้ใช้</h2>
+  <p class="lead">MVP คือวงจร <b>รับงาน → เลือกให้ → เริ่ม → เสร็จ → งานถัดไป</b> ซึ่งต้นแบบบนเว็บทำได้ครบในเครื่อง ฟีเจอร์เสริมเก็บไว้เป็นทางเลือกโดยไม่บังวงจรหลัก</p>
+
+  <div class="row">
+    <div style="flex:1">
+      <h3 style="margin-top:0">สิ่งที่สร้างแล้ว</h3>
+      <table>
+        <tr><th>ความสามารถ</th><th style="width:22%">สถานะ</th></tr>
+        <tr><td>เพิ่มงาน: พิมพ์ · แปะข้อความ · สแกนใบงาน · พูด · ตรวจก่อนบันทึก</td><td><span class="tag t-done">มีในต้นแบบ</span></td></tr>
+        <tr><td>เลือกงานแรกพร้อมเหตุผล + แผนวันนี้จากเวลาว่างจริง</td><td><span class="tag t-done">มีในต้นแบบ</span></td></tr>
+        <tr><td>โหมดโฟกัส จับเวลา ขั้นตอนย่อย → เสนองานถัดไปเมื่อเสร็จ</td><td><span class="tag t-done">มีในต้นแบบ</span></td></tr>
+        <tr><td>ตารางเรียน กิจวัตร เวลาเดินทาง (กรอกเอง · อ่านจากรูปต้องใช้เซิร์ฟเวอร์*)</td><td><span class="tag t-done">มีในต้นแบบ</span></td></tr>
+        <tr><td>ผู้ช่วย AI น้องฮูก · แจ้งเตือนจากเซิร์ฟเวอร์ · LINE</td><td><span class="tag t-test">มีโค้ด · เซิร์ฟเวอร์*</span></td></tr>
+        <tr><td>ใช้ออฟไลน์ (PWA) · บัญชีและซิงก์ข้ามเครื่อง</td><td><span class="tag t-test">ซิงก์ต้องใช้เซิร์ฟเวอร์*</span></td></tr>
+        <tr><td>เพื่อน ห้องเรียน ร้านค้าธีม อีเวนต์</td><td><span class="tag t-next">ฟีเจอร์เสริม</span></td></tr>
+      </table>
+      <h3>เทคโนโลยี</h3>
+      <p style="margin:0">Vanilla JavaScript + PWA (ไม่มี build step — แก้แล้วขึ้นเว็บได้ทันที) · GitHub Pages · Supabase (Auth, Postgres + Row Level Security, Edge Functions) · Google Gemini · Tesseract.js · Stripe (เตรียมไว้สำหรับรับชำระ)</p>
+    </div>
+    <div style="width:40mm">
+      <div class="phone"><div class="scr" style="height:74mm"><img src="img/next.jpg" alt=""></div></div>
+      <div class="cap"><b>“ต่อไป” + เริ่มทำเลย</b>เมื่อทำงานหนึ่งเสร็จ แอปเสนองานถัดไปจากแผนเดียวกันทันที</div>
+    </div>
+  </div>
+
+  <h3>แผน 6 สัปดาห์</h3>
+  <table>
+    <tr><th style="width:12%">สัปดาห์</th><th>งานที่ทำ</th><th style="width:38%">เกณฑ์ผ่าน</th></tr>
+    <tr><td class="num"><b>1</b></td><td>คืนบริการเซิร์ฟเวอร์ (ขยายโควตา/ลดปริมาณข้อมูลรับส่ง) · ตรวจบัญชี ซิงก์ ออฟไลน์ · สำรองข้อมูลก่อนทดสอบ</td><td>เพิ่ม/แก้/ปิดงาน แล้วข้อมูลถูกต้องหลังโหลดใหม่ ออกจากระบบ และสลับบัญชี</td></tr>
+    <tr><td class="num"><b>2</b></td><td>ย่อขั้นตอนเพิ่มงาน · ข้อความวันที่ไม่แน่ใจให้อ่านเข้าใจ · เตรียมตัววัดที่ไม่เก็บเนื้อหางาน</td><td>นักเรียน 5 คนใช้เองได้ เห็นงานแรกและบอกเหตุผลได้</td></tr>
+    <tr><td class="num"><b>3</b></td><td>ทดลองใช้จริง 5 คน 7 วัน · จับเวลาการเพิ่มงานและการทำต่อ</td><td>มีฐานงานที่ครูสั่งจริง เทียบกับงานที่ถูกเพิ่มสำเร็จ</td></tr>
+    <tr><td class="num"><b>4</b></td><td>แก้คอขวดใหญ่ที่สุด 1–2 เรื่องจากผลจริง · ตรวจชุดทดสอบ AI และการแจ้งเตือนบนเครื่องจริง</td><td>ไม่มีข้อมูลหาย · งานหลักสำเร็จโดยไม่ต้องมีคนช่วยกด</td></tr>
+    <tr><td class="num"><b>5</b></td><td>ขยายเป็น 30 คน อย่างน้อย 2 ห้อง · เริ่มวัดการกลับมาใช้โดยไม่เตือนรายคน</td><td>รายงาน cohort และการเลิกใช้ แยกการใช้จริงจากการเปิดดูครั้งเดียว</td></tr>
+    <tr><td class="num"><b>6</b></td><td>สรุปต้นทุนต่อผู้ใช้ · ทดสอบหน้าราคา (ระบุว่ายังไม่เปิดขาย) · เลือกทิศทาง A / B / C</td><td>ตัดสินใจจากหลักฐาน · ไม่สรุปผลวันที่ 14 ก่อนครบ 14 วันจริง</td></tr>
+  </table>
+  <p class="note" style="margin-top:2.5mm">* เซิร์ฟเวอร์ (Supabase แผนฟรี) ถูกจำกัดการใช้งานเพราะเกินโควตาตั้งแต่ราว 30 ต.ค. 2569 ฟีเจอร์ที่ทำงานในเครื่องยังใช้ได้ตามปกติ ส่วนที่ต้องใช้เซิร์ฟเวอร์จะกลับมาเมื่อขยายแผน — เป็นงานของสัปดาห์ที่ 1 · ทีมมีชุดทดสอบอัตโนมัติที่รันด้วย Node สำหรับการซิงก์ สลับบัญชี service worker การชำระเงิน และสิทธิ์ฐานข้อมูล</p>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>3</b> แนวทางการพัฒนาต้นแบบ · <span class="num">05</span></span></div>
+</section>
+
+<!-- ============ 4. MARKET VALIDATION ============ -->
+<section class="page">
+  <div class="kicker crit">4) แผนการทดสอบตลาด (Market Validation Plan)</div>
+  <h2>วัดพฤติกรรมจริง ไม่ใช่แค่ความชอบ</h2>
+  <p class="lead">คำตอบ “สนใจจะใช้” ในแบบสำรวจพยากรณ์การใช้จริงได้น้อย แผนนี้จึงวัดสิ่งที่นักเรียน<b>ทำจริง</b> และตั้งเกณฑ์ไว้ก่อนเห็นผล</p>
+
+  <div class="grid3" style="margin-bottom:4mm">
+    <div class="box blue"><h4><span class="secnum">ระยะ 1</span> · หาจุดติด</h4><p style="margin:0">5 คน × 7 วัน · สังเกตและสัมภาษณ์ · แก้จุดที่ทำให้ใช้ไม่ได้</p></div>
+    <div class="box blue"><h4><span class="secnum">ระยะ 2</span> · วัดการกลับมาใช้</h4><p style="margin:0">30 คน ≥2 ห้อง · ฐานเดิม 7 วัน + ใช้แอป 14 วัน · รวมราว 4 สัปดาห์</p></div>
+    <div class="box blue"><h4><span class="secnum">ระยะ 3</span> · วัดความยอมจ่าย</h4><p style="margin:0">แสดงหน้าราคาจริง วัดการยืนยันสนใจ แล้วเปิดขายจริงในกลุ่มเล็ก</p></div>
+  </div>
+
+  <table class="kpi">
+    <tr><th style="width:20%">คำถาม</th><th>ตัววัด</th><th style="width:24%">เกณฑ์ผ่าน</th></tr>
+    <tr><td><b>เริ่มใช้เองได้ไหม</b></td><td>คนที่เพิ่มงานแรกและเริ่มโฟกัสได้โดยไม่มีคนช่วย ÷ ผู้เข้าทดลองทั้งหมด</td><td>≥ 80%</td></tr>
+    <tr><td><b>เก็บงานเข้าจริงไหม</b> (capture rate)</td><td>งานที่ได้รับจริงและถูกเพิ่มในแอป ÷ งานที่ได้รับจริงในช่วงเดียวกัน (มัธยฐานรายคน)</td><td>≥ 70% · ฐาน ≥3 งาน/คน</td></tr>
+    <tr><td><b>ทำตามคำแนะนำไหม</b></td><td>ครั้งที่กดเริ่มจากงานที่แอปแนะนำ ÷ ครั้งที่เห็นคำแนะนำ</td><td>≥ 50%</td></tr>
+    <tr><td><b>กลับมาใช้ไหม</b></td><td>คนที่ใช้ฟังก์ชันหลัก ≥1 ครั้งในวันที่ 8–14 ÷ คนที่เริ่มใช้ใน cohort เดียวกัน</td><td>≥ 40% (12 จาก 30)</td></tr>
+    <tr><td><b>ช่วยส่งงานทันไหม</b></td><td>งานที่ส่งทัน ÷ งานที่ถึงกำหนด — เทียบช่วงก่อนใช้กับช่วงใช้ของคนเดิม</td><td>มีแนวโน้มดีขึ้น</td></tr>
+    <tr><td><b>ยอมจ่ายไหม</b></td><td>คนที่กดเติมโทเคน/ซื้อ Pass ÷ คนที่เห็นร้านค้า · คนที่กดดูโฆษณาแลกรางวัล ÷ ผู้ใช้</td><td>เติม ≥2% · ดูโฆษณา ≥25%</td></tr>
+  </table>
+
+  <div class="grid2" style="margin-top:4mm">
+    <div>
+      <h3 style="margin-top:0">วิธีเก็บให้เชื่อถือได้</h3>
+      <ul>
+        <li>รับทั้งคนที่จดงานสม่ำเสมอและคนที่เคยลืมงาน ไม่เลือกเฉพาะเพื่อนสนิท</li>
+        <li>ใช้รหัสผู้เข้าร่วม (P01…) ไม่เก็บชื่อครู เนื้อหาแชต หรือรูปงานหากไม่จำเป็น</li>
+        <li>ไม่ให้รางวัลตามจำนวนงานที่ติ๊กเสร็จ และไม่เตือนรายวันจนตัวเลขการกลับมาใช้สูงเกินจริง</li>
+        <li>รายงานจำนวนคนและข้อมูลที่หายทุกครั้ง · คนที่ไม่มีงานใหม่ = “ไม่มีฐานคำนวณ” ไม่ใช่ 0% หรือ 100%</li>
+        <li>แอปมีตัวนับขั้นตอน (funnel) ในตัว ไม่ส่งข้อมูลให้บริการวิเคราะห์ภายนอก</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0">กติกาตัดสินใจหลังทดสอบ</h3>
+      <table>
+        <tr><th>ถ้าพบว่า…</th><th>ทำต่อ</th></tr>
+        <tr><td>เก็บงานเข้าได้น้อย</td><td>แก้ช่องทางรับงาน (LINE · สแกน)</td></tr>
+        <tr><td>เก็บได้แต่ไม่เริ่มทำ</td><td>ปรับคำแนะนำและเหตุผล</td></tr>
+        <tr><td>เริ่มได้แต่ไม่กลับมา</td><td>สัมภาษณ์ แล้วลอง <b>B</b> เพื่อนช่วยติดตาม</td></tr>
+        <tr><td>งานหายตั้งแต่ต้นทาง</td><td>ลอง <b>C</b> กับครู 1 คนก่อน</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="box amber" style="margin-top:4mm"><h4>หลักฐานที่มีแล้ว และสิ่งที่ยังไม่มี</h4>
+    <div class="grid3" style="margin:1.5mm 0 2mm">
+      <div><span class="num" style="font-size:15pt;font-weight:800;color:var(--navy)">24</span> บัญชีที่ซิงก์ขึ้นระบบ<br><span class="note">ก.ค.–ต.ค. 2569 · 18 บัญชีมีงาน</span></div>
+      <div><span class="num" style="font-size:15pt;font-weight:800;color:var(--navy)">884</span> งานที่ถูกเพิ่ม<br><span class="note">ทำเสร็จ 680 งาน · มาจากการสแกน 153 งาน</span></div>
+      <div><span class="num" style="font-size:15pt;font-weight:800;color:var(--navy)">14.5</span> งานต่อบัญชี (มัธยฐาน)<br><span class="note">11 บัญชีเพิ่มงาน ≥10 ชิ้น</span></div>
+    </div>
+    <p style="margin:0;font-size:9pt">ตัวเลขนับจากฐานข้อมูลของต้นแบบ (ยอดรวม ไม่ระบุตัวตน) <b>รวมบัญชีของทีมผู้พัฒนาเอง</b> และไม่นับผู้ใช้ที่ไม่ได้ล็อกอิน จึงเป็นสัญญาณว่ามีคนใช้ต่อเนื่องได้ แต่ยังไม่ใช่ผลการทดสอบแบบควบคุมตามแผนนี้ — เกณฑ์ในตารางข้างบนคือเป้าหมายที่ตั้งก่อนทดสอบ</p></div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>4</b> แผนการทดสอบตลาด · <span class="num">06</span></span></div>
+</section>
+
+<!-- ============ 5. PRICING ============ -->
+<section class="page dense">
+  <div class="kicker crit">5) โครงสร้างราคาและประมาณการรายได้ (Pricing &amp; Revenue Estimation)</div>
+  <h2>ใช้ฟรีทุกอย่างที่ช่วยให้งานเสร็จ · รายได้มาจากโทเคนและโฆษณาแบบเลือกดูเอง</h2>
+  <p class="lead">ผู้จ่ายจริงคือ<b>นักเรียน</b> ซึ่งไม่สะดวกจ่ายค่าสมาชิกรายเดือนหลักร้อย โมเดลจึงเลียนแบบสิ่งที่นักเรียนไทยคุ้นเคยอยู่แล้วจากเกมมือถือ: ใช้ฟรี · เติมเงินทีละน้อยเมื่ออยาก · ดูโฆษณาแลกรางวัลได้</p>
+
+  <div class="grid3" style="margin-bottom:3.5mm">
+    <div class="box blue"><h4>① ฟรีตลอด</h4><p style="margin:0">เพิ่มงาน · เลือกงานพร้อมเหตุผล · แผน · โฟกัส · แจ้งเตือน · AI 20 ครั้ง/เดือน — ส่วนที่ช่วยให้งานเสร็จจะไม่ถูกล็อกด้วยเงิน</p></div>
+    <div class="box blue"><h4>② โทเคน = เงินในแอป</h4><p style="margin:0">ได้ฟรีจากการทำงานเสร็จ/เช็กอิน/ดูโฆษณา หรือเติมเงิน แล้วใช้แลกธีม เอฟเฟกต์ เครดิต AI เพิ่ม หรือ Pass 30 วัน</p></div>
+    <div class="box blue"><h4>③ โฆษณาแบบเลือกดูเอง</h4><p style="margin:0">กดดูวิดีโอ 15–30 วินาทีเพื่อรับโทเคน · ไม่มีโฆษณาเด้งขึ้นเอง และไม่มีโฆษณาในหน้าแผนหรือโหมดโฟกัส</p></div>
+  </div>
+
+  <table>
+    <tr><th style="width:24%">สินค้า</th><th style="width:22%">ราคา</th><th>รายละเอียด</th></tr>
+    <tr><td><b>แพ็กเติมโทเคน</b></td><td class="num">29 · 49 · 99 ฿</td><td>160 · 280 · 600 โทเคน (ยิ่งเติมมากยิ่งคุ้ม) · จ่ายผ่าน PromptPay / TrueMoney ซึ่งนักเรียนใช้ได้โดยไม่ต้องมีบัตร</td></tr>
+    <tr><td><b>Pass 30 วัน</b></td><td class="num">39 ฿ หรือ 220 โทเคน</td><td>ไม่มีโฆษณา · AI 150 ครั้ง · อ่านตารางเรียนจากรูป · ซิงก์ข้ามเครื่อง · ธีมประจำเดือน — <b>ไม่ต่ออายุอัตโนมัติ</b> ซื้อเมื่ออยากใช้ เช่น ช่วงสอบ</td></tr>
+    <tr><td><b>เครดิต AI เพิ่ม</b></td><td class="num">3 โทเคน / ครั้ง</td><td>เมื่อโควตาฟรีหมด (≈0.5 ฿ ต่อครั้ง เทียบต้นทุน ~0.2 ฿)</td></tr>
+    <tr><td><b>ของตกแต่ง</b></td><td class="num">20–300 โทเคน</td><td>ธีม เอฟเฟกต์ 3D ตัวละคร — ต้นทุนเพิ่มต่อชิ้นเกือบเป็นศูนย์ จึงเป็นกำไรหลัก</td></tr>
+    <tr><td><b>โฆษณาแลกรางวัล</b></td><td class="num">ผู้ใช้ไม่เสียเงิน</td><td>ดู 1 ครั้ง = 5 โทเคน · สูงสุด 5 ครั้ง/วัน · ผู้ลงโฆษณาจ่ายเราราว 0.1 ฿ ต่อการดู (eCPM ~$3)</td></tr>
+  </table>
+
+  <div class="grid2" style="margin-top:3.5mm">
+    <div>
+      <h3 style="margin-top:0">ทำไมโมเดลนี้เหมาะกับนักเรียน</h3>
+      <ul>
+        <li><b>จ่ายครั้งละน้อย ไม่ผูกมัด</b> — 29–49 ฿ เท่ากับค่าขนมหนึ่งวัน ไม่มีการตัดเงินรายเดือน</li>
+        <li><b>คนไม่มีเงินก็ได้ของ</b> — ดูโฆษณาหรือทำงานให้เสร็จก็ได้โทเคน ผู้ใช้ฟรีจึงยังสร้างรายได้ผ่านโฆษณา</li>
+        <li><b>ระบบมีอยู่แล้วในต้นแบบ</b> — โทเคน เช็กอิน ร้านค้าธีม และหน้าเติมโทเคนสร้างไว้แล้ว เหลือเชื่อมระบบรับชำระและโฆษณา</li>
+        <li><b>ไม่เสียค่าธรรมเนียมร้านแอป</b> — แอปเป็นเว็บแอป (PWA) จ่ายผ่าน PromptPay ตรง จึงไม่ต้องเสียส่วนแบ่ง 15–30% ให้ App Store / Play Store</li>
+        <li><b>ราคาต่ำสุด 29 ฿</b> — ถ้าจ่ายด้วยบัตร ค่าธรรมเนียมคงที่ 10 ฿ จะกินแพ็ก 19 ฿ ไปกว่าครึ่ง</li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-top:0">กติกาที่ตั้งไว้เพราะผู้ใช้เป็นเยาวชน</h3>
+      <table>
+        <tr><td>โฆษณาแบบไม่ใช้ข้อมูลส่วนตัว (non-personalized) และผ่านตัวกรองหมวดเหมาะกับเยาวชนเท่านั้น</td></tr>
+        <tr><td>ไม่มีโฆษณาบนหน้าแผน · “ทำไมอันนี้ก่อน” · โหมดโฟกัส — ไม่รบกวนตอนกำลังทำงาน</td></tr>
+        <tr><td>กล่องสุ่มต้องแสดงอัตราออก และจำกัดยอดเติมต่อวัน</td></tr>
+        <tr><td>ห้ามซื้อลำดับงานหรือ “ความสำเร็จ” ด้วยเงิน — สีทองใช้กับงานที่ทำเสร็จจริงเท่านั้น</td></tr>
+      </table>
+      <p class="note" style="margin-top:1.5mm">ระยะถัดไป: พื้นที่ผู้สนับสนุน เช่น สถาบันกวดวิชาหรือร้านหนังสือ แสดงคู่กับงานสอบ โดยติดป้ายชัดเจนและไม่เปลี่ยนลำดับงาน</p>
+    </div>
+  </div>
+  <p class="note" style="margin-top:2mm">ต้นแบบตอนนี้ยังแสดง Pro 49 / Pro Max 67 และแพ็กโทเคน 19–249 ฿ ซึ่งยังไม่เปิดขาย จะปรับให้ตรงกับโครงสร้างนี้ก่อนเริ่มทดสอบขาย</p>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">07</span></span></div>
+</section>
+
+<!-- ============ 5. REVENUE ============ -->
+<section class="page dense">
+  <div class="kicker crit">5) โครงสร้างราคาและประมาณการรายได้ (Pricing &amp; Revenue Estimation) — ต่อ</div>
+  <h2>ประมาณการรายได้ 3 สถานการณ์</h2>
+  <p class="lead">ต้นทุนผู้ใช้ฟรีทุกคนถูกนับรวมแล้ว ตัวเลขที่ไม่รู้จริงตั้งไว้แบบระมัดระวัง และจะแทนด้วยค่าที่วัดได้จากการทดสอบในหัวข้อ 4</p>
+
+  <div class="grid2" style="margin-bottom:3mm">
+    <div class="box" style="font-size:9pt"><h4>สมมติฐานรายได้</h4>
+      ผู้เติมโทเคนจ่ายเฉลี่ย 49 ฿/เดือน · Pass 39 ฿ · ผู้ใช้ 25% ดูโฆษณาเฉลี่ย 12 ครั้ง/เดือน · eCPM $3 → 0.105 ฿/ครั้ง (35 ฿/USD)</div>
+    <div class="box" style="font-size:9pt"><h4>สมมติฐานต้นทุน</h4>
+      ค่ารับชำระ 3% (เผื่อไว้) · AI ~0.2 ฿/ครั้ง → ผู้ใช้ฟรี ~1.30 ฿/คน · ผู้ถือ Pass ~8 ฿/คน · เครดิต AI ที่ขาย ~6% ของยอดโทเคน · ค่าคงที่ 1,000 ฿/เดือน (Supabase Pro ~875 ฿ + อื่น ๆ)</div>
+  </div>
+
+  <div class="row">
+    <div style="flex:1.3">
+      <table>
+        <tr><th>ต่อเดือน (ช่วงเปิดเทอม)</th><th class="r">ทดลอง</th><th class="r">ปีแรก</th><th class="r">ขยาย</th></tr>
+        <tr><td>ผู้ใช้ต่อเดือน (MAU)</td><td class="r num">300</td><td class="r num">2,000</td><td class="r num">8,000</td></tr>
+        <tr><td>ผู้เติมโทเคน</td><td class="r num">3% · 9</td><td class="r num">4% · 80</td><td class="r num">5% · 400</td></tr>
+        <tr><td>ผู้ซื้อ Pass</td><td class="r num">1% · 3</td><td class="r num">2% · 40</td><td class="r num">3% · 240</td></tr>
+        <tr><td>รายได้โทเคน</td><td class="r num">441</td><td class="r num">3,920</td><td class="r num">19,600</td></tr>
+        <tr><td>รายได้ Pass</td><td class="r num">117</td><td class="r num">1,560</td><td class="r num">9,360</td></tr>
+        <tr><td>รายได้โฆษณา</td><td class="r num">94</td><td class="r num">630</td><td class="r num">2,520</td></tr>
+        <tr><td><b>รายรับรวม</b></td><td class="r num"><b>652</b></td><td class="r num"><b>6,110</b></td><td class="r num"><b>31,480</b></td></tr>
+        <tr><td>ค่ารับชำระ + AI ที่ขาย</td><td class="r num">−43</td><td class="r num">−399</td><td class="r num">−2,045</td></tr>
+        <tr><td>AI ของผู้ถือ Pass</td><td class="r num">−24</td><td class="r num">−320</td><td class="r num">−1,920</td></tr>
+        <tr><td>ต้นทุนผู้ใช้ฟรี</td><td class="r num">−386</td><td class="r num">−2,548</td><td class="r num">−10,088</td></tr>
+        <tr><td>ค่าคงที่</td><td class="r num">−1,000</td><td class="r num">−1,000</td><td class="r num">−1,000</td></tr>
+        <tr><td><b>ส่วนเหลือ / เดือน</b></td><td class="r num neg">−801</td><td class="r num pos">+1,842</td><td class="r num pos">+16,427</td></tr>
+        <tr><td><b>ส่วนเหลือ / ปี</b> <span class="note">(10 เดือนเปิดเทอม)</span></td><td class="r num neg">−8,008</td><td class="r num pos">+18,424</td><td class="r num pos">+164,272</td></tr>
+      </table>
+    </div>
+    <div style="flex:1">
+      <svg viewBox="0 0 300 200" width="100%" style="display:block">
+        <text x="0" y="12" font-size="11" font-weight="600" fill="#0e2346">ที่มาของรายได้ที่ 2,000 MAU</text>
+        <rect x="0" y="24" width="192.4" height="22" rx="3" fill="#1b63d6"/>
+        <rect x="192.4" y="24" width="76.6" height="22" fill="#3b82f6"/>
+        <rect x="269" y="24" width="31" height="22" rx="3" fill="#9cc3ff"/>
+        <text x="4" y="62" font-size="9.5" fill="#1b63d6" font-weight="600">โทเคน 64%</text>
+        <text x="196" y="62" font-size="9.5" fill="#3b82f6" font-weight="600">Pass 26%</text>
+        <text x="300" y="76" font-size="9.5" fill="#5a6375" text-anchor="end">โฆษณา 10%</text>
+        <text x="0" y="104" font-size="11" font-weight="600" fill="#0e2346">ส่วนเหลือต่อเดือน (บาท)</text>
+        <line x1="10" y1="160" x2="296" y2="160" stroke="#c9d1de"/>
+        <rect x="30" y="160" width="56" height="2.7" fill="#c2372e"/>
+        <rect x="122" y="153.8" width="56" height="6.2" fill="#178a4a"/>
+        <rect x="214" y="105" width="56" height="55" fill="#178a4a"/>
+        <text x="58" y="176" text-anchor="middle" font-size="9.5" fill="#c2372e" font-family="Inter">−801</text>
+        <text x="150" y="148" text-anchor="middle" font-size="9.5" fill="#178a4a" font-family="Inter">+1,842</text>
+        <text x="242" y="100" text-anchor="middle" font-size="9.5" fill="#178a4a" font-weight="700" font-family="Inter">+16,427</text>
+        <text x="58" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">300</text>
+        <text x="150" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">2,000</text>
+        <text x="242" y="194" text-anchor="middle" font-size="9.5" fill="#5a6375">8,000 MAU</text>
+      </svg>
+      <div class="box green" style="margin-top:2mm"><h4>จุดคุ้มทุน</h4>
+        <p style="margin:0">ที่ 2,000 MAU และ Pass 2% ต้องมีผู้เติมโทเคนอย่างน้อย <b>2%</b> (40 คน)</p></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:3mm">
+    <div>
+      <h3 style="margin-top:0">ถ้าสมมติฐานเปลี่ยน (ที่ 2,000 MAU)</h3>
+      <table>
+        <tr><th>ถ้า…</th><th class="r">ส่วนเหลือ/เดือน</th></tr>
+        <tr><td>ตามสมมติฐานหลัก</td><td class="r num pos">+1,842</td></tr>
+        <tr><td>ไม่มีโฆษณาเลย</td><td class="r num pos">+1,212</td></tr>
+        <tr><td>eCPM ต่ำเหลือ $1</td><td class="r num pos">+1,422</td></tr>
+        <tr><td>ผู้เติมจ่ายเฉลี่ย 29 ฿ แทน 49 ฿</td><td class="r num pos">+386</td></tr>
+        <tr><td>ผู้เติมโทเคนเหลือ 2%</td><td class="r num pos">+59</td></tr>
+        <tr><td>ผู้ใช้ฟรีมีต้นทุน 3 ฿ แทน 1.30 ฿</td><td class="r num neg">−1,490</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="box amber" style="height:100%"><h4>มองแบบผู้ประกอบการ</h4>
+        <ul style="margin:0">
+          <li><b>โฆษณาอย่างเดียวไม่พอ</b> — ที่ 2,000 MAU ได้ราว 630 ฿/เดือน พอจ่ายต้นทุน AI ของผู้ใช้ฟรีบางส่วน แต่ไม่ใช่แหล่งกำไร</li>
+          <li><b>กำไรมาจากของตกแต่ง</b> ซึ่งมีต้นทุนเพิ่มต่อชิ้นเกือบเป็นศูนย์</li>
+          <li><b>ความเสี่ยงใหญ่สุดคือผู้ใช้ฟรีใช้ AI หนัก</b> — โควตา 20 ครั้งจึงจำเป็น</li>
+          <li>ยังไม่รวมค่าแรงทีม การตลาด และภาษี · eCPM ไทยและค่าธรรมเนียม TrueMoney/PromptPay ต้องวัดจริง · ทุกตัวเลขเป็นสถานการณ์สมมติ</li>
+        </ul></div>
+    </div>
+  </div>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span><b>5</b> โครงสร้างราคาและประมาณการรายได้ · <span class="num">08</span></span></div>
+</section>
+
+<!-- ============ SUMMARY ============ -->
+<section class="page">
+  <div class="kicker">สรุป · Summary</div>
+  <h2>StudentOS ตอบคำถามเดียวให้ดีที่สุด: “ตอนนี้ควรทำอะไร”</h2>
+  <p class="lead">ไม่ใช่แอปจดงานอีกตัว แต่เป็นผู้ช่วยตัดสินใจที่เข้าใจภาษาและชีวิตของนักเรียนไทย</p>
+
+  <div class="grid2" style="margin-bottom:5mm">
+    <div class="box"><h4>1 · แนวคิดธุรกิจ</h4><p style="margin:0">แก้ปัญหาอันดับ 1 ของนักเรียน “งานเยอะ ไม่รู้จะเริ่มอะไรก่อน” ด้วยโมเดล Freemium เริ่มจากผู้ช่วยส่วนตัว แล้วขยายสู่เพื่อนและห้องเรียน</p></div>
+    <div class="box"><h4>2 · การใช้ AI</h4><p style="margin:0">AI อ่านข้อความ รูปใบงาน และตารางเรียน · เอนจินที่อธิบายได้เป็นผู้เลือกงาน · นักเรียนยืนยันก่อนบันทึก · ขอความยินยอมและมีทางสำรองในเครื่อง</p></div>
+    <div class="box"><h4>3 · ต้นแบบ (MVP)</h4><p style="margin:0">ต้นแบบบนเว็บทำลูกโซ่ รับงาน → เลือกให้ → เริ่ม → เสร็จ → งานถัดไป ได้ครบในเครื่อง · 6 สัปดาห์ต่อไป: คืนบริการเซิร์ฟเวอร์ ทำให้เสถียร และพิสูจน์วงจรหลัก</p></div>
+    <div class="box"><h4>4 · ทดสอบตลาด</h4><p style="margin:0">มีผู้ใช้ช่วงแรก 24 บัญชี 884 งาน · แผนต่อไป 5 → 30 คน วัด capture rate ≥70% · การกลับมาใช้วันที่ 8–14 ≥40% · ทำตามคำแนะนำ ≥50% พร้อมกติกาตัดสินใจที่ตั้งไว้ก่อนเห็นผล</p></div>
+    <div class="box" style="grid-column:1/3"><h4>5 · ราคาและรายได้</h4><p style="margin:0">ใช้ฟรีทุกส่วนที่ช่วยให้งานเสร็จ · รายได้จากเติมโทเคน 29–99 ฿ (ของตกแต่ง · เครดิต AI · Pass 30 วัน 39 ฿) และโฆษณาแลกรางวัล · คุ้มทุนที่ 2,000 MAU เมื่อมีผู้เติมโทเคน 2% · ที่ 8,000 MAU มีส่วนเหลือราว 16,000 ฿/เดือน ก่อนค่าแรงและภาษี</p></div>
+  </div>
+
+  <div class="row" style="align-items:center;gap:7mm;margin-bottom:2mm">
+    <div class="phone" style="width:36mm"><div class="scr" style="height:58mm"><img src="img/home.jpg" alt=""></div></div>
+    <div style="flex:1">
+      <div class="box blue" style="display:flex;gap:4mm;align-items:center">
+        <img src="img/qr.svg" alt="QR" style="width:26mm;height:26mm;background:#fff;padding:1.6mm;border-radius:2mm;flex:none">
+        <div><div style="font-weight:700;color:var(--navy);font-size:11pt">ลองใช้ได้เลย</div>
+          <div class="num" style="font-weight:600;color:var(--blue);font-size:9.6pt;word-break:break-all">https://nadokagenou.github.io/studentos-ai/</div>
+          <p class="note" style="margin:1mm 0 0">เปิดบนมือถือ → “เริ่มใช้เลย · ไม่ต้องสมัคร” → กดเพิ่มงาน แล้วดูว่าแอปเลือกอะไรให้</p></div>
+      </div>
+      <h3>ขั้นต่อไปของทีม</h3>
+      <ul class="check">
+        <li>ทดลองกับนักเรียนจริง 5 คน 7 วัน แล้วขยายเป็น 30 คน</li>
+        <li>เพิ่มความแม่นยำการอ่านลายมือไทย</li>
+        <li>วัดต้นทุน AI ต่อผู้ใช้จริง ก่อนเปิดเติมโทเคนและโฆษณา</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 style="margin-top:0">แหล่งอ้างอิง</h3>
+  <table style="font-size:8pt" class="refs">
+    <tr><td style="width:30%">แบบสำรวจนักเรียนของทีม</td><td>18 ก.ค. 2569 · n = 13 (12 คนเป็น ม.4) · เอกสาร “StudentOS AI — จาก Survey สู่ MVP”</td></tr>
+    <tr><td>MyStudyLife</td><td>https://mystudylife.com/tour/</td></tr>
+    <tr><td>Todoist Pricing</td><td>https://www.todoist.com/pricing/</td></tr>
+    <tr><td>Notion for Education</td><td>https://www.notion.com/help/notion-for-education</td></tr>
+    <tr><td>Stripe Thailand Pricing</td><td>https://stripe.com/th/pricing</td></tr>
+    <tr><td>ราคา Gemini API / Supabase</td><td>ai.google.dev/gemini-api/docs/pricing · supabase.com/pricing (ค่าเผื่อจากหน้าราคาและตัวติดตามราคา พ.ย. 2569)</td></tr>
+    <tr><td>ซอร์สโค้ดและแอป</td><td>https://github.com/nadokagenou/studentos-ai · https://nadokagenou.github.io/studentos-ai/</td></tr>
+  </table>
+  <div class="foot"><span>StudentOS AI · ทีม MasterpieceX</span><span>สรุป · <span class="num">09</span></span></div>
+</section>
+
+</body>
+</html>
