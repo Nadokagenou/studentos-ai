@@ -139,6 +139,7 @@ const SHELL = [
   "hook-hat-avatar.svg",
   "halloween/season/hook-mummy-224.webp",
   "compat.js",
+  "vendor/supabase-2.118.0.js",
   "classrooms.js",
   "halloween/death-quests.js",
   "halloween/study-pact.js",

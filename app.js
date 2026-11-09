@@ -19935,6 +19935,13 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   //   skipWaiting + clients.claim (sw.js) แล้ว controllerchange ข้างล่างรีโหลดให้
   //   ทุกการปล่อยของจึงต้องเปลี่ยนอะไรสักอย่างใน sw.js (ชื่อ CACHE) ไม่งั้นไม่มีสัญญาณ
   // กำลังพิมพ์ค้างอยู่ = ห้ามรีโหลดใส่ ข้อความหาย · รอจนสลับออกจากแอปแล้วค่อยรีโหลดเบื้องหลัง
+  //
+  // 9 พ.ย. 69 · เปิดครั้งแรกสุด (ยังไม่มี service worker คุมหน้า) ไม่ต้องรีโหลด
+  // sw.js สั่ง clients.claim() ตอนติดตั้ง → controllerchange ยิงทันทีทั้งที่หน้านี้เพิ่งโหลดจากเน็ตสด ๆ
+  // ไม่มีโค้ดรุ่นเก่าให้แทน · เดิมจึงโหลดทุกไฟล์ซ้ำสองรอบในการเปิดครั้งแรก (วัด: index.html ถูกขอ 2 ครั้ง)
+  // หน้าที่มีตัวเก่าคุมอยู่แล้วยังรีโหลดเหมือนเดิม — นั่นคือกรณีอัปเดตจริง
+  // ตัวแรกเข้าคุมแล้ว = จากนี้ไปมีของเก่าให้แทน · อัปเดตรอบถัดไประหว่างที่แอปยังเปิดอยู่จึงรีโหลดตามปกติ
+  let swHadController = !!navigator.serviceWorker.controller;
   let swReloaded = false, swReloadLater = false, swCheckedAt = 0;
   const swBusy = () => {
     const on = document.querySelector('.screen.on');
@@ -19948,6 +19955,7 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     location.reload();
   };
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!swHadController) { swHadController = true; return; }
     if (swBusy()) { swReloadLater = true; return; }
     swReload();
   });
