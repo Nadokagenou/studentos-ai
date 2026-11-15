@@ -4,22 +4,25 @@ for(const name of ["items","loot","world","events","enemy-ai","mutations","boss-
   "environment","regions","localization/th","localization/i18n","landscape"]) require("../"+name);
 const i18n=FrostI18n;
 
-test("language auto-detects, persists, falls back to English and preserves placeholders",()=>{
+test("new and inaccessible storage defaults to Thai, and explicit English persists",()=>{
   const saved=new Map();
   const storage={getItem:key=>saved.get(key),setItem:(key,value)=>saved.set(key,value)};
-  i18n.init(null,storage,["fr-CA"]);
-  assert.equal(i18n.getLanguage(),"en");
-  assert.deepEqual(i18n.getAvailableLanguages(),["en","th"]);
-  assert.equal(i18n.t("hud.stage",{n:12}),"Stage 12");
-  i18n.init(null,storage,["th-TH"]);
+  i18n.init(null,{getItem(){throw Error("Storage unavailable");}});
+  assert.equal(i18n.getLanguage(),"th");
+  i18n.init(null,storage);
   assert.equal(i18n.t("hud.stage",{n:12}),"ด่าน 12");
+  assert.deepEqual(i18n.getAvailableLanguages(),["en","th"]);
+  assert.equal(i18n.t("hud.stageWave",{n:4,wave:2,total:3}),"ด่าน 4 · ระลอก 2/3");
+  assert.equal(i18n.t("hud.duel",{name:"The Gatekeeper",hint:" [F]"}),"ดวลทางเลือก · The Gatekeeper [F]");
   assert.equal(i18n.translate("Untranslated English sentence."),"Untranslated English sentence.");
   assert.equal(i18n.t("missing.key"),"");
+  assert.deepEqual(i18n.missingKeys(),["missing.key"]);
   assert.equal(i18n.translate("Recovered 35 HP."),"ฟื้นพลังชีวิต 35");
   assert.equal(i18n.translate("18 Stamina · 12s cooldown"),"ใช้ความอึด 18 · พักสกิล 12 วินาที");
   assert.equal(i18n.setLanguage("en-US"),"en");
-  i18n.init(null,storage,["th-TH"]);
+  i18n.init(null,storage);
   assert.equal(i18n.getLanguage(),"en");
+  assert.equal(i18n.t("hud.stageWave",{n:4,wave:2,total:3}),"Stage 4 · Wave 2/3");
   assert.equal(i18n.setLanguage("fr"),"en");
 });
 

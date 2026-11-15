@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080d16">
-  <title>FROSTBOUND v4.5 | The Final Trial</title>
+  <title data-i18n-key="title.page">FROSTBOUND v4.5.1 | บททดสอบสุดท้าย</title>
   <link rel="icon" type="image/webp" href="assets/title.webp">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="interface.css">
@@ -16,20 +16,24 @@
       <section class="title-screen" id="title-screen">
         <div class="front-snow snow" aria-hidden="true"></div>
         <div class="hero-copy">
-          <p class="eyebrow"><span></span> The Final Trial · v4.5 Team Beta</p>
+          <p class="eyebrow"><span aria-hidden="true"></span><span class="release-title" data-i18n-key="title.version">บททดสอบสุดท้าย · v4.5.1 Team Beta</span></p>
           <h1>Frostbound</h1>
-          <p class="motto">Master the Frost. Win by Skill.</p>
+          <p class="motto" data-i18n-key="title.motto">พิชิตเหมันต์ ชนะด้วยฝีมือ</p>
           <div class="title-actions">
-            <button class="button primary" id="start">New Run <span aria-hidden="true">→</span></button>
-            <button class="button secondary" id="modes">Game Modes</button>
-            <button class="button secondary" id="training">Training</button>
-            <button class="button secondary" id="records">Records</button>
-            <button class="button secondary title-settings" id="options"><span aria-hidden="true">⚙</span> Settings</button>
-            <button class="button secondary" id="credits">Credits</button>
+            <button class="button primary" id="start"><span class="start-label" data-i18n-key="title.new">เริ่มการเดินทาง</span><span aria-hidden="true">→</span></button>
+            <button class="button secondary" id="modes" data-i18n-key="controls.modes">โหมดเกม</button>
+            <button class="button secondary" id="training" data-i18n-key="controls.training">ฝึกฝน</button>
+            <button class="button secondary" id="records" data-i18n-key="controls.records">สถิติ</button>
+            <button class="button secondary title-settings" id="options"><span aria-hidden="true">⚙</span> <span data-i18n-key="controls.settings">ตั้งค่า</span></button>
+            <button class="button secondary" id="credits" data-i18n-key="controls.credits">เครดิต</button>
             <button class="button secondary title-fullscreen" id="title-fullscreen" hidden>Enter fullscreen</button>
           </div>
-          <p class="best">Best score <strong id="best">—</strong></p>
+          <p class="best"><span data-i18n-key="title.best">คะแนนสูงสุด</span> <strong id="best">—</strong></p>
           <p id="title-screen-feedback" class="screen-feedback" role="status" hidden>Fullscreen is unavailable in this browser. The game fills the available window.</p>
+        </div>
+        <div class="title-languages" id="title-languages" role="group" aria-label="Language">
+          <button class="small-button" id="title-lang-th" lang="th" aria-pressed="true" data-no-translate>ไทย</button>
+          <button class="small-button" id="title-lang-en" lang="en" aria-pressed="false" data-no-translate>English</button>
         </div>
       </section>
       <section class="intro" id="intro" role="dialog" aria-modal="true" aria-label="The Frozen Keep prologue" aria-describedby="intro-description" hidden>

@@ -22,8 +22,8 @@
   const settings = loadSettings();
   let storage;
   try { storage = localStorage; } catch {}
-  const i18n=FrostI18n;
-  i18n.init(document,storage,navigator.languages??[navigator.language]);
+  const i18n=FrostI18n, msg=i18n.markup;
+  i18n.init(document,storage);
   const provider = new FrostRecords.LocalRecordProvider(storage);
   const keys = new Set();
   const pointer = { x: 0, y: 0, active: false };
@@ -381,9 +381,11 @@
     const control=get(id);
     control.addEventListener("click",event=>{if(control.isConnected) handler(event);});
   }
-  function setBanner(text, duration = 1.45) {
-    get("announcement").textContent = text;
-    get("live").textContent = text;
+  function setBanner(text, duration = 1.45, params) {
+    for(const id of ["announcement","live"]) {
+      if(params) i18n.setMessage(get(id),text,params);
+      else i18n.setText(get(id),text);
+    }
     sinceBanner = duration;
   }
   function launch(kind, preset = "edge") {
@@ -483,9 +485,9 @@
   }
   function options() {
     back = run?.mode === "playing" ? "pause" : null;
-    open("options", heading("Settings") + '<div class="options-grid">' +
+    open("options", heading(msg("controls.settings")) + '<div class="options-grid">' +
       '<fieldset><legend>Display</legend>' +
-      '<label class="setting">Language <select id="language-setting"><option value="th">ไทย</option><option value="en">English</option></select></label>' +
+      '<label class="setting">'+msg("controls.language")+' <select id="language-setting"><option value="th" lang="th" data-no-translate>ไทย</option><option value="en" lang="en" data-no-translate>English</option></select></label>' +
       '<div class="setting"><span>Screen mode</span><button class="small-button" id="screen-mode"></button></div>' +
       '<p class="screen-feedback" id="screen-feedback" role="status" hidden>Fullscreen is unavailable in this browser. The game fills the available window.</p>' +
       '<label class="setting">Reduced motion <input id="motion-setting" type="checkbox"></label>' +
@@ -533,6 +535,12 @@
     bind("screen-mode", toggleFullscreen);
     bind("options-back", optionsBack);
   }
+  function syncLanguageControls(locale) {
+    for(const language of ["th","en"]) get("title-lang-"+language).setAttribute("aria-pressed",String(language===locale));
+    const select=get("language-setting");
+    if(select) select.value=locale;
+    if(run) updateHUD();
+  }
   function optionsBack() {
     if (back === "pause") pause();
     else close();
@@ -543,32 +551,32 @@
     if(!offer) return;
     const active=ACTIVES[run.build.active];
     const destination=run.paths?"the fork ahead":run.nextRoom?.name;
-    const recovery=run.rules.heal?" Claiming any card also restores up to "+run.rules.heal+" HP and refills Stamina.":" Claiming any card refills Stamina.";
     const tips=offer.context==="intro"?"Pick an active skill before entering the first arena.":offer.context==="treasure"?
-      "Take one find from the cache. Equipment goes to your Inventory.":"Choose one reward, then prepare for "+destination+"."+recovery;
+      "Take one find from the cache. Equipment goes to your Inventory.":msg("reward.destination",{place:destination})+" "+
+      (run.rules.heal?msg("reward.heal",{n:run.rules.heal}):msg("reward.refill"));
     const cards=offer.cards.map(card=>{
       const rarity=FrostItems.TIERS[card.tier];
-      const action=card.type==="Active"?(active?"Replaces "+active.name+" if confirmed":"Equips in your empty skill slot"):
-        card.next?"Rank "+(card.rank??0)+" → "+card.next:card.id.startsWith("item:")?
-          (card.rank?"Rank "+card.rank+" · ":"")+"Adds to Inventory · No auto-equip":"";
+      const action=card.type==="Active"?(active?msg("reward.replaces",{name:active.name}):"Equips in your empty skill slot"):
+        card.next?msg("reward.rank",{from:card.rank??0,to:card.next}):card.id.startsWith("item:")?
+          (card.rank?msg("reward.itemRank",{rank:card.rank}):msg("reward.item")):"";
       const effects=card.key&&card.type==="Passive"&&card.rank>0
-        ?'<span class="reward-current">Current: '+escape(PASSIVES[card.key].text(PASSIVES[card.key].ranks[card.rank-1]))+'</span>':"";
+        ?'<span class="reward-current">'+msg("reward.currentEffect",{effect:PASSIVES[card.key].text(PASSIVES[card.key].ranks[card.rank-1])})+'</span>':"";
       const unavailable=card.id==="upgrade"&&!run.inventory.canUpgrade(card.key)||card.id==="potion"&&!run.inventory.canObtain("flask");
       return '<button class="reward-card rarity-'+rarity.toLowerCase()+'" data-reward="'+escape(card.id)+'" aria-pressed="'+(selected===card.id)+'"'+(unavailable?' disabled':'')+'>'+
         '<span class="reward-icon" aria-hidden="true">'+card.icon+'</span><span class="reward-type">'+rarity+' · '+card.type+'</span>'+
         '<strong>'+escape(card.name)+'</strong><span class="reward-description">'+
           (card.id.startsWith("item:")?detailMarkup(card.key):escape(card.description))+'</span>'+effects+
-        (card.type==="Active"?'<span class="reward-cost">'+card.cost+' Stamina · '+card.cooldown+'s cooldown</span>':'')+
-        (action?'<span class="reward-action">'+escape(action)+'</span>':'')+
+        (card.type==="Active"?'<span class="reward-cost">'+msg("reward.cost",{cost:card.cost,seconds:card.cooldown})+'</span>':'')+
+        (action?'<span class="reward-action">'+action+'</span>':'')+
         (unavailable?'<span class="reward-action">Unavailable with current Inventory.</span>':'')+'</button>';
     }).join("");
     const pick=offer.cards.find(card=>card.id===selected);
     const status=offer.context==="intro"?"Boss Rush preparation":offer.context==="treasure"?"Hidden treasure":"Room cleared";
-    open("choose",'<div class="story-marker">'+status+'</div>'+heading("Choose your reward")+
-      '<p>'+escape(tips)+'</p><div class="reward-grid">'+cards+'</div>'+
+    open("choose",'<div class="story-marker">'+status+'</div>'+heading(msg("reward.heading"))+
+      '<p>'+tips+'</p><div class="reward-grid">'+cards+'</div>'+
       (pick?.type==="Active"&&active?'<div class="reward-existing"><strong>Current · '+escape(active.name)+'</strong><p>'+escape(active.text)+
-        ' '+active.cost+' Stamina · '+active.cooldown+'s cooldown. Choose a different reward to keep it.</p></div>':'')+
-      '<div class="reward-footer">'+actions(button("reward-inventory","Inventory"),pick?button("reward-confirm",pick.type==="Active"&&active?"Replace active skill":"Claim reward",true):"")+'</div>',
+        ' '+msg("reward.keepSkill",{cost:active.cost,seconds:active.cooldown})+'</p></div>':'')+
+      '<div class="reward-footer">'+actions(button("reward-inventory",msg("controls.inventory")),pick?button("reward-confirm",pick.type==="Active"&&active?"Replace active skill":"Claim reward",true):"")+'</div>',
       pick?"[aria-pressed=true]":".reward-card",true);
     for(const card of panel.querySelectorAll("[data-reward]")) {
       card.onclick=()=>{if(card.isConnected&&run===currentRun&&run.offer===offer) choose(card.dataset.reward);};
@@ -579,7 +587,7 @@
       if(!run.select(pick.id,pick.type==="Active"&&Boolean(active))) {choose();return;}
       playSound({kind:"reward"});
       if(offer.context==="intro") showRoom();
-      else { resume(); notify(pick.name+" acquired"); }
+      else { resume(); notify("reward.acquired",{name:pick.name}); }
       updateHUD();
     });
   }
@@ -589,13 +597,13 @@
     const mutation=FrostMutations.definitions[run.eliteMutation];
     const hazard=FrostEnvironment.HAZARDS[room.hazard];
     const localizedRegion=i18n.regionSubtitle(room.region);
-    open("story", '<div class="story-marker">' + MODES[run.kind].name + ' · Stage ' + room.stage + ' · ' + room.type + '</div>' + heading(room.name) +
+    open("story", '<div class="story-marker">' + msg("hud.stageRoom",{mode:MODES[run.kind].name,n:room.stage,type:room.type}) + '</div>' + heading(room.name) +
       (room.region && room.region!==room.name?'<p class="room-region">'+escape(room.region)+'</p>':'')+
       (localizedRegion?'<p class="room-region" lang="th" data-region-local>'+escape(localizedRegion)+'</p>':'')+
       '<p class="story-text">' + room.story + '</p><div class="story-objective">' + room.objective + '</div>' +
       (hazard?'<p class="room-region">'+escape(hazard.name)+' · '+escape(hazard.note)+'</p>':'')+
-      (mutation?'<p class="story-marker">'+mutation.icon+' '+mutation.name+' Elite · '+mutation.detail+'</p>':'')+
-      lines + actions(button("enter-room", run.safe ? "Explore" : "Begin encounter", true),button("room-inventory","Inventory")), "#enter-room");
+      (mutation?'<p class="story-marker">'+mutation.icon+' '+msg("hud.elite",{name:mutation.name,detail:mutation.detail})+'</p>':'')+
+      lines + actions(button("enter-room",msg(run.safe?"controls.explore":"controls.encounter"),true),button("room-inventory",msg("controls.inventory"))), "#enter-room");
     bind("enter-room", ()=>{run.prepareEncounter();resume();updateHUD();});
     bind("room-inventory",()=>screens.inventory(showRoom));
   }
@@ -608,7 +616,7 @@
         '</span><strong>'+path.name+'</strong><span class="reward-description">'+path.description+'</span><dl><div><dt>Room</dt><dd>'+room.type+
         '</dd></div><div><dt>Hazard</dt><dd>'+hazard+'</dd></div><div><dt>Reward</dt><dd>'+path.reward+'</dd></div></dl></button>';
     }).join("");
-    open("paths",heading("Choose your route")+'<p>Both paths lead onward through '+escape(run.room.region)+'.</p><div class="route-grid">'+cards+
+    open("paths",heading("Choose your route")+'<p>'+msg("route.region",{region:run.room.region})+'</p><div class="route-grid">'+cards+
       '</div>'+actions(button("path-inventory","Inventory")),".path-card",true);
     bind("path-inventory",()=>screens.inventory(showPaths));
     for(const control of panel.querySelectorAll("[data-path]")) control.onclick=()=>{
@@ -617,9 +625,10 @@
       updateHUD();
     };
   }
-  function notify(message) {
+  function notify(message,params) {
     const toast=get("toast");
-    toast.textContent=message;
+    if(params) i18n.setMessage(toast,message,params);
+    else i18n.setText(toast,message);
     toast.hidden=false;
     toastUntil=performance.now()+2800;
   }
@@ -637,8 +646,8 @@
         escape(option.label)+'</strong><span class="reward-description">'+escape(option.detail)+'</span>'+
         (reason?'<span class="reward-type">'+escape(reason)+'</span>':'')+'</button>';
     }).join("");
-    open("event",heading(event.name)+'<p>'+escape(event.text)+'</p><p>'+Math.ceil(run.player.hp)+' HP · '+
-      run.inventory.crowns+' Frost Crowns</p><div class="reward-grid">'+cards+'</div>'+
+    open("event",heading(event.name)+'<p>'+escape(event.text)+'</p><p>'+msg("event.vitals",{hp:Math.ceil(run.player.hp),crowns:run.inventory.crowns})+
+      '</p><div class="reward-grid">'+cards+'</div>'+
       actions(button("event-back","Back")),"[data-event-choice]:not(:disabled)");
     bind("event-back",resume);
     for(const control of panel.querySelectorAll("[data-event-choice]")) control.onclick=()=>{
@@ -648,7 +657,10 @@
       if(!result) return;
       if(result.foes) {
         const mutation=FrostMutations.definitions[run.eliteMutation];
-        resume();subtitle(result.text+(mutation?' '+mutation.name+' Elite. '+mutation.detail:''),4);updateHUD();return;
+        resume();
+        if(mutation) subtitle("event.elite",4,{result:result.text,name:mutation.name,detail:mutation.detail});
+        else subtitle(result.text,4);
+        updateHUD();return;
       }
       open("event-result",heading(event.name)+'<p>'+escape(result.text)+'</p>'+
         actions(button("event-continue","Continue",true)),"#event-continue");
@@ -671,9 +683,10 @@
     }
     updateHUD();
   }
-  function subtitle(text, duration = 3) {
+  function subtitle(text, duration = 3, params) {
     const box = get("subtitle");
-    box.textContent = text;
+    if(params) i18n.setMessage(box,text,params);
+    else i18n.setText(box,text);
     box.hidden = false;
     subtitleUntil = run.time + duration;
   }
@@ -694,14 +707,15 @@
     const stats = entries.map(([label, value]) => "<div><dt>" + label + "</dt><dd>" + value + "</dd></div>").join("");
     const learned = Object.keys(run.build.ranks).map(id=>PASSIVES[id].name);
     const resultText = r.won ? (r.kind==="boss"?'<span>The Gatekeeper, Crystal Warden, and Frozen King all fell.</span> ':'')+'<span>'+escape(TEXT.ending)+'</span>'
-      : 'The winter claims another wanderer. Final blow · ' + escape(r.cause);
+      : msg("result.loss",{cause:r.cause});
     open("results", '<div class="story-marker">'+MODES[r.kind].name+'</div>'+heading(r.won ? "THE WINTER ENDS" : "YOU HAVE FALLEN")
       + '<p>' + resultText + '</p>'
-      + '<div class="result-summary"><span class="rank" aria-label="Rank ' + r.rank + '">' + r.rank + '</span><div><span class="score">'
+      + '<div class="result-summary"><span class="rank" id="result-rank">' + r.rank + '</span><div><span class="score">'
       + r.score.toLocaleString("en-US") + '</span><span>Run score</span></div></div><dl class="result-stats">' + stats + '</dl>'
       + (learned.length ? '<p style="margin:12px 0 0">Passives · ' + learned.join(" · ") + '</p>' : '')
-      + '<p class="run-reference">Run seed '+run.seed+'</p>'
-      + actions(button("retry", "Retry", true), button("result-home", "Title screen")), "#retry");
+      + '<p class="run-reference">'+msg("result.seed",{n:run.seed})+'</p>'
+      + actions(button("retry",msg("controls.retry"),true),button("result-home",msg("controls.home"))), "#retry");
+    i18n.setMessage(get("result-rank"),"result.rank",{rank:r.rank},"aria-label");
     bind("retry", () => { if(r.kind==="boss") { home(); screens.modeIntro("boss"); } else start(r.kind,runPreset); });
     bind("result-home", home);
     run.releaseResources();
@@ -716,7 +730,7 @@
       const message=FrostFeedback.messages[category];
       if(message&&settings.hints&&(!combatNotice||run.time>=combatNotice.until||message.priority>=combatNotice.priority)) {
         combatNotice={...message,until:run.time+message.seconds};
-        get("combat-notice").textContent=message.title;
+        i18n.setText(get("combat-notice"),message.title);
         get("combat-notice").hidden=false;
       }
       if (e.kind === "wave") {
@@ -727,13 +741,13 @@
       }
       if (e.kind === "gate") {
         tone(160, 82, .5, .12, "triangle");
-        get("live").textContent = "North gate open. Walk to the top of the room.";
+        i18n.setText(get("live"),"North gate open. Walk to the top of the room.");
       }
       if (e.kind === "phase") {
-        setBanner(e.phase === 2 ? "Phase II" : "Phase III",1.2);
-        if(e.boss==="king") subtitle("Frozen King · "+TEXT.phases[e.phase-1]);
+        setBanner("hud.phase",1.2,{phase:e.phase===2?"II":"III"});
+        if(e.boss==="king") subtitle("hud.kingLine",3,{line:TEXT.phases[e.phase-1]});
       }
-      if (e.kind === "reinforcements") setBanner("Wave "+e.wave,1.6);
+      if (e.kind === "reinforcements") setBanner("hud.wave",1.6,{n:e.wave});
       if (e.kind === "clear") choose();
       if (e.kind === "paths" && modal!=="paths") showPaths();
       if (e.kind === "cache-note") subtitle(e.text,5);
@@ -752,11 +766,14 @@
       get("combat-notice").hidden=true;
     }
     const setText=(id,value)=>i18n.setText(get(id),value);
+    const setMessage=(id,key,params)=>i18n.setMessage(get(id),key,params);
     const setBar=(id,value)=>{const style=get(id).style;if(style.width!==value)style.width=value;};
     setBar("health",Math.round(p.hp/run.maxHp*100)+"%");
     setText("health-text",Math.ceil(p.hp)+" / "+run.maxHp);
     setBar("stamina",Math.round(p.stamina)+"%");
-    setText("wave",run.training ? "Training" : "Stage " + run.room.stage + (run.safe ? " · Safe" : " · Wave "+run.runWave +"/"+run.waves));
+    if(run.training) setMessage("wave","controls.training");
+    else if(run.safe) setMessage("wave","hud.stageSafe",{n:run.room.stage});
+    else setMessage("wave","hud.stageWave",{n:run.room.stage,wave:run.runWave,total:run.waves});
     setText("weapon-name",inv.weapon.name);
     setText("weapon-icon",inv.weapon.icon);
     get("loadout-hud").hidden=run.training;
@@ -766,17 +783,22 @@
     setText("region-hud",[run.room.region,hazard&&(!run.gateOpen||run.room.hazard==="bell")?
       (run.room.hazard==="bell"&&run.bellSilenced?"Bell silenced":hazard.name):null].filter(Boolean).join(" · "));
     const remaining = run.remaining;
-    setText("remaining",run.training ? "Practice sentinel" :
-      run.gateOpen ? "Exit unlocked" : remaining + (remaining === 1 ? " foe" : " foes") + " · " + timeLabel(run.time));
+    if(run.training) setMessage("remaining","hud.sentinel");
+    else if(run.gateOpen) setMessage("remaining","hud.exit");
+    else setMessage("remaining",remaining===1?"hud.singleFoe":"hud.foes",{n:remaining,time:timeLabel(run.time)});
     get("gate-guide").hidden = !run.gateOpen;
     const prompt = get("interact"), target = run.target;
     prompt.hidden = !target;
-    if (target) setText("interact",({merchant:"Talk to Eldric",treasure:"Open chest",rest:"Rest at shrine",lore:"Read inscription",passage:"Enter hidden passage",event:"Inspect "+FrostEvents.EVENTS[run.room.eventId]?.name})[target] + (coarse.matches||!settings.hints?"":" [F]"));
-    if(target==="passage"&&run.room.side?.type==="mini")
-      setText("interact","Optional duel · "+run.room.side.name+(coarse.matches||!settings.hints?"":" [F]"));
-    if(target==="passage"&&run.room.secretClue==="cracked"&&!run.wallBroken)
-      setText("interact","Open cracked wall"+(coarse.matches||!settings.hints?"":" [F]"));
-    if(target==="bell") setText("interact","Silence frozen bell"+(coarse.matches||!settings.hints?"":" [F]"));
+    if(target) {
+      const hint=coarse.matches||!settings.hints?"":" [F]";
+      const prompts={merchant:"Talk to Eldric",treasure:"Open chest",rest:"Rest at shrine",lore:"Read inscription",passage:"Enter hidden passage",bell:"Silence frozen bell"};
+      if(target==="event") setMessage("interact","hud.inspect",{name:FrostEvents.EVENTS[run.room.eventId]?.name,hint});
+      else if(target==="passage"&&run.room.secretClue==="cracked"&&!run.wallBroken)
+        setMessage("interact","hud.prompt",{action:"Open cracked wall",hint});
+      else if(target==="passage"&&run.room.side?.type==="mini")
+        setMessage("interact","hud.duel",{name:run.room.side.name,hint});
+      else setMessage("interact","hud.prompt",{action:prompts[target],hint});
+    }
     get("belt").hidden = run.training;
     get("crowns").hidden=run.training;
     setText("crowns","◈ "+inv.crowns);
@@ -791,10 +813,14 @@
     drink.disabled = !inv.potion || p.action?.type==="potion";
     const touchPotion=get("touch-potion");
     touchPotion.disabled=drink.disabled||run.training;
-    const hint=inv.potion ? selected.description : selected ? selected.name+" depleted. Reassign in a safe area." : "Quick slot empty. Assign a potion in Inventory.";
     for(const control of [drink,touchPotion]) {
-      i18n.setAttribute(control,"title",hint);
-      i18n.setAttribute(control,"aria-label",inv.potion?"Drink "+selected.name:hint);
+      if(inv.potion) {
+        i18n.setAttribute(control,"title",selected.description);
+        i18n.setMessage(control,"hud.drink",{name:selected.name},"aria-label");
+      } else {
+        const key=selected?"hud.potionDepleted":"hud.potionEmpty";
+        for(const field of ["title","aria-label"]) i18n.setMessage(control,key,{name:selected?.name},field);
+      }
     }
     setText("potion-label",selected ? selected.icon+" ×"+inv.potionCount : "×0");
     const action = p.action;
@@ -809,11 +835,12 @@
         i18n.setAttribute(control,"title",skill.name+" · "+skill.text);
         i18n.setAttribute(control,"aria-label",skill.name+(run.build.cooldown>0?" · Recharging":" · Active skill"));
       }
-      setText("skill-label",skill.icon+" "+(run.build.cooldown>0?Math.ceil(run.build.cooldown)+"s":"Ready"));
+      if(run.build.cooldown>0) setMessage("skill-label","hud.seconds",{icon:skill.icon,seconds:Math.ceil(run.build.cooldown)});
+      else setMessage("skill-label","hud.ready",{icon:skill.icon});
     } else i18n.setAttribute(touchSkill,"aria-label","Active skill");
     const timeLeft = action && ["dash","parry","potion"].includes(action.type) ? Math.max(0,action.duration-action.age) : 0;
-    setText("cooldowns",timeLeft ? ({dash:"Dash",parry:"Parry",potion:"Potion"})[action.type]+" "+timeLeft.toFixed(1)+"s"
-      : Object.keys(run.buffs).map(id=>(ITEMS[id]?.icon ?? "❄")+" "+Math.ceil(run.buffs[id])+"s").join(" "));
+    if(timeLeft) setMessage("cooldowns","hud.actionSeconds",{action:({dash:"Dash",parry:"Parry",potion:"Potion"})[action.type],seconds:timeLeft.toFixed(1)});
+    else setText("cooldowns",Object.keys(run.buffs).map(id=>i18n.t("hud.seconds",{icon:ITEMS[id]?.icon??"❄",seconds:Math.ceil(run.buffs[id])})).join(" "));
     if (subtitleUntil && run.time >= subtitleUntil) get("subtitle").hidden = true;
     get("boss-hud").hidden = !boss;
     if (boss) {
@@ -821,10 +848,11 @@
       setText("boss-name",boss.name);
       get("posture-line").hidden=!boss.posture && boss.state!=="stagger";
       setBar("boss-posture",boss.state==="stagger"?"100%":Math.round(boss.posture*100/boss.maxPosture)+"%");
-      const phase=boss.mini?"Optional guardian":"Phase "+["I","II","III"][boss.phase-1];
+      const phase=["I","II","III"][boss.phase-1];
       const tell=boss.state==="defend"?"Frostbound Reversal · Counter stance":boss.state==="stagger"?"Staggered":
         ["windup","active"].includes(boss.state)?boss.attack?.data.name:"";
-      setText("phase",tell?phase+" · "+tell:phase);
+      const key=boss.mini?(tell?"hud.guardianTell":"hud.guardian"):(tell?"hud.phaseTell":"hud.phase");
+      setMessage("phase",key,{phase,tell});
     }
     const lesson = get("lesson");
     lesson.hidden = !run.training;
@@ -897,7 +925,7 @@
         }
         diagnostics.mark("scene-events");
         handleEvents();
-        if (sinceBanner > 0 && (sinceBanner -= frame) <= 0) get("announcement").textContent = "";
+        if (sinceBanner > 0 && (sinceBanner -= frame) <= 0) i18n.setText(get("announcement"),"");
         if(now >= hudAt || modal || run.mode !== "playing") {
           diagnostics.mark("hud");
           updateHUD();
@@ -1082,8 +1110,12 @@
   bind("drink",()=>{if(run && !modal && run.mode==="playing") queued="potion";});
   bind("skill",()=>{if(run && !modal && run.mode==="playing") queued="skill";});
   bind("skip-lesson", () => run?.skipLesson());
-  get("intro-description").textContent=TEXT.opening.join(" ");
-  document.querySelectorAll(".intro-caption p").forEach((caption,i)=>{caption.textContent=TEXT.opening.slice(i*2,i*2+2).join(" ");});
+  bind("title-lang-th",()=>i18n.setLanguage("th"));
+  bind("title-lang-en",()=>i18n.setLanguage("en"));
+  i18n.onLanguageChange(syncLanguageControls);
+  syncLanguageControls(i18n.getLanguage());
+  i18n.setText(get("intro-description"),TEXT.opening.join(" "));
+  document.querySelectorAll(".intro-caption p").forEach((caption,i)=>i18n.setText(caption,TEXT.opening.slice(i*2,i*2+2).join(" ")));
   const gameScripts=new Set([...document.scripts].map(script=>script.src));
   window.addEventListener("error",event=>{
     if(event.error&&gameScripts.has(event.filename)) failGame(event.error,"ui");

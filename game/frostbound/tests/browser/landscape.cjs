@@ -2,17 +2,20 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const {chromium,devices}=require("playwright");
+const {translationAudit}=require("./translation-audit.cjs");
 const root=path.resolve(process.argv[2]??path.join(__dirname,"../.."));
 const output=path.resolve(process.argv[3]??"qa/landscape");
 const publicUrl=process.argv.slice(4).find(arg=>/^https?:/.test(arg));
 const repeated=process.argv.includes("--extended")?50:12;
+const audit=translationAudit(output);
 const origin="http://frostbound.test";
 const prefix="/frostbound-game/";
 const type={".html":"text/html",".css":"text/css",".js":"text/javascript",".webp":"image/webp"};
 const snap=page=>page.evaluate(()=>FrostDebug.snapshot());
 const step=(page,count=4)=>page.evaluate(count=>window.step(count),count);
 const click=(page,selector)=>page.locator(selector).click();
-const screenshot=(page,name)=>page.screenshot({path:path.join(output,name+".jpg"),type:"jpeg",quality:83,scale:"css"});
+const screenshot=(page,name)=>page.screenshot({path:path.join(output,name+".jpg"),type:"jpeg",quality:83,scale:"css",
+  animations:name.includes("menu")||name==="desktop-thai"?"disabled":"allow"});
 const rotationTimes=[];
 
 async function setup(browser,options) {
@@ -46,7 +49,7 @@ async function setup(browser,options) {
     }});
   });
   await page.goto((publicUrl??origin+prefix)+"?debug=1");
-  assert.match(await page.title(),/FROSTBOUND v4\.5/);
+  assert.match(await page.title(),/FROSTBOUND v4\.5\.1/);
   return {page,errors};
 }
 async function story(page) {
@@ -152,11 +155,22 @@ async function finishTestRun(page,won) {
     executablePath:process.env.FROST_CHROME||"C:/Program Files/Google/Chrome/Application/chrome.exe",
     args:["--disable-background-networking"],
   });
+  let completed=false;
   try {
-    const desktop=await setup(browser,{locale:"th-TH",viewport:{width:1440,height:900}});
+    const desktop=await setup(browser,{locale:"en-US",viewport:{width:1440,height:900}});
     const d=desktop.page;
     assert.match(await d.locator("#start").innerText(),/เริ่มการเดินทาง/);
+    assert.equal(await d.locator("#title-lang-th").getAttribute("aria-pressed"),"true");
+    await audit.check(d,"desktop title");
     await screenshot(d,"desktop-thai");
+    await click(d,"#title-lang-en");
+    assert.match(await d.locator("#start").innerText(),/New Run/);
+    await d.reload();
+    assert.equal(await d.locator("html").getAttribute("lang"),"en");
+    assert.equal(await d.locator("#title-lang-en").getAttribute("aria-pressed"),"true");
+    await click(d,"#title-lang-th");
+    await d.reload();
+    assert.equal(await d.locator("html").getAttribute("lang"),"th");
     await click(d,"#options");
     assert.match(await d.locator("#dialog-title").innerText(),/ตั้งค่า/);
     await d.evaluate(async()=>{
@@ -176,7 +190,13 @@ async function finishTestRun(page,won) {
     await click(d,"#credits");
     await click(d,"a[href='playtest.html']");
     await d.locator("#report").waitFor();
-    assert.match(await d.locator("#report").inputValue(),/FROSTBOUND v4\.5/);
+    assert.match(await d.locator("#report").inputValue(),/FROSTBOUND v4\.5\.1/);
+    assert.match(await d.locator("#report").inputValue(),/Game version/);
+    assert.equal(await d.locator("#play-heading").innerText(),"Getting started");
+    await d.evaluate(()=>FrostI18n.setLanguage("th"));
+    assert.match(await d.locator("#report").inputValue(),/เวอร์ชันเกม/);
+    await audit.check(d,"Team Beta guide");
+    await screenshot(d,"guide-thai");
     assert.deepEqual(desktop.errors,[]);
     await d.close();
     const mobile=await setup(browser,{...devices["iPhone 13 landscape"],locale:"th-TH",viewport:{width:844,height:390}});
@@ -212,12 +232,14 @@ async function finishTestRun(page,won) {
     await p.evaluate(()=>FrostI18n.setLanguage("th"));
     assert.equal(await p.locator("[aria-pressed=true][data-reward]").getAttribute("data-reward"),offer);
     await screenshot(p,"landscape-rewards-thai");
+    await audit.check(p,"landscape rewards");
     await click(p,"#reward-confirm");
     assert(await p.evaluate(()=>run.offer===null));
     await roomTo(p,"merchant");
     await click(p,"#inventory");
     await rotate(p);
     await screenshot(p,"landscape-inventory-thai");
+    await audit.check(p,"landscape inventory");
     await click(p,"[data-ui=back]");
     await p.evaluate(()=>Object.assign(run.player,FrostWorld.NPC));
     await step(p,6);
@@ -266,15 +288,28 @@ async function finishTestRun(page,won) {
     for(const [width,height] of [[740,360],[568,320],[1024,768],[390,844]]) {
       const size=await setup(browser,{...devices["iPhone 13 landscape"],locale:height>width?"th-TH":"en-US",viewport:{width,height}});
       const q=size.page;
+      const titlePicker=await q.locator("#title-languages").boundingBox();
+      assert.ok(titlePicker.x>=0&&titlePicker.y>=0&&titlePicker.x+titlePicker.width<=width+1&&titlePicker.y+titlePicker.height<=height+1,
+        "language buttons fit "+width+"×"+height);
       if(height>width) {
         await click(q,"#training");
         await q.locator("#orientation-guide").waitFor({state:"visible"});
+        await audit.check(q,"orientation guide");
         await screenshot(q,"portrait-guidance");
         await click(q,"#portrait-continue");
         await step(q);
         assert(!(await snap(q)).orientationPaused);
       } else {
-        if(width===1024){await click(q,"#training");await step(q,8);await screenshot(q,"landscape-training");}
+        if(width===1024) {
+          await click(q,"#training");
+          await step(q,8);
+          await screenshot(q,"landscape-training");
+          const lessons=await q.evaluate(()=>FrostCombat.LESSONS.length);
+          for(let index=0;index<=lessons;index++) {
+            await audit.check(q,"training "+(index+1));
+            if(index<lessons) { await click(q,"#skip-lesson"); await step(q,8); }
+          }
+        }
         else await story(q);
         await verifyBounds(q);
         if(width===740) await screenshot(q,"narrow-landscape");
@@ -286,8 +321,9 @@ async function finishTestRun(page,won) {
     const rotation={samples:samples.length,p95Ms:samples[Math.floor((samples.length-1)*.95)],
       heapBefore:beforeRotation.usedSize,heapAfter:afterRotation.usedSize};
     fs.writeFileSync(path.join(output,"rotation.json"),JSON.stringify(rotation,null,2)+"\n");
+    completed=true;
     console.log("PASS locale, subpath, 5 viewports, diagonal + 6 actions, rotation checks including results.",rotation);
-  } finally {await browser.close();}
+  } finally {await browser.close();audit.finish(completed);}
 })().catch(error=>{console.error(error);process.exitCode=1;});
 
 function pagePause(page) {return click(page,"#pause");}
