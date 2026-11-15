@@ -14,6 +14,7 @@ AI Decision Assistant สำหรับนักเรียนมัธยม 
 |---|---|---|
 | เว็บหลัก | [เปิด Student OS](https://nadokagenou.github.io/studentos-ai/) | ผู้ใช้งานทั่วไป |
 | เว็บทดลอง (ALT) | [เปิด Student OS ALT](https://nadokagenou.github.io/studentos-ai/alt/) | ทดลองฟีเจอร์และตรวจงานก่อนนำขึ้นเว็บหลัก |
+| เกม StudentOS | [เปิด SOS Games Hub](https://tanapat1604-cmd.github.io/sos-games/) | ดูและเล่น FROSTBOUND และ Halloween Event |
 | เว็บแอดมิน | [เปิด Student OS Control Room](https://nadokagenou.github.io/studentos-ai/alt/staff/) | ทีมพัฒนาที่มีสิทธิ์เขียนในรีโปนี้ ต้องเข้าสู่ระบบด้วย GitHub |
 
 - เปิดจากมือถือได้เลย — ไม่ต้องติดตั้งอะไร
