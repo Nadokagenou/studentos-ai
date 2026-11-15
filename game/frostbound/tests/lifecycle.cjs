@@ -218,6 +218,24 @@ test("100 pause and inventory cycles, reward claim, dialogue and shop resume the
   assert.equal(game.errors.length,0);
 });
 
+test("50 language switches keep the same run, choice and frame callback",()=>{
+  const game=fixture();
+  game.start("story");
+  game.click("enter-room");
+  game.frame(2);
+  game.completeEncounter();
+  const offer=game.run.offer, frame=game.snapshot().frame;
+  for(let n=0;n<50;n++) {
+    game.context.FrostI18n.setLanguage(n%2?"en":"th");
+    assert.equal(game.run.offer,offer);
+    assert.equal(game.snapshot().overlay,"choose");
+    assert.equal(game.snapshot().frame,frame);
+    assert.equal(game.frames.size,1);
+  }
+  game.claim();
+  game.inputOpen();
+});
+
 test("a fatal frame provides a diagnostic and only returns to title after explicit input", {timeout:5000},()=>{
   const game=fixture();
   game.start("story");

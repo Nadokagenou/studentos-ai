@@ -4,7 +4,8 @@ const path=require("node:path");
 const {chromium,devices}=require("playwright");
 const root=path.resolve(process.argv[2]??path.join(__dirname,"../.."));
 const output=path.resolve(process.argv[3]??"qa/landscape");
-const publicUrl=process.argv[4];
+const publicUrl=process.argv.slice(4).find(arg=>/^https?:/.test(arg));
+const repeated=process.argv.includes("--extended")?50:12;
 const origin="http://frostbound.test";
 const prefix="/frostbound-game/";
 const type={".html":"text/html",".css":"text/css",".js":"text/javascript",".webp":"image/webp"};
@@ -45,7 +46,7 @@ async function setup(browser,options) {
     }});
   });
   await page.goto((publicUrl??origin+prefix)+"?debug=1");
-  assert.match(await page.title(),/FROSTBOUND v4\.4/);
+  assert.match(await page.title(),/FROSTBOUND v4\.5/);
   return {page,errors};
 }
 async function story(page) {
@@ -171,17 +172,23 @@ async function finishTestRun(page,won) {
     assert.match(await d.locator("#start").innerText(),/New Run/);
     await click(d,"#records");
     assert.equal(await d.locator("#dialog-title").innerText(),"Records");
+    await click(d,"[data-ui=back]");
+    await click(d,"#credits");
+    await click(d,"a[href='playtest.html']");
+    await d.locator("#report").waitFor();
+    assert.match(await d.locator("#report").inputValue(),/FROSTBOUND v4\.5/);
     assert.deepEqual(desktop.errors,[]);
     await d.close();
     const mobile=await setup(browser,{...devices["iPhone 13 landscape"],locale:"th-TH",viewport:{width:844,height:390}});
     const p=mobile.page;
+    await screenshot(p,"landscape-menu-thai");
     await story(p);
     await verifyBounds(p);
     await screenshot(p,"landscape-story-thai");
     const memory=await p.context().newCDPSession(p);
     await memory.send("HeapProfiler.collectGarbage");
     const beforeRotation=await memory.send("Runtime.getHeapUsage");
-    await rotate(p,{count:12});
+    await rotate(p,{count:repeated});
     await memory.send("HeapProfiler.collectGarbage");
     const afterRotation=await memory.send("Runtime.getHeapUsage");
     await memory.detach();
@@ -267,7 +274,8 @@ async function finishTestRun(page,won) {
         await step(q);
         assert(!(await snap(q)).orientationPaused);
       } else {
-        await story(q);
+        if(width===1024){await click(q,"#training");await step(q,8);await screenshot(q,"landscape-training");}
+        else await story(q);
         await verifyBounds(q);
         if(width===740) await screenshot(q,"narrow-landscape");
       }

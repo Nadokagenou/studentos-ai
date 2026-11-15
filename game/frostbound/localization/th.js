@@ -1,7 +1,7 @@
 // English render strings are the fallback. A tab separates each source and Thai translation.
 globalThis.FrostThai = `
-FROSTBOUND v4.4 | Two Worlds, One Winter	FROSTBOUND v4.4 | สองภาษา ใต้เหมันต์เดียวกัน
-Two Worlds, One Winter · v4.4	สองภาษา ใต้เหมันต์เดียวกัน · v4.4
+FROSTBOUND v4.5 | The Final Trial	FROSTBOUND v4.5 | บททดสอบสุดท้าย
+The Final Trial · v4.5 Team Beta	บททดสอบสุดท้าย · v4.5 Team Beta
 Master the Frost. Win by Skill.	ฝ่าเหมันต์ด้วยฝีมือ
 New Run	เริ่มการเดินทาง
 Game Modes	โหมดเกม
@@ -232,6 +232,16 @@ Parries	ปัดป้อง
 Clear	เคลียร์
 You	คุณ
 Game version	เวอร์ชันเกม
+Ruleset version	เวอร์ชันกติกา
+Team Beta guide and feedback	คู่มือและส่งผลทดสอบ Team Beta
+Run seed {n}	เลข seed ของรอบ {n}
+Travel Reserve	เงินสำรองเดินทาง
+Supply Purse	ถุงเหรียญเสบียง
+Gain {n} Frost Crowns.	รับ {n} Frost Crowns
+A watchman carved a message into the lid. The western wall once held a passage to the forest.	ยามเฝ้าด่านสลักข้อความบนฝาหีบ กำแพงตะวันตกเคยมีทางลับไปยังป่า
+The cracked wall opens onto a hidden passage.	กำแพงร้าวเปิดออก เผยให้เห็นทางลับ
+{first} and {second} added to Inventory.	เก็บ {first} และ {second} เข้ากระเป๋าแล้ว
++{n} crowns	+{n} Frost Crowns
 No matching records yet.	ยังไม่มีสถิติตามตัวกรองนี้
 Demo records show fictional players.	สถิติตัวอย่างใช้ผู้เล่นสมมติ
 Personal results on this device. Online verification and submission are unavailable.	ผลการเล่นส่วนตัวเก็บไว้ในเครื่องนี้ ที่นี่ไม่มีการส่งหรือยืนยันสถิติออนไลน์

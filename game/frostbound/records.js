@@ -24,6 +24,17 @@
     return { progress:{...progress}, won, time, kind, damage, parries, score, bossTime, kills, healing, potions, cleared, dashes,
       date, player:"You", version:VERSION, verified:false };
   }
+  function mergeRecords(stored,memory) {
+    const seen=new Set();
+    return [...stored,...memory].filter(row=>{
+      const key=JSON.stringify([row.version,row.kind,row.won,row.date,row.time,row.progress.stage,
+        row.progress.wave,row.progress.time,row.damage,row.parries,row.score,row.bossTime,row.kills,
+        row.healing,row.potions,row.cleared,row.dashes]);
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
   // A verified provider must validate mode, version and a server-issued run before accepting completion data.
   class LocalRecordProvider {
     constructor(storage) {
@@ -43,7 +54,7 @@
     }
     record(result) {
       if (result.kind === "training") return;
-      const rows = [fromResult(result), ...this.records];
+      const rows=[fromResult(result),...mergeRecords(this.read(),this.records)];
       this.records = [...rows.filter(row=>row.version!==VERSION),...["story","hardcore","boss"].flatMap(kind=>{
         const entries = rows.filter(row=>row.kind===kind&&row.version===VERSION);
         const best = kind==="hardcore" ? rank(entries,"progress").slice(0,10) : rank(entries,"clear",kind).slice(0,10);

@@ -77,7 +77,9 @@
       this.wire({back});
     }
     credits() {
-      this.show("credits",heading("Credits")+'<p>Frostbound is a standalone winter action roguelike. Cover artwork was generated for Frostbound. Character art, environments and effects are drawn in Canvas, with original synthesized music and sound effects.</p>'+group(action("glossary","Glossary"),closeButton),'[data-ui="glossary"]',false);
+      this.show("credits",heading("Credits")+'<p>Frostbound is a standalone winter action roguelike. Cover artwork was generated for Frostbound. Character art, environments and effects are drawn in Canvas, with original synthesized music and sound effects.</p>'+
+        '<p><a class="beta-link" href="playtest.html">Team Beta guide and feedback</a></p>'+
+        group(action("glossary","Glossary"),closeButton),'[data-ui="glossary"]',false);
       this.wire({back:this.close,glossary:()=>this.glossary(()=>this.credits())});
     }
     records() {
@@ -95,7 +97,7 @@
             : [index+1,row.player,this.time(row.time,true),MODES[row.kind].difficulty,row.damage,row.parries,row.date];
           return '<tr>'+values.map((value,index)=>'<td data-label="'+columns[index]+'">'+escape(value)+'</td>').join("")+'</tr>';
         }).join("")+'</tbody></table></div>' : '<p class="section-copy">No matching records yet.</p>';
-      const version=this.source==="local"?'<label class="setting">Game version <select id="records-version">'+
+      const version=this.source==="local"?'<label class="setting">Ruleset version <select id="records-version">'+
         FrostRecords.SUPPORTED.map(v=>'<option value="'+v+'"'+(this.recordsVersion===v?" selected":"")+'>v'+v+'</option>').join("")+'</select></label>':"";
       this.show("records",heading("Records")+'<div class="record-filters">'+tags+'</div><h3>'+title+'</h3><p>'+
         (this.source==="demo"?"Demo records show fictional players.":"Personal results on this device. Online verification and submission are unavailable.")+'</p>'+version+mode+table+group(closeButton),'[data-ui="'+this.category+'"]');
