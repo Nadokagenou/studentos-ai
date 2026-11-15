@@ -35,7 +35,9 @@ const step=(p,n)=>p.evaluate(n=>window.step(n),n);
  try {
   const {page:p,errors}=await setup(b,devices["iPhone 13"]);
   const tap=id=>p.locator(id).tap();
-  await tap("#start");await tap("[data-ui=story]");await tap("[data-ui=begin]");await tap("#skip-intro");await tap("#enter-room");
+  await tap("#start");await tap("[data-ui=story]");await tap("[data-ui=begin]");await tap("#skip-intro");
+  if(await p.locator("#portrait-continue:visible").count()) await tap("#portrait-continue");
+  await tap("#enter-room");
   await step(p,3);
   await p.evaluate(()=>{
    r.pending=[];r.enemies=[];r.addEnemy("dummy",760,190,30);

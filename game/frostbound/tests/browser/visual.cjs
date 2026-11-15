@@ -61,6 +61,7 @@ async function capture(browser, name, viewport) {
   await page.goto(origin + prefix + "?debug=1");
   await page.waitForFunction(() => [...document.images].every(image => image.complete && image.naturalWidth));
   await page.locator("#training").click();
+  if(await page.locator("#portrait-continue:visible").count()) await page.locator("#portrait-continue").click();
   await page.evaluate(seed => {
     const rooms=FrostRegions.generate("story",seed);
     const elite=FrostRegions.generate("hardcore",seed).flatMap(room=>Object.values(room.paths??{})).find(room=>room.type==="elite");
@@ -183,7 +184,7 @@ async function capture(browser, name, viewport) {
   });
   try {
     const desktop=await capture(browser,"desktop",{viewport:{width:1440,height:900}});
-    const mobile=await capture(browser,"mobile",devices["iPhone 13"]);
+    const mobile=await capture(browser,"mobile",devices[process.argv.includes("--landscape")?"iPhone 13 landscape":"iPhone 13"]);
     const report={seed,desktop,mobile};
     fs.writeFileSync(path.join(output,"metrics.json"),JSON.stringify(report,null,2)+"\n");
     console.log(JSON.stringify({desktop:desktop.profiles,mobile:mobile.profiles,

@@ -12,8 +12,9 @@ const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=
  const b=await chromium.launch({executablePath:process.env.FROST_CHROME||"C:/Program Files/Google/Chrome/Application/chrome.exe",args:["--disable-background-networking"]});
  const errors=[];
  try{
-  const touchPages=new WeakSet(); async function page(touch=false,seed=4212){
-   const p=await b.newPage(touch?{...devices["iPhone 13"],viewport:{width:390,height:844}}:{viewport:{width:1440,height:900}});
+ const touchPages=new WeakSet(); async function page(touch=false,seed=4212,locale="en-US"){
+   const profile=touch?{...devices["iPhone 13 landscape"],viewport:{width:844,height:390}}:{viewport:{width:1440,height:900}};
+   const p=await b.newPage({...profile,locale});
    if(touch) touchPages.add(p); p.on("pageerror",error=>errors.push(error.message));
    p.on("console",entry=>{if(entry.type()==="error"&&entry.text().includes("[FROSTBOUND FB-")) errors.push(entry.text());});
    await p.route("**/*",async route=>{
@@ -69,13 +70,16 @@ const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=
     await card.click();await click(p,"reward-confirm");
   };
 
-  const p=await page(true);
+  const p=await page(true,4212,"th-TH");
   await click(p,"options"); await p.locator("#quality").selectOption("low"); await p.screenshot({path:out+"/settings.png"}); await p.locator("#quality").selectOption("high"); await click(p,"options-back"); await start(p,"story");
   await click(p,"enter-room");
   await p.keyboard.press("i");
-  assert.equal(await p.locator("#toast").innerText(),"Inventory unavailable during combat.");
+  assert.equal(await p.locator("#toast").innerText(),"เปิดกระเป๋าไม่ได้ระหว่างต่อสู้");
   await p.evaluate(()=>{window.auto=true;});
   await step(p,38); await p.screenshot({path:out+"/enemy.png"}); await until(p,".reward-card:visible,#retry:visible");
+  const initialCards=await p.evaluate(()=>r.choices.map(card=>card.id));
+  await p.evaluate(()=>FrostI18n.setLanguage("en"));
+  assert.deepEqual(await p.evaluate(()=>r.choices.map(card=>card.id)),initialCards);
   assert.equal(await p.locator(".reward-card").count(),3);
   for(const card of await p.locator(".reward-card").all()){
     assert.ok(await card.locator(".reward-description").innerText());
@@ -199,10 +203,10 @@ const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=
   await reward(rush,"active:lance");
   await click(rush,"enter-room");
   await step(rush,50);
-  await rush.locator("#skill").tap();
+  await rush.locator("#touch-skill").tap();
   await step(rush,8);
   assert.ok(await rush.evaluate(()=>r.build.cooldown>0&&r.player.stamina<100));
-  assert.equal(await rush.locator("#skill").isDisabled(),true);
+  assert.equal(await rush.locator("#touch-skill").isDisabled(),true);
   await rush.evaluate(()=>window.auto=true);
   for(let room=0;room<6;room++){
    await until(rush,".reward-card:visible,#retry:visible",390);

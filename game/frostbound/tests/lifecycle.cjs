@@ -35,6 +35,7 @@ function fixture(reduced=true) {
     hasPointerCapture() { return false; }
     contains(node) {return this.children.includes(node);}
     setAttribute(name,value) {this.attributes[name]=value;}
+    getAttribute(name) {return this.attributes[name]??null;}
     replaceChildren() { this.innerHTML=""; }
     set innerHTML(value) {
       for(const child of this.children) child.isConnected=false;
@@ -77,11 +78,19 @@ function fixture(reduced=true) {
   const shell=document.querySelector(".shell");
   shell.requestFullscreen=async()=>{document.fullscreenElement=shell;};
   const win=new Element("window");
+  const media=new Map();
+  function matchMedia(query) {
+    if(!media.has(query)) media.set(query,{matches:reduced&&query.includes("reduced-motion"),listeners:[],
+      addEventListener(_type,listener){this.listeners.push(listener);},
+      set(value){this.matches=value;for(const listener of this.listeners) listener();}});
+    return media.get(query);
+  }
   const context=vm.createContext({window:win,document,HTMLElement:Element,HTMLButtonElement:Element,
     location:{search:"?debug=1"},URLSearchParams,
+    navigator:{languages:["en-US"]},MutationObserver:class{observe(){}},
     crypto:{getRandomValues(values){values[0]=4212;return values;}},
     localStorage:{getItem:key=>storage.get(key),setItem:(key,value)=>storage.set(key,value)},
-    matchMedia:query=>({matches:reduced&&query.includes("reduced-motion")}),
+    matchMedia,
     setTimeout(callback){timers.set(++handle,callback);return handle;},
     clearTimeout:id=>timers.delete(id),
     performance:{now:()=>time},requestAnimationFrame(fn){frames.set(++handle,fn);return handle;},
@@ -94,7 +103,8 @@ function fixture(reduced=true) {
     FrostPortrait(){},FrostEquipmentPreview(){}
   });
   for(const file of ["items","loot","build","world","events","enemy-ai","mutations","boss-ai","mini-bosses","environment",
-    "regions","records","combat","feedback","combat-audio","run-ui","stability"]) vm.runInContext(read(file+".js"),context,{filename:file+".js"});
+    "regions","records","combat","feedback","combat-audio","run-ui","stability","landscape",
+    "localization/th","localization/i18n"]) vm.runInContext(read(file+".js"),context,{filename:file+".js"});
   const Base=context.FrostCombat.Run;
   context.FrostCombat.Run=class extends Base {constructor(...args){super(...args);run=this;}};
   vm.runInContext(read("main.js"),context,{filename:"main.js"});
@@ -136,8 +146,35 @@ function fixture(reduced=true) {
     assert.equal(run.inventory.crowns,crowns);
   }
   return {frame,click,menu,key,snapshot,start,inputOpen,completeEncounter,claim,panel,context,win,
-    renderer,storage,errors,frames,timers,get run(){return run;}};
+    renderer,storage,errors,frames,timers,matchMedia,get run(){return run;}};
 }
+
+test("portrait gate preserves manual pause, the active run and the sole animation loop",()=>{
+  const game=fixture();
+  game.matchMedia("(pointer: coarse)").set(true);
+  game.start("hardcore");
+  game.click("enter-room");
+  game.frame(3);
+  game.key("Escape");
+  const run=game.run, time=run.time;
+  assert.equal(game.snapshot().overlay,"pause");
+  game.matchMedia("(orientation: portrait)").set(true);
+  assert(game.snapshot().orientationPaused);
+  game.frame(7);
+  assert.equal(run.time,time);
+  game.matchMedia("(orientation: portrait)").set(false);
+  assert.equal(game.snapshot().overlay,"pause");
+  assert(!game.snapshot().orientationPaused);
+  game.click("resume");
+  game.frame(4);
+  assert.strictEqual(game.run,run);
+  assert(run.time>time);
+  game.matchMedia("(orientation: portrait)").set(true);
+  game.click("portrait-continue");
+  assert(!game.snapshot().orientationPaused);
+  game.inputOpen();
+  assert.equal(game.frames.size,1);
+});
 
 test("100 pause and inventory cycles, reward claim, dialogue and shop resume the real UI loop", {timeout:5000},()=>{
   const game=fixture();

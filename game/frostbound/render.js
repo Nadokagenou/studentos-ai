@@ -438,11 +438,12 @@
     } else if (fx.kind === "trail") {
       if (!reduced) box(c, "#7abce3aa", fx.x-9, fx.y-26, 17, 26);
     } else if (fx.kind === "word") {
-      c.font = "bold 12px 'Segoe UI', sans-serif";
+      const label=FrostI18n.translate(fx.label);
+      c.font = "bold 12px 'Segoe UI', 'Leelawadee UI', Tahoma, sans-serif";
       c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "#0b1523";
       c.fillStyle = fx.color;
-      c.strokeText(fx.label, fx.x, fx.y - t * 26);
-      c.fillText(fx.label, fx.x, fx.y - t * 26);
+      c.strokeText(label, fx.x, fx.y - t * 26);
+      c.fillText(label, fx.x, fx.y - t * 26);
     } else {
       const base = fx.kind === "parry" ? 23 : 20;
       circle(c, fx.x, fx.y-10, base+57*t, "", "#c8eeff", 2);
@@ -533,6 +534,7 @@
     constructor(canvas) {
       this.canvas = canvas;
       this.c = canvas.getContext("2d", { alpha: false });
+      this.touch = matchMedia("(pointer: coarse)");
       this.ground = null;
       this.animation=new FrostAnimation.Scene();
       this.particles=new FrostFeedback.Particles();
@@ -553,6 +555,7 @@
       this.kingFall={actor:{...event,type:"king",boss:true,state:"dead",dead:0},time:now};
     }
     camera(w, h, player) {
+      if(this.touch.matches&&w>h) return FrostLandscape.camera(w,h,WIDTH,HEIGHT);
       const tall = w / h < 1.2;
       const scale = tall ? h / (HEIGHT + 124) : Math.max(h/HEIGHT,Math.min(w/WIDTH,h/536));
       const x = Math.round(w >= WIDTH * scale ? (w - WIDTH * scale) / 2 :
