@@ -1,0 +1,55 @@
+const {test}=require("node:test");
+const assert=require("node:assert/strict");
+for(const name of ["items","loot","build","world","events","enemy-ai","mutations","boss-ai","mini-bosses","environment","regions","combat"]) require("../"+name);
+const {Run,STEP}=FrostCombat;
+test("optional mini encounters have valid side entrances and leave the mandatory route reachable",()=>{
+  const run=new Run("story",4212);
+  for(const id of ["hollow","heart"]) {
+    run.route.index=run.rooms.findIndex(room=>room.side?.enemies.includes(id));
+    const index=run.route.index, onward=run.nextRoom;
+    const side=run.room.side;
+    assert.equal(side.type,"mini");
+    assert.ok(FrostRegions.geometryValid(side));
+    run.gateOpen=true;
+    Object.assign(run.player,FrostWorld.SIDE);
+    run.enterSide();
+    assert.equal(run.room,side);
+    assert.equal(run.route.index,index);
+    assert.equal(run.nextRoom,onward);
+    run.prepareEncounter();
+    assert.equal(run.equipmentAccess.allowed,false);
+    for(let i=0;i<200;i++) run.tick({x:0,y:0},STEP);
+    const boss=run.boss;
+    assert.equal(boss.type,id);
+    assert.equal(boss.maxHp,id==="hollow"?420:500);
+    run.damageEnemy(boss,9999,0);
+    run.tick({x:0,y:0});
+    assert.equal(run.offer.context,"elite");
+    assert.ok(run.select(run.choices.at(-1).id));
+    assert.equal(run.gateOpen,true);
+    assert.equal(run.route.index,index);
+    run.route.secret=null;
+  }
+  assert.ok(FrostRegions.generate("boss",4212).every(room=>!room.side));
+});
+test("Hollow Warden lays a visible trail and Crystal Heart adds a temporary, traversable obstacle",()=>{
+  const run=new Run("story",10);
+  run.room.pillars=[];
+  Object.assign(run.player,{x:560,y:280});
+  run.addEnemy("hollow",410,280,0);
+  run.startAttack(run.boss,"hollowLunge",0);
+  run.updateAttack(run.boss,.78);
+  const zone=run.mutationHazards[0];
+  assert.equal(zone.state,"windup");
+  assert.ok(zone.attack.spots.length>0);
+  run.enemies=[];
+  run.addEnemy("heart",425,280,0);
+  run.startAttack(run.boss,"heartFault",0);
+  run.updateAttack(run.boss,1.10);
+  assert.ok(run.crystalWall);
+  const [x,y]=run.crystalWall.pillar;
+  assert.ok(run.projectileBlocked({x,y}));
+  run.time=run.crystalWall.until;
+  run.tick({x:0,y:0},STEP);
+  assert.equal(run.crystalWall,null);
+});

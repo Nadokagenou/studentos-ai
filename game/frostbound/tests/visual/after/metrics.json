@@ -1,0 +1,209 @@
+{
+  "seed": 4212,
+  "desktop": {
+    "rows": [
+      [
+        "outpost",
+        {
+          "id": "outpost/0",
+          "type": "combat",
+          "theme": "courtyard"
+        }
+      ],
+      [
+        "forest",
+        {
+          "id": "forest/0",
+          "type": "combat",
+          "theme": "forest"
+        }
+      ],
+      [
+        "depths",
+        {
+          "id": "depths/0",
+          "type": "combat",
+          "theme": "crystal"
+        }
+      ],
+      [
+        "capital",
+        {
+          "id": "capital/0",
+          "type": "elite",
+          "theme": "gallery"
+        }
+      ],
+      [
+        "throne",
+        {
+          "id": "throne/2",
+          "type": "boss",
+          "theme": "throne"
+        }
+      ],
+      [
+        "merchant",
+        {
+          "id": "outpost/1",
+          "type": "merchant",
+          "theme": "courtyard"
+        }
+      ],
+      [
+        "rest",
+        {
+          "id": "forest/2",
+          "type": "rest",
+          "theme": "forest"
+        }
+      ],
+      [
+        "elite",
+        {
+          "id": "outpost/2/danger",
+          "type": "elite",
+          "theme": "courtyard"
+        }
+      ],
+      [
+        "secret",
+        {
+          "id": "forest/0/secret",
+          "type": "treasure",
+          "theme": "forest"
+        }
+      ],
+      [
+        "boss",
+        {
+          "id": "rush/2",
+          "type": "boss",
+          "theme": "crystal"
+        }
+      ]
+    ],
+    "profiles": {
+      "high": {
+        "fps": 59.89835430784125,
+        "p50": 16.699999999999818,
+        "p95": 16.90000000000009,
+        "p99": 16.90000000000009,
+        "drawP95": 0.4000000059604645,
+        "tasks": [],
+        "cacheBytes": 2242560,
+        "particleCount": 49,
+        "heap": 3102260
+      },
+      "low": {
+        "fps": 29.95461422087746,
+        "p50": 33.399999999999636,
+        "p95": 33.5,
+        "p99": 33.600000000000364,
+        "drawP95": 0.30000001192092896,
+        "tasks": [],
+        "cacheBytes": 2242560,
+        "particleCount": 12,
+        "heap": 3113672
+      }
+    },
+    "input": [
+      2.6000000089406967,
+      5.199999988079071,
+      9.700000002980232,
+      14.700000002980232,
+      7.5,
+      79.70000000298023,
+      18.600000008940697,
+      10.399999991059303
+    ],
+    "stress": {
+      "builds": 150,
+      "cacheBytes": 2242560
+    },
+    "errors": []
+  },
+  "mobile": {
+    "rows": [
+      [
+        "outpost",
+        {
+          "id": "outpost/0",
+          "type": "combat",
+          "theme": "courtyard"
+        }
+      ],
+      [
+        "forest",
+        {
+          "id": "forest/0",
+          "type": "combat",
+          "theme": "forest"
+        }
+      ],
+      [
+        "depths",
+        {
+          "id": "depths/0",
+          "type": "combat",
+          "theme": "crystal"
+        }
+      ],
+      [
+        "capital",
+        {
+          "id": "capital/0",
+          "type": "elite",
+          "theme": "gallery"
+        }
+      ],
+      [
+        "throne",
+        {
+          "id": "throne/2",
+          "type": "boss",
+          "theme": "throne"
+        }
+      ]
+    ],
+    "profiles": {
+      "high": {
+        "fps": 59.90197858050462,
+        "p50": 16.699999999999818,
+        "p95": 16.800000000000182,
+        "p99": 17,
+        "drawP95": 0.4000000059604645,
+        "tasks": [],
+        "cacheBytes": 2242560,
+        "particleCount": 49,
+        "heap": 3082364
+      },
+      "low": {
+        "fps": 29.95461422087746,
+        "p50": 33.399999999999636,
+        "p95": 33.5,
+        "p99": 33.59999999999991,
+        "drawP95": 0.30000001192092896,
+        "tasks": [],
+        "cacheBytes": 2242560,
+        "particleCount": 12,
+        "heap": 3125504
+      }
+    },
+    "input": [
+      15.599999994039536,
+      15.399999991059303,
+      15.799999997019768,
+      15.799999997019768,
+      15.5,
+      15.5,
+      15.400000005960464,
+      15.299999997019768
+    ],
+    "stress": {
+      "builds": 150,
+      "cacheBytes": 2242560
+    },
+    "errors": []
+  }
+}

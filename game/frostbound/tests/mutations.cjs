@@ -1,0 +1,60 @@
+const {test}=require("node:test");
+const assert=require("node:assert/strict");
+for(const name of ["items","loot","build","world","events","enemy-ai","mutations","boss-ai","mini-bosses","environment","regions","combat"]) require("../"+name);
+const {Run,STEP}=FrostCombat;
+function spawn(id,kind="story") {
+  const run=new Run(kind,1);
+  run.eliteMutation=id;
+  run.pending=[];
+  run.preparing=false;
+  run.addEnemy("elite",480,220,0);
+  const enemy=run.enemies[0];
+  enemy.state="chase";
+  return {run,enemy};
+}
+test("elite stats, Swift floor, Armored posture and Frostborn buildup use their assigned mutation",()=>{
+  const quick=spawn("swift","hardcore");
+  assert.equal(quick.enemy.maxHp,Math.ceil(Math.ceil(130*1.10)*1.35));
+  assert.equal(quick.enemy.speed,115*1.18);
+  quick.run.startAttack(quick.enemy,"remnantCounter");
+  assert.equal(quick.enemy.attack.data.windup,.35);
+  assert.ok(Math.abs(quick.enemy.attack.data.damage-18*1.15*1.12)<1e-8);
+  const armored=spawn("armored");
+  assert.equal(armored.enemy.maxPosture,117);
+  assert.equal(armored.enemy.speed,115*.90);
+  const frost=spawn("frostborn");
+  frost.run.startAttack(frost.enemy,"remnant");
+  frost.run.receiveHit(frost.enemy.attack.data,frost.enemy,frost.enemy);
+  assert.equal(frost.run.player.frost,12);
+});
+test("Regenerative observes a 20% cap and Vengeful boost lasts for one telegraphed attack",()=>{
+  const regen=spawn("regenerative");
+  regen.enemy.hp=10;
+  regen.enemy.state="stagger";
+  FrostMutations.regenerate(regen.enemy,5);
+  assert.equal(regen.enemy.hp,10);
+  regen.enemy.state="chase";
+  for(let t=10;t<150;t+=5) FrostMutations.regenerate(regen.enemy,t);
+  assert.ok(Math.abs(regen.enemy.hp-10-regen.enemy.maxHp*.20)<1e-8);
+  const anger=spawn("vengeful");
+  anger.enemy.vengeful=true;
+  anger.run.startAttack(anger.enemy,"remnant");
+  assert.ok(Math.abs(anger.enemy.attack.data.damage-12*1.12*1.10)<1e-8);
+  anger.run.startAttack(anger.enemy,"remnant");
+  assert.ok(Math.abs(anger.enemy.attack.data.damage-12*1.12)<1e-8);
+});
+test("Unstable protects reward and gear access until the one-second warning and crystal end",()=>{
+  const {run,enemy}=spawn("unstable");
+  run.damageEnemy(enemy,999,0);
+  assert.equal(run.mutationHazards.length,1);
+  Object.assign(run.player,{x:enemy.x,y:enemy.y});
+  for(let i=0;i<110;i++) run.tick({x:0,y:0},STEP);
+  assert.equal(run.player.hp,100);
+  assert.equal(run.equipmentAccess.allowed,false);
+  assert.equal(run.choices.length,0);
+  for(let i=0;i<255;i++) run.tick({x:0,y:0},STEP);
+  assert.ok(run.player.hp<100);
+  assert.equal(run.mutationHazards.length,0);
+  assert.equal(run.equipmentAccess.allowed,true);
+  assert.equal(run.choices.length,3);
+});

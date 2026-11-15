@@ -1,11 +1,11 @@
 (() => {
   "use strict";
-  const { ITEMS, LIMIT, buy, resale, priceOf, comparison, strikeRate, getRarity, itemDetails } = FrostItems;
+  const { ITEMS, LIMIT, buy, resale, priceOf, comparison, strikeRate, getRarity, itemDetailParts } = FrostItems;
   const { PASSIVES, ACTIVES }=FrostLoot;
   const { MODES, TEXT, DIALOGUE } = FrostWorld;
   const labels = { weapon:"Main weapon", armor:"Chest armor", accessory:"Accessory", potion:"Consumable" };
   const escape = value => String(value ?? "—").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const description = item => escape(item.description);
+  const detailMarkup = id => itemDetailParts(id).map(part=>"<span>"+escape(part)+"</span>").join(" ");
   const itemName = id => ITEMS[id]?.name ?? "Empty";
   const itemTitle = id => '<span class="item-icon" aria-hidden="true">'+ITEMS[id].icon+'</span> '+escape(ITEMS[id].name);
   const closeButton = '<button class="button secondary" data-ui="back">Back</button>';
@@ -73,7 +73,7 @@
       this.wire({begin:()=>this.start(kind,kind==="boss"?{weapon:this.panel.querySelector("#boss-preset").value,armor:this.panel.querySelector("#boss-armor").value}:"edge"),back:()=>this.modes()});
     }
     glossary(back) {
-      this.show("glossary",heading("Glossary")+'<dl class="controls-list">'+TEXT.glossary.map(([word,translation])=>'<div><dt>'+word+'</dt><dd lang="th">'+translation+'</dd></div>').join("")+'</dl>'+group(closeButton),'[data-ui="back"]');
+      this.show("glossary",heading("Glossary")+'<dl class="controls-list">'+TEXT.glossary.map(([word,translation])=>'<div><dt lang="en" data-no-translate>'+word+'</dt><dd lang="th" data-no-translate>'+translation+'</dd></div>').join("")+'</dl>'+group(closeButton),'[data-ui="back"]');
       this.wire({back});
     }
     credits() {
@@ -156,7 +156,7 @@
       const preview = item.slot==="weapon" || item.slot==="armor"
         ? '<canvas class="gear-preview" data-gear-preview="'+id+'" width="160" height="82" aria-label="'+escape(item.name)+' preview"></canvas>' : "";
       return '<div class="item-heading"><h3>'+itemTitle(id)+'</h3>'+rarity(id,rarityLabel)+'</div>'+preview+
-        '<p>'+escape(itemDetails(id))+'</p>'+(rows?'<p class="comparison-label">'+(current && current!==item?"Compared with "+escape(current.name ?? "empty slot"):"Attributes")+
+        '<p>'+detailMarkup(id)+'</p>'+(rows?'<p class="comparison-label">'+(current && current!==item?"Compared with "+escape(current.name ?? "empty slot"):"Attributes")+
           '</p><dl class="comparison-table">'+rows+'</dl>':'');
     }
     shop(selected = null, mode = "buy", message = "", confirm = false, filter = "all") {
@@ -186,7 +186,7 @@
         '<h3>Eldric</h3><p>'+escape(line)+'</p>'+money(inv.crowns)+'</aside>'+
         '<section class="menu-column items-column"><div class="shop-bar">'+tab("buy-tab","Buy",mode==="buy")+tab("sell-tab","Sell",mode==="sell")+'</div>'+
         categoryTabs(filter)+'<div class="item-grid">'+(offers||'<p>No items in this category.</p>')+'</div></section>'+
-        '<section class="menu-column item-detail">'+this.itemDetails(selected,item&&ITEMS[inv.gear[item.slot]],stock.rarities?.[selected])+transaction+'</section></div>'+
+        '<section class="menu-column item-detail"><div class="item-inspection">'+this.itemDetails(selected,item&&ITEMS[inv.gear[item.slot]],stock.rarities?.[selected])+'</div>'+transaction+'</section></div>'+
         '<p class="menu-feedback" role="status">'+escape(this.shopFeedback??"")+'</p>'+group(action("pack","Open Inventory")),
         confirm?'[data-ui="confirm"]':selected?'[data-ui="item-'+selected+'"]':'[data-ui="filter-'+filter+'"]');
       const redraw = (line="", feedback="") => { this.shopFeedback=feedback; this.shop(selected,mode,line,false,filter); };
@@ -275,7 +275,7 @@
         (skills?'<dl>'+skills+'</dl>':'')+'</details></section>'+
         '<section class="menu-column items-column"><h3>Owned items <small>Potions '+inv.potions.length+'/'+LIMIT+'</small></h3>'+categoryTabs(filter)+
         '<div class="item-grid">'+(cards||'<p>No items in this category.</p>')+'</div></section>'+
-        '<section class="menu-column item-detail">'+this.itemDetails(selected,item&&ITEMS[inv.gear[item.slot]])+controls+'</section></div>'+
+        '<section class="menu-column item-detail"><div class="item-inspection">'+this.itemDetails(selected,item&&ITEMS[inv.gear[item.slot]])+'</div>'+controls+'</section></div>'+
         '<p class="menu-feedback" role="status">'+escape(message)+'</p>',
         selected?'[data-ui="item-'+selected+'"]':'[data-ui="filter-'+filter+'"]');
       this.panel.dataset.readOnly=String(readOnly);
@@ -300,5 +300,5 @@
       selectControls(this.panel,".item-grid button");
     }
   }
-  globalThis.FrostRunUI = { UI, escape };
+  globalThis.FrostRunUI = { UI, escape, detailMarkup };
 })();

@@ -4,7 +4,7 @@
   const { PASSIVES, ACTIVES }=FrostLoot;
   const { MODES, TEXT } = FrostWorld;
   const { ITEMS } = FrostItems;
-  const { escape } = FrostRunUI;
+  const { escape, detailMarkup } = FrostRunUI;
   const get = id => document.getElementById(id);
   const shell = document.querySelector(".shell");
   const title = get("title-screen"), field = get("playfield"), canvas = get("arena");
@@ -22,11 +22,17 @@
   const settings = loadSettings();
   let storage;
   try { storage = localStorage; } catch {}
+  const i18n=FrostI18n;
+  i18n.init(document,storage,navigator.languages??[navigator.language]);
   const provider = new FrostRecords.LocalRecordProvider(storage);
   const keys = new Set();
   const pointer = { x: 0, y: 0, active: false };
   const joystick = { id: null, x: 0, y: 0 };
   const coarse = matchMedia("(pointer: coarse)");
+  const portrait = matchMedia("(orientation: portrait)");
+  const orientation = new FrostLandscape.OrientationGate();
+  const guide=get("orientation-guide");
+  let orientationPaused=false, orientationFocus, lastPortrait=portrait.matches;
   let run = null, modal = null, back = null, queued = null;
   let sinceBanner = 0, lastFrame = 0, accumulator = 0;
   let drawnAt=-Infinity;
@@ -34,6 +40,7 @@
   let failure=null, introTimer=0, requestingFullscreen=false, lastState="TITLE", debugAt=0;
   let audio = null, gain = null, musicGain = null, sfxGain = null, musicStep = 0, nextNote = 0;
   let noiseBuffer=null, voices=0;
+  let ambienceRoom=null, nextAmbience=0, ambienceBeat=0;
   const combatSound=FrostCombatAudio.create(tone,noise);
   let introPreset = "edge", runPreset = "edge", subtitleUntil = 0, hudAt = 0, toastUntil = 0, previewAt = 0;
   const paintedLoadouts = new WeakSet();
@@ -111,8 +118,8 @@
     note.start(t);
     note.stop(t + length + .01);
   }
-  function noise(frequency,length,volume,type="bandpass",delay=0) {
-    if(!audio||!sfxGain||settings.muted||audio.state!=="running"||voices>=24) return;
+  function noise(frequency,length,volume,type="bandpass",delay=0,channel=sfxGain) {
+    if(!audio||!channel||settings.muted||audio.state!=="running"||voices>=24) return;
     if(!noiseBuffer) {
       noiseBuffer=audio.createBuffer(1,Math.ceil(audio.sampleRate*.32),audio.sampleRate);
       const data=noiseBuffer.getChannelData(0);
@@ -130,14 +137,30 @@
     filter.Q.value=.76;
     voice.gain.setValueAtTime(volume,start);
     voice.gain.exponentialRampToValueAtTime(.0001,start+length);
-    source.connect(filter).connect(voice).connect(sfxGain);
+    source.connect(filter).connect(voice).connect(channel);
     voices++;
     source.onended=()=>{source.disconnect();filter.disconnect();voice.disconnect();voices--;};
     source.start(start);
     source.stop(start+length);
   }
   function soundtrack() {
-    if (!audio || audio.state !== "running" || settings.muted || modal || !intro.hidden) return;
+    if (!audio || audio.state !== "running" || settings.muted || modal || orientationPaused || !intro.hidden) return;
+    if(run&&!run.training&&!run.result&&settings.music>0) {
+      if(ambienceRoom!==run.room) {
+        ambienceRoom=run.room;
+        nextAmbience=audio.currentTime+.65;
+        ambienceBeat=0;
+      }
+      if(audio.currentTime>=nextAmbience&&voices<14) {
+        const [wind,resonance,spacing]=FrostWorldArt.themeFor(run.room).sound;
+        const cue=ambienceBeat++%3;
+        const hush=run.boss?.phase>=2?.56:1;
+        noise(wind*(1+cue*.45),.26,.027*hush,"bandpass",0,musicGain);
+        if(cue===1) tone(resonance,resonance*.91,.65,.018*hush,"sine",.16,musicGain);
+        if(cue===2) noise(wind*3,.11,.016*hush,"bandpass",.24,musicGain);
+        nextAmbience=audio.currentTime+spacing-cue*.36;
+      }
+    }
     if (audio.currentTime < nextNote) return;
     const region = run?.room.theme;
     const patterns = {forest:[55,73.42,82.4,65.4],crystal:[65.4,98,82.4,73.42],gallery:[49,65.4,87.31,65.4],crypt:[41.2,55,61.74,55]};
@@ -152,15 +175,16 @@
     tone(note * (musicStep % 2 ? 2 : 3), note * (musicStep % 2 ? 2 : 3), gap * 1.6, .016,"sine",0,musicGain);
   }
   function syncFullscreen() {
-    const screen = get("screen-mode");
-    if (screen) screen.textContent = document.fullscreenElement === shell ? "Exit fullscreen" : "Enter fullscreen";
+    const label=document.fullscreenElement === shell ? "Exit fullscreen" : "Enter fullscreen";
+    for(const control of [get("screen-mode"),get("title-fullscreen")]) if(control) i18n.setText(control,label);
+    get("title-fullscreen").hidden=!document.fullscreenEnabled || typeof shell.requestFullscreen!=="function";
   }
   async function enterFullscreen(showFeedback = false) {
     if (document.fullscreenElement === shell || requestingFullscreen) return;
     requestingFullscreen=true;
     try { await shell.requestFullscreen({ navigationUI: "hide" }); }
     catch {
-      const feedback = get("screen-feedback");
+      const feedback = get("screen-feedback")??get("title-screen-feedback");
       if (showFeedback && feedback) feedback.hidden = false;
     }
     finally { requestingFullscreen=false; }
@@ -206,6 +230,36 @@
     joystick.y = 0;
     knob.style.transform = "";
   }
+  function syncInert() {
+    title.inert=Boolean(modal)||orientationPaused;
+    field.inert=Boolean(modal)||orientationPaused;
+    panel.inert=orientationPaused;
+  }
+  function syncOrientation() {
+    const blocked=orientation.blocks({touch:coarse.matches,portrait:portrait.matches,
+      running:Boolean(run),finished:Boolean(run?.result||failure)});
+    if(lastPortrait!==portrait.matches||blocked!==orientationPaused) {
+      lastPortrait=portrait.matches;
+      flushInput();
+      accumulator=0;
+      drawnAt=-Infinity;
+    }
+    if(blocked!==orientationPaused) {
+      orientationPaused=blocked;
+      guide.hidden=!blocked;
+      if(blocked) {
+        orientationFocus=document.activeElement;
+        syncInert();
+        get("portrait-continue").focus({preventScroll:true});
+      } else {
+        syncInert();
+        const target=orientationFocus?.isConnected&&orientationFocus.getClientRects().length
+          ?orientationFocus:(modal?panel:canvas);
+        target.focus({preventScroll:true});
+        orientationFocus=null;
+      }
+    } else syncInert();
+  }
   function gameState() {
     if(failure) return "ERROR";
     if(!intro.hidden) return "INTRO";
@@ -230,7 +284,7 @@
     return {...diagnostics.snapshot(),state:gameState(),seed:run?.seed,mode:run?.kind,region:room?.region??room?.name,
       room:room?.id??room?.name,wave:run?.runWave,roomNumber:run?.wave,playerState:player?.action?.type??"idle",
       player:player?{x:player.x,y:player.y,time:run.time}:null,enemyCount:enemies.length,
-      overlay:modal,inputLocked:Boolean(failure||modal||!intro.hidden||run?.mode!=="playing"),inert:field.inert,
+      overlay:modal,orientationPaused,inputLocked:Boolean(failure||modal||orientationPaused||!intro.hidden||run?.mode!=="playing"),inert:field.inert,
       pendingTransition:!intro.hidden?"intro":modal==="paths"?"route choice":run?.preparing?"room preparation":
         boss?.state==="transition"?"boss phase "+boss.phase:run?.reinforcing?"reinforcements":run?.mode==="choose"?"reward":null};
   }
@@ -269,11 +323,12 @@
     panel.classList.toggle("entering",kind!==previous);
     panel.classList.toggle("wide", wide);
     panel.innerHTML = content;
+    i18n.localize(panel);
     previewAt = 0;
-    title.inert = true;
-    field.inert = true;
     veil.hidden = false;
+    syncOrientation();
     trackState();
+    if(orientationPaused) return panel;
     if (primary) panel.querySelector(primary)?.focus({ preventScroll: true });
     if (!panel.contains(document.activeElement)) panel.focus({ preventScroll: true });
     return panel;
@@ -282,10 +337,9 @@
     modal = null;
     veil.hidden = true;
     panel.replaceChildren();
-    title.inert = false;
-    field.inert = false;
+    syncInert();
     trackState();
-    if (restore && previousFocus instanceof HTMLElement && previousFocus.getClientRects().length) {
+    if (restore && !orientationPaused && previousFocus instanceof HTMLElement && previousFocus.getClientRects().length) {
       previousFocus.focus({ preventScroll: true });
     }
     previousFocus = null;
@@ -349,11 +403,14 @@
     canvas.focus({ preventScroll: true });
     handleEvents();
     updateHUD();
+    syncOrientation();
   }
   function home() {
     flushInput();
     renderer.reset?.();
     run = null;
+    orientation.reset();
+    syncOrientation();
     intro.hidden=true;
     close(false);
     title.hidden = false;
@@ -397,6 +454,7 @@
     back = run?.mode === "playing" ? "pause" : null;
     open("options", heading("Settings") + '<div class="options-grid">' +
       '<fieldset><legend>Display</legend>' +
+      '<label class="setting">Language <select id="language-setting"><option value="th">ไทย</option><option value="en">English</option></select></label>' +
       '<div class="setting"><span>Screen mode</span><button class="small-button" id="screen-mode"></button></div>' +
       '<p class="screen-feedback" id="screen-feedback" role="status" hidden>Fullscreen is unavailable in this browser. The game fills the available window.</p>' +
       '<label class="setting">Reduced motion <input id="motion-setting" type="checkbox"></label>' +
@@ -424,6 +482,9 @@
     }
     const uiScale=get("ui-scale"), opacity=get("hud-opacity"), opacityValue=get("hud-opacity-value");
     const quality=get("quality");
+    const language=get("language-setting");
+    language.value=i18n.getLanguage();
+    language.onchange=()=>i18n.setLanguage(language.value);
     quality.value=settings.quality;
     quality.onchange=()=>{settings.quality=quality.value;drawnAt=-Infinity;persist();};
     uiScale.value=settings.uiScale;
@@ -464,7 +525,8 @@
       const unavailable=card.id==="upgrade"&&!run.inventory.canUpgrade(card.key)||card.id==="potion"&&!run.inventory.canObtain("flask");
       return '<button class="reward-card rarity-'+rarity.toLowerCase()+'" data-reward="'+escape(card.id)+'" aria-pressed="'+(selected===card.id)+'"'+(unavailable?' disabled':'')+'>'+
         '<span class="reward-icon" aria-hidden="true">'+card.icon+'</span><span class="reward-type">'+rarity+' · '+card.type+'</span>'+
-        '<strong>'+escape(card.name)+'</strong><span class="reward-description">'+escape(card.description)+'</span>'+effects+
+        '<strong>'+escape(card.name)+'</strong><span class="reward-description">'+
+          (card.id.startsWith("item:")?detailMarkup(card.key):escape(card.description))+'</span>'+effects+
         (card.type==="Active"?'<span class="reward-cost">'+card.cost+' Stamina · '+card.cooldown+'s cooldown</span>':'')+
         (action?'<span class="reward-action">'+escape(action)+'</span>':'')+
         (unavailable?'<span class="reward-action">Unavailable with current Inventory.</span>':'')+'</button>';
@@ -495,8 +557,10 @@
     const lines = room.enemies.includes("king") ? '<div class="conversation">'+TEXT.king.map(([speaker,line])=>'<p><strong>'+speaker+'</strong><span>'+line+'</span></p>').join("")+'</div>' : "";
     const mutation=FrostMutations.definitions[run.eliteMutation];
     const hazard=FrostEnvironment.HAZARDS[room.hazard];
+    const localizedRegion=i18n.regionSubtitle(room.region);
     open("story", '<div class="story-marker">' + MODES[run.kind].name + ' · Stage ' + room.stage + ' · ' + room.type + '</div>' + heading(room.name) +
       (room.region && room.region!==room.name?'<p class="room-region">'+escape(room.region)+'</p>':'')+
+      (localizedRegion?'<p class="room-region" lang="th" data-region-local>'+escape(localizedRegion)+'</p>':'')+
       '<p class="story-text">' + room.story + '</p><div class="story-objective">' + room.objective + '</div>' +
       (hazard?'<p class="room-region">'+escape(hazard.name)+' · '+escape(hazard.note)+'</p>':'')+
       (mutation?'<p class="story-marker">'+mutation.icon+' '+mutation.name+' Elite · '+mutation.detail+'</p>':'')+
@@ -598,7 +662,7 @@
     if (r.bossTime) entries.push([r.kind==="boss"?"Last boss time":"Boss defeat time",timeLabel(r.bossTime)]);
     const stats = entries.map(([label, value]) => "<div><dt>" + label + "</dt><dd>" + value + "</dd></div>").join("");
     const learned = Object.keys(run.build.ranks).map(id=>PASSIVES[id].name);
-    const resultText = r.won ? r.kind === "boss" ? "The Gatekeeper, Crystal Warden, and Frozen King all fell. " + TEXT.ending : TEXT.ending
+    const resultText = r.won ? (r.kind==="boss"?'<span>The Gatekeeper, Crystal Warden, and Frozen King all fell.</span> ':'')+'<span>'+escape(TEXT.ending)+'</span>'
       : 'The winter claims another wanderer. Final blow · ' + escape(r.cause);
     open("results", '<div class="story-marker">'+MODES[r.kind].name+'</div>'+heading(r.won ? "THE WINTER ENDS" : "YOU HAVE FALLEN")
       + '<p>' + resultText + '</p>'
@@ -655,7 +719,7 @@
       combatNotice=null;
       get("combat-notice").hidden=true;
     }
-    const setText=(id,value)=>{const el=get(id);if(el.textContent!==value)el.textContent=value;};
+    const setText=(id,value)=>i18n.setText(get(id),value);
     const setBar=(id,value)=>{const style=get(id).style;if(style.width!==value)style.width=value;};
     setBar("health",Math.round(p.hp/run.maxHp*100)+"%");
     setText("health-text",Math.ceil(p.hp)+" / "+run.maxHp);
@@ -693,22 +757,28 @@
     const selected = ITEMS[inv.quickSlot];
     const drink = get("drink");
     drink.disabled = !inv.potion || p.action?.type==="potion";
+    const touchPotion=get("touch-potion");
+    touchPotion.disabled=drink.disabled||run.training;
     const hint=inv.potion ? selected.description : selected ? selected.name+" depleted. Reassign in a safe area." : "Quick slot empty. Assign a potion in Inventory.";
-    if (drink.title!==hint) {
-      drink.title=hint;
-      drink.setAttribute("aria-label",inv.potion?"Drink "+selected.name:hint);
+    for(const control of [drink,touchPotion]) {
+      i18n.setAttribute(control,"title",hint);
+      i18n.setAttribute(control,"aria-label",inv.potion?"Drink "+selected.name:hint);
     }
     setText("potion-label",selected ? selected.icon+" ×"+inv.potionCount : "×0");
     const action = p.action;
     const skill=ACTIVES[run.build.active];
     const skillButton=get("skill");
+    const touchSkill=get("touch-skill");
     skillButton.hidden=!skill;
     skillButton.disabled=!skill||run.build.cooldown>0||p.stamina<skill.cost;
+    touchSkill.disabled=skillButton.disabled||run.training;
     if(skill) {
-      skillButton.title=skill.name+" · "+skill.text;
-      skillButton.setAttribute("aria-label",skill.name+(run.build.cooldown>0?" · Recharging":" · Active skill"));
+      for(const control of [skillButton,touchSkill]) {
+        i18n.setAttribute(control,"title",skill.name+" · "+skill.text);
+        i18n.setAttribute(control,"aria-label",skill.name+(run.build.cooldown>0?" · Recharging":" · Active skill"));
+      }
       setText("skill-label",skill.icon+" "+(run.build.cooldown>0?Math.ceil(run.build.cooldown)+"s":"Ready"));
-    }
+    } else i18n.setAttribute(touchSkill,"aria-label","Active skill");
     const timeLeft = action && ["dash","parry","potion"].includes(action.type) ? Math.max(0,action.duration-action.age) : 0;
     setText("cooldowns",timeLeft ? ({dash:"Dash",parry:"Parry",potion:"Potion"})[action.type]+" "+timeLeft.toFixed(1)+"s"
       : Object.keys(run.buffs).map(id=>(ITEMS[id]?.icon ?? "❄")+" "+Math.ceil(run.buffs[id])+"s").join(" "));
@@ -728,8 +798,8 @@
     lesson.hidden = !run.training;
     if (run.training) {
       const [name, detail] = LESSONS[run.lesson] ?? ["Training complete", "Keep practicing or press Pause to return to the title screen."];
-      get("lesson-title").textContent = name;
-      get("lesson-body").textContent = detail;
+      setText("lesson-title",name);
+      setText("lesson-body",detail);
       get("skip-lesson").hidden = run.lesson >= LESSONS.length;
     }
   }
@@ -781,7 +851,7 @@
       }
     }
     if (run) {
-      if (!modal && (run.mode === "playing" || run.mode === "dying")) {
+      if (!modal && !orientationPaused && (run.mode === "playing" || run.mode === "dying")) {
         diagnostics.mark("simulation");
         accumulator += frame;
         for(let steps=0;steps<8&&accumulator>=STEP&&(run.mode==="playing"||run.mode==="dying");steps++) {
@@ -804,7 +874,7 @@
       } else accumulator = 0;
       if(settings.quality!=="low"||now-drawnAt>=31) {
         diagnostics.mark("render");
-        renderer.draw(run,settings,modal || !settings.aimGuide || run.mode!=="playing" ? null : mouseAim(),now);
+        renderer.draw(run,settings,modal || orientationPaused || !settings.aimGuide || run.mode!=="playing" ? null : mouseAim(),now);
         drawnAt=now;
       }
     }
@@ -820,6 +890,10 @@
   const actionKeys = { KeyJ:"light", KeyK:"heavy", Space:"dash", KeyE:"skill", KeyQ:"parry", KeyR:"potion" };
   const movement = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"]);
   window.addEventListener("keydown", e => {
+    if(orientationPaused) {
+      if(e.code==="Tab") {e.preventDefault();get("portrait-continue").focus({preventScroll:true});}
+      return;
+    }
     if(debugEnabled&&e.code==="F8"&&!e.repeat) {
       e.preventDefault();
       debugPanel.hidden=!debugPanel.hidden;
@@ -871,14 +945,14 @@
   });
   window.addEventListener("keyup", e => keys.delete(e.code));
   field.addEventListener("pointermove", e => {
-    if (e.pointerType !== "mouse" || !run || modal) return;
+    if (e.pointerType !== "mouse" || !run || modal || orientationPaused) return;
     Object.assign(pointer, { x: e.clientX, y: e.clientY, active: true });
   });
   field.addEventListener("pointerleave", e => {
     if (e.pointerType === "mouse") pointer.active = false;
   });
   canvas.addEventListener("pointerdown", e => {
-    if (e.pointerType !== "mouse" || !run || modal || (e.button !== 0 && e.button !== 2)) return;
+    if (e.pointerType !== "mouse" || !run || modal || orientationPaused || (e.button !== 0 && e.button !== 2)) return;
     e.preventDefault();
     unlock();
     Object.assign(pointer, { x: e.clientX, y: e.clientY, active: true });
@@ -888,15 +962,16 @@
   function moveStick(e) {
     if (joystick.id !== e.pointerId) return;
     const rect = stick.getBoundingClientRect();
-    const x = (e.clientX - rect.left - rect.width / 2) / 31;
-    const y = (e.clientY - rect.top - rect.height / 2) / 31;
+    const reach=Math.max(20,Math.min(rect.width,rect.height)*.37);
+    const x = (e.clientX - rect.left - rect.width / 2) / reach;
+    const y = (e.clientY - rect.top - rect.height / 2) / reach;
     const length = Math.max(1, Math.hypot(x, y));
     joystick.x = x / length;
     joystick.y = y / length;
-    knob.style.transform = "translate(" + joystick.x * 25 + "px," + joystick.y * 25 + "px)";
+    knob.style.transform = "translate(" + joystick.x * reach*.8 + "px," + joystick.y * reach*.8 + "px)";
   }
   stick.addEventListener("pointerdown", e => {
-    if (!run || modal || joystick.id !== null) return;
+    if (!run || modal || orientationPaused || joystick.id !== null) return;
     e.preventDefault();
     unlock();
     pointer.active = false;
@@ -915,24 +990,24 @@
   for (const event of ["pointercancel", "pointerup", "lostpointercapture"]) stick.addEventListener(event, releaseStick);
   for (const control of field.querySelectorAll("[data-action]")) {
     control.addEventListener("pointerdown", e => {
-      if (!run || modal || e.button !== 0) return;
+      if (!run || modal || orientationPaused || control.disabled || e.button !== 0) return;
       e.preventDefault();
       unlock();
       pointer.active = false;
       queued = control.dataset.action;
     });
     control.addEventListener("click", e => {
-      if (e.detail === 0 && run && !modal) { unlock(); queued = control.dataset.action; }
+      if (e.detail === 0 && run && !modal && !orientationPaused && !control.disabled) { unlock(); queued = control.dataset.action; }
     });
   }
   window.addEventListener("blur", () => {
     flushInput();
-    if (run && !modal) pause();
+    if (run && !modal && !orientationPaused) pause();
   });
   document.addEventListener("visibilitychange", () => {
     if(!document.hidden) return;
     flushInput();
-    if(run&&!modal) pause();
+    if(run&&!modal&&!orientationPaused) pause();
   });
   window.addEventListener("beforeunload", e=>{
     if(!run || failure || run.training || run.result) return;
@@ -950,15 +1025,23 @@
   });
   bind("training", () => launch("training"));
   bind("options", options);
+  bind("title-fullscreen",toggleFullscreen);
+  bind("portrait-continue",()=>{orientation.allow();syncOrientation();});
+  portrait.addEventListener?.("change",syncOrientation);
+  coarse.addEventListener?.("change",syncOrientation);
+  window.addEventListener("resize",syncOrientation);
   let titleFullscreenRequested=false;
   title.addEventListener("click",event=>{
-    if(titleFullscreenRequested||!event.target.closest("button")) return;
+    const control=event.target.closest("button");
+    if(coarse.matches||titleFullscreenRequested||!control||control.id==="title-fullscreen") return;
     titleFullscreenRequested=true;
     enterFullscreen();
   },{capture:true});
   document.addEventListener("fullscreenchange", () => {
     syncFullscreen();
-    if (!document.fullscreenElement && run && !modal) {flushInput();pause();}
+    flushInput();
+    drawnAt=-Infinity;
+    syncOrientation();
   });
   bind("pause", pause);
   bind("interact",interact);
@@ -974,5 +1057,6 @@
   });
   if(debugEnabled) globalThis.FrostDebug={snapshot:debugSnapshot};
   persist();
+  syncFullscreen();
   frameLoop.start();
 })();

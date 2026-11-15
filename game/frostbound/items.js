@@ -120,17 +120,18 @@
   const getRarity=id=>ITEMS[id]?.rarity ?? RARITY[id] ?? "Common";
   const familyOf=id=>ITEMS[id]?.family ?? id;
   const itemId=(family,tier,roll=0,rank=0,shop=false)=>[family,tier,roll,rank,shop?"s":"r"].join("~");
-  const itemDetails=id=> {
+  const itemDetailParts=id=> {
     const item=ITEMS[id], family=familyOf(id);
-    if(!item) return "";
+    if(!item) return [];
     return [item.description,SPECIAL[family]===item.description?null:SPECIAL[family],
       item.signature ? (item.slot==="weapon"?"Legendary signature · Land a Light hit within 1.5s of Perfect Parry to refund 4 Stamina. Heavy costs 8% more.":"Legendary signature · Armor reaction restores 4 Stamina. Its cooldown still applies.") : null,
       item.affixes?.length ? item.affixes.map(name=>name+" · "+AFFIX_TEXT[name]).join(" / ") : null,
       item.slot==="weapon" ? "Light "+item.light[0].damage+" damage / "+item.light[0].range+" reach · Heavy "+item.heavy.damage+
         " damage / "+item.heavy.posture+" posture / "+item.heavy.range+" reach · "+Math.ceil(item.light[0].cost)+
         " / "+Math.ceil(item.heavy.cost)+" Stamina." : null,
-      item.slot==="armor" ? Math.round(item.defense*100)+"% defense · "+Math.round(item.speed*100)+"% movement · "+Math.round(item.regen*100)+"% Stamina recovery." : null].filter(Boolean).join(" ");
+      item.slot==="armor" ? Math.round(item.defense*100)+"% defense · "+Math.round(item.speed*100)+"% movement · "+Math.round(item.regen*100)+"% Stamina recovery." : null].filter(Boolean);
   };
+  const itemDetails=id=>itemDetailParts(id).join(" ");
   const strikeRate = strike => 1 / (strike.windup + strike.active + strike.recovery);
   function comparison(item, current) {
     const rows = [];
@@ -294,5 +295,5 @@
     if (index > 2 || rng() > .65) offers[pick(["charm","emberstone","feather"])] = 1;
     return offers;
   }
-  globalThis.FrostItems = { ITEMS, LIMIT, RARITY, TIERS, PRICES, Inventory, resale, priceOf, buy, random, market, strikeRate, comparison, getRarity, familyOf, itemId, itemDetails };
+  globalThis.FrostItems = { ITEMS, LIMIT, RARITY, TIERS, PRICES, Inventory, resale, priceOf, buy, random, market, strikeRate, comparison, getRarity, familyOf, itemId, itemDetails, itemDetailParts };
 })();
