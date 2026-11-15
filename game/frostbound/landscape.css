@@ -12,6 +12,8 @@ html:lang(th) .spoken-line { animation: none; }
 html:not(:lang(th)) [data-region-local] { display: none; }
 .title-screen-feedback { margin: 0; }
 .title-actions .title-fullscreen { min-height: 44px; }
+.panel .run-reference { margin: .75rem 0 0; color: #acbfd3; font-variant-numeric: tabular-nums; }
+.beta-link { color: #c4e8fa; text-underline-offset: 3px; }
 .landscape-only { display: none; }
 .orientation-guide {
   position: absolute;

@@ -3,7 +3,7 @@ const path=require("node:path");
 const {performance}=require("node:perf_hooks");
 const {spawnSync}=require("node:child_process");
 if(!process.argv.includes("--worker")) {
- const result=spawnSync(process.execPath,[...process.execArgv,__filename,"--worker"],{stdio:"inherit",timeout:45000});
+ const result=spawnSync(process.execPath,[...process.execArgv,__filename,"--worker",...process.argv.slice(2)],{stdio:"inherit",timeout:75000});
  if(result.error) console.error(result.error.message);
  process.exitCode=result.status??1;
  return;
@@ -13,8 +13,10 @@ for(const file of ["items","loot","build","world","events","enemy-ai","mutations
  require(path.join(root,file+".js"));
 const autopilot=require("./pilot.cjs");
 const {Run,GATE}=FrostCombat;
-const modes=[["story",20],["hardcore",20],["boss",10]];
+const modes=process.argv.includes("--extended")?[["story",30],["hardcore",30],["boss",20]]:
+ [["story",20],["hardcore",20],["boss",10]];
 const seeds=[4212,1,87,53,101,144,29,77,111,198,74,4100,564,4294967295,563,75318,1337,611,125987,348291];
+seeds.push(18,47,60,270,499,512,1606,4681,17823,20261115);
 const elapsedStart=performance.now();
 const stats={};const memories=[];const failures=[];
 const STEP_LIMIT=120*420;

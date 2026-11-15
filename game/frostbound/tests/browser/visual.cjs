@@ -9,6 +9,7 @@ const prefix = "/frostbound-game/";
 const origin = "http://frostbound.test";
 const mime = {".js":"text/javascript", ".css":"text/css", ".webp":"image/webp", ".html":"text/html"};
 const seed = 4212;
+const profileOnly=process.argv.includes("--profile-only");
 const regions = ["outpost", "forest", "depths", "capital", "throne"];
 const extra = ["merchant", "rest", "elite", "secret", "boss"];
 
@@ -96,14 +97,16 @@ async function capture(browser, name, viewport) {
   }, seed);
   const captures = name==="desktop" ? [...regions,...extra] : regions;
   const rows = [];
-  for (const [index,scene] of captures.entries()) {
+  for (const [index,scene] of (profileOnly?[]:captures.entries())) {
     const detail = await page.evaluate(index=>qaShow(index),index);
     rows.push([scene,detail]);
     await page.screenshot({path:path.join(output,`${name}-${scene}.jpg`),type:"jpeg",quality:84,scale:"css"});
   }
-  await page.evaluate(() => qaShow(1,"low"));
-  await page.screenshot({path:path.join(output,`${name}-forest-low.jpg`),type:"jpeg",quality:84,scale:"css"});
-  if(name==="desktop") for(const phase of [2,3]) {
+  if(!profileOnly) {
+    await page.evaluate(() => qaShow(1,"low"));
+    await page.screenshot({path:path.join(output,`${name}-forest-low.jpg`),type:"jpeg",quality:84,scale:"css"});
+  }
+  if(!profileOnly&&name==="desktop") for(const phase of [2,3]) {
     await page.evaluate(phase=>{
       qaShow(4);
       qaRun.boss.phase=phase;
@@ -164,7 +167,7 @@ async function capture(browser, name, viewport) {
     window.qaLive=true;
     if(window.qaPending) qaRAF(window.qaPending);
   });
-  for(let i=0;i<8;i++) {
+  for(let i=0;i<(profileOnly?12:8);i++) {
     if(name==="desktop") await page.keyboard.press("j");
     else await page.locator("[data-action=light]").tap();
     await page.waitForTimeout(520);

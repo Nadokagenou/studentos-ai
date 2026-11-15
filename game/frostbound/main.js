@@ -39,7 +39,7 @@
   let combatNotice=null;
   let failure=null, introTimer=0, requestingFullscreen=false, lastState="TITLE", debugAt=0;
   let audio = null, gain = null, musicGain = null, sfxGain = null, musicStep = 0, nextNote = 0;
-  let noiseBuffer=null, voices=0;
+  let noiseBuffer=null, voices=0, audioDisabled=false;
   let ambienceRoom=null, nextAmbience=0, ambienceBeat=0;
   const combatSound=FrostCombatAudio.create(tone,noise);
   let introPreset = "edge", runPreset = "edge", subtitleUntil = 0, hudAt = 0, toastUntil = 0, previewAt = 0;
@@ -77,91 +77,118 @@
     document.body.classList.toggle("hide-hints",!settings.hints);
     document.documentElement.style.fontSize=settings.uiScale+"%";
     document.documentElement.style.setProperty("--hud-opacity",settings.hudOpacity/100);
-    if (gain) {
-      gain.gain.setTargetAtTime(settings.muted ? 0 : settings.volume, audio.currentTime, .03);
-      musicGain.gain.setTargetAtTime(settings.music,audio.currentTime,.03);
-      sfxGain.gain.setTargetAtTime(settings.sfx,audio.currentTime,.03);
-    }
+    if(audio) safeAudio(context=>{
+      gain.gain.setTargetAtTime(settings.muted?0:settings.volume,context.currentTime,.03);
+      musicGain.gain.setTargetAtTime(settings.music,context.currentTime,.03);
+      sfxGain.gain.setTargetAtTime(settings.sfx,context.currentTime,.03);
+    });
+  }
+  function disableAudio(context) {
+    audioDisabled=true;
+    audio=gain=musicGain=sfxGain=noiseBuffer=null;
+    voices=0;
+    try {context?.close?.()?.catch(()=>{});} catch {}
+  }
+  function safeAudio(operation) {
+    const context=audio;
+    if(!context) return;
+    try {operation(context);} catch {disableAudio(context);}
   }
   function unlock() {
+    if(audioDisabled) return;
+    let context=audio;
     try {
-      if (!audio) {
+      if(!context) {
         const Context = window.AudioContext || window.webkitAudioContext;
         if (!Context) return;
-        audio = new Context();
-        gain = audio.createGain();
-        gain.gain.value = settings.muted ? 0 : settings.volume;
-        gain.connect(audio.destination);
-        musicGain = audio.createGain();
-        musicGain.gain.value = settings.music;
-        musicGain.connect(gain);
-        sfxGain = audio.createGain();
-        sfxGain.gain.value = settings.sfx;
-        sfxGain.connect(gain);
+        context=new Context();
+        const master=context.createGain(), background=context.createGain(), effects=context.createGain();
+        master.gain.value=settings.muted?0:settings.volume;
+        background.gain.value=settings.music;
+        effects.gain.value=settings.sfx;
+        master.connect(context.destination);
+        background.connect(master);
+        effects.connect(master);
+        audio=context;
+        gain=master;
+        musicGain=background;
+        sfxGain=effects;
       }
-      if (audio.state === "suspended") audio.resume().catch(() => {});
-    } catch {}
+      if(["suspended","interrupted"].includes(context.state)) context.resume().catch(()=>{});
+    } catch {disableAudio(context);}
   }
+  const audioLimit=channel=>channel===musicGain?16:24;
   function tone(start, end, length, volume, shape = "sine", delay = 0, channel = sfxGain) {
-    if (!audio || !channel || settings.muted || audio.state !== "running"||voices>=24) return;
-    const t = audio.currentTime + delay;
-    const note = audio.createOscillator(), voice = audio.createGain();
-    note.type = shape;
-    note.frequency.setValueAtTime(start, t);
-    note.frequency.exponentialRampToValueAtTime(end, t + length);
-    voice.gain.setValueAtTime(.0001, t);
-    voice.gain.exponentialRampToValueAtTime(volume, t + Math.min(.09, length * .35));
-    voice.gain.exponentialRampToValueAtTime(.0001, t + length);
-    note.connect(voice).connect(channel);
-    voices++;
-    note.onended=()=>{note.disconnect();voice.disconnect();voices--;};
-    note.start(t);
-    note.stop(t + length + .01);
+    if(!channel||settings.muted||audio?.state!=="running"||voices>=audioLimit(channel)) return;
+    safeAudio(context=>{
+      const t=context.currentTime+delay;
+      const note=context.createOscillator(), voice=context.createGain();
+      note.type=shape;
+      note.frequency.setValueAtTime(start,t);
+      note.frequency.exponentialRampToValueAtTime(end,t+length);
+      voice.gain.setValueAtTime(.0001,t);
+      voice.gain.exponentialRampToValueAtTime(volume,t+Math.min(.09,length*.35));
+      voice.gain.exponentialRampToValueAtTime(.0001,t+length);
+      note.connect(voice).connect(channel);
+      voices++;
+      note.onended=()=>{
+        if(audio!==context) return;
+        note.disconnect();voice.disconnect();voices--;
+      };
+      note.start(t);
+      note.stop(t+length+.01);
+    });
   }
   function noise(frequency,length,volume,type="bandpass",delay=0,channel=sfxGain) {
-    if(!audio||!channel||settings.muted||audio.state!=="running"||voices>=24) return;
-    if(!noiseBuffer) {
-      noiseBuffer=audio.createBuffer(1,Math.ceil(audio.sampleRate*.32),audio.sampleRate);
-      const data=noiseBuffer.getChannelData(0);
-      let seed=918473;
-      for(let i=0;i<data.length;i++) {
-        seed=(Math.imul(seed,1664525)+1013904223)>>>0;
-        data[i]=(seed/2147483648-1)*.72;
+    if(!channel||settings.muted||audio?.state!=="running"||voices>=audioLimit(channel)) return;
+    safeAudio(context=>{
+      if(!noiseBuffer) {
+        noiseBuffer=context.createBuffer(1,Math.ceil(context.sampleRate*.32),context.sampleRate);
+        const data=noiseBuffer.getChannelData(0);
+        let seed=918473;
+        for(let i=0;i<data.length;i++) {
+          seed=(Math.imul(seed,1664525)+1013904223)>>>0;
+          data[i]=(seed/2147483648-1)*.72;
+        }
       }
-    }
-    const source=audio.createBufferSource(),filter=audio.createBiquadFilter(),voice=audio.createGain();
-    const start=audio.currentTime+delay;
-    source.buffer=noiseBuffer;
-    filter.type=type;
-    filter.frequency.setValueAtTime(frequency,start);
-    filter.Q.value=.76;
-    voice.gain.setValueAtTime(volume,start);
-    voice.gain.exponentialRampToValueAtTime(.0001,start+length);
-    source.connect(filter).connect(voice).connect(channel);
-    voices++;
-    source.onended=()=>{source.disconnect();filter.disconnect();voice.disconnect();voices--;};
-    source.start(start);
-    source.stop(start+length);
+      const source=context.createBufferSource(),filter=context.createBiquadFilter(),voice=context.createGain();
+      const start=context.currentTime+delay;
+      source.buffer=noiseBuffer;
+      filter.type=type;
+      filter.frequency.setValueAtTime(frequency,start);
+      filter.Q.value=.76;
+      voice.gain.setValueAtTime(volume,start);
+      voice.gain.exponentialRampToValueAtTime(.0001,start+length);
+      source.connect(filter).connect(voice).connect(channel);
+      voices++;
+      source.onended=()=>{
+        if(audio!==context) return;
+        source.disconnect();filter.disconnect();voice.disconnect();voices--;
+      };
+      source.start(start);
+      source.stop(start+length);
+    });
   }
   function soundtrack() {
-    if (!audio || audio.state !== "running" || settings.muted || modal || orientationPaused || !intro.hidden) return;
-    if(run&&!run.training&&!run.result&&settings.music>0) {
+    if(audio?.state!=="running"||settings.muted||settings.music===0||modal||orientationPaused||!intro.hidden) return;
+    const now=audio.currentTime;
+    if(run&&!run.training&&!run.result) {
       if(ambienceRoom!==run.room) {
         ambienceRoom=run.room;
-        nextAmbience=audio.currentTime+.65;
+        nextAmbience=now+.65;
         ambienceBeat=0;
       }
-      if(audio.currentTime>=nextAmbience&&voices<14) {
+      if(now>=nextAmbience&&voices<14) {
         const [wind,resonance,spacing]=FrostWorldArt.themeFor(run.room).sound;
         const cue=ambienceBeat++%3;
         const hush=run.boss?.phase>=2?.56:1;
         noise(wind*(1+cue*.45),.26,.027*hush,"bandpass",0,musicGain);
         if(cue===1) tone(resonance,resonance*.91,.65,.018*hush,"sine",.16,musicGain);
         if(cue===2) noise(wind*3,.11,.016*hush,"bandpass",.24,musicGain);
-        nextAmbience=audio.currentTime+spacing-cue*.36;
+        nextAmbience=now+spacing-cue*.36;
       }
     }
-    if (audio.currentTime < nextNote) return;
+    if(now<nextNote) return;
     const region = run?.room.theme;
     const patterns = {forest:[55,73.42,82.4,65.4],crystal:[65.4,98,82.4,73.42],gallery:[49,65.4,87.31,65.4],crypt:[41.2,55,61.74,55]};
     const boss=run?.boss;
@@ -170,7 +197,7 @@
       patterns[region] ?? (run ? [73.42, 55, 65.4, 55, 73.42, 87.31, 65.4, 55] : [55, 82.4, 65.4, 49, 55, 73.42, 65.4, 49]);
     const note = pattern[musicStep++ % pattern.length];
     const gap = run?.boss ? .63 : run ? 1.1 : 1.9;
-    nextNote = audio.currentTime + gap;
+    nextNote = now+gap;
     tone(note, note * .997, gap * 1.5, .045, "triangle",0,musicGain);
     tone(note * (musicStep % 2 ? 2 : 3), note * (musicStep % 2 ? 2 : 3), gap * 1.6, .016,"sine",0,musicGain);
   }
@@ -225,10 +252,13 @@
     pointer.active = false;
     const capture=joystick.id;
     joystick.id = null;
-    if(capture!==null&&stick.hasPointerCapture(capture)) stick.releasePointerCapture(capture);
     joystick.x = 0;
     joystick.y = 0;
     knob.style.transform = "";
+    if(capture!==null&&stick.hasPointerCapture(capture)) {
+      try {stick.releasePointerCapture(capture);}
+      catch(error) {if(error.name!=="NotFoundError") throw error;}
+    }
   }
   function syncInert() {
     title.inert=Boolean(modal)||orientationPaused;
@@ -409,6 +439,7 @@
     flushInput();
     renderer.reset?.();
     run = null;
+    ambienceRoom=null;
     orientation.reset();
     syncOrientation();
     intro.hidden=true;
@@ -669,6 +700,7 @@
       + '<div class="result-summary"><span class="rank" aria-label="Rank ' + r.rank + '">' + r.rank + '</span><div><span class="score">'
       + r.score.toLocaleString("en-US") + '</span><span>Run score</span></div></div><dl class="result-stats">' + stats + '</dl>'
       + (learned.length ? '<p style="margin:12px 0 0">Passives · ' + learned.join(" · ") + '</p>' : '')
+      + '<p class="run-reference">Run seed '+run.seed+'</p>'
       + actions(button("retry", "Retry", true), button("result-home", "Title screen")), "#retry");
     bind("retry", () => { if(r.kind==="boss") { home(); screens.modeIntro("boss"); } else start(r.kind,runPreset); });
     bind("result-home", home);
@@ -906,7 +938,7 @@
       return;
     }
     if (modal && e.code === "Tab") {
-      const focusable = [...panel.querySelectorAll("button:not(:disabled),input,select")].filter(el=>el.getClientRects().length);
+      const focusable = [...panel.querySelectorAll("button:not(:disabled),input,select,a[href]")].filter(el=>el.getClientRects().length);
       const first = focusable[0], last = focusable.at(-1);
       if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
         e.preventDefault(); last?.focus();
@@ -975,8 +1007,9 @@
     e.preventDefault();
     unlock();
     pointer.active = false;
+    try {stick.setPointerCapture(e.pointerId);}
+    catch(error) {if(error.name==="NotFoundError") return;throw error;}
     joystick.id = e.pointerId;
-    stick.setPointerCapture(e.pointerId);
     moveStick(e);
   });
   stick.addEventListener("pointermove", moveStick);

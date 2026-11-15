@@ -1,0 +1,294 @@
+{
+  "weapons": {
+    "Frost Edge": {
+      "soldier": {
+        "light": {
+          "damage": 14,
+          "posture": 7,
+          "stamina": 0,
+          "range": 82,
+          "windupMs": 110,
+          "commitmentMs": 380
+        },
+        "heavy": {
+          "damage": 35,
+          "posture": 37,
+          "stamina": 18,
+          "range": 105,
+          "windupMs": 450,
+          "commitmentMs": 1130
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 14,
+          "posture": 7,
+          "stamina": 0,
+          "range": 82,
+          "windupMs": 110,
+          "commitmentMs": 380
+        },
+        "heavy": {
+          "damage": 35,
+          "posture": 37,
+          "stamina": 18,
+          "range": 105,
+          "windupMs": 450,
+          "commitmentMs": 1130
+        }
+      }
+    },
+    "Winter Fang": {
+      "soldier": {
+        "light": {
+          "damage": 11,
+          "posture": 5,
+          "stamina": 1,
+          "range": 65,
+          "windupMs": 70,
+          "commitmentMs": 260
+        },
+        "heavy": {
+          "damage": 23,
+          "posture": 22,
+          "stamina": 12,
+          "range": 74,
+          "windupMs": 230,
+          "commitmentMs": 650
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 11,
+          "posture": 5,
+          "stamina": 1,
+          "range": 65,
+          "windupMs": 70,
+          "commitmentMs": 260
+        },
+        "heavy": {
+          "damage": 23,
+          "posture": 22,
+          "stamina": 12,
+          "range": 74,
+          "windupMs": 230,
+          "commitmentMs": 650
+        }
+      }
+    },
+    "Glacial Spear": {
+      "soldier": {
+        "light": {
+          "damage": 18,
+          "posture": 10,
+          "stamina": 3,
+          "range": 128,
+          "windupMs": 160,
+          "commitmentMs": 470
+        },
+        "heavy": {
+          "damage": 36,
+          "posture": 30,
+          "stamina": 18,
+          "range": 160,
+          "windupMs": 400,
+          "commitmentMs": 1010
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 18,
+          "posture": 10,
+          "stamina": 3,
+          "range": 128,
+          "windupMs": 160,
+          "commitmentMs": 470
+        },
+        "heavy": {
+          "damage": 36,
+          "posture": 30,
+          "stamina": 18,
+          "range": 160,
+          "windupMs": 400,
+          "commitmentMs": 1010
+        }
+      }
+    },
+    "King’s Greatsword": {
+      "soldier": {
+        "light": {
+          "damage": 28,
+          "posture": 23,
+          "stamina": 7,
+          "range": 101,
+          "windupMs": 260,
+          "commitmentMs": 690
+        },
+        "heavy": {
+          "damage": 53,
+          "posture": 63,
+          "stamina": 28,
+          "range": 125,
+          "windupMs": 550,
+          "commitmentMs": 1310
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 28,
+          "posture": 23,
+          "stamina": 7,
+          "range": 101,
+          "windupMs": 260,
+          "commitmentMs": 690
+        },
+        "heavy": {
+          "damage": 53,
+          "posture": 63,
+          "stamina": 28,
+          "range": 125,
+          "windupMs": 550,
+          "commitmentMs": 1310
+        }
+      }
+    },
+    "Ashen Blade": {
+      "soldier": {
+        "light": {
+          "damage": 17,
+          "posture": 10,
+          "stamina": 3,
+          "range": 85,
+          "windupMs": 130,
+          "commitmentMs": 420
+        },
+        "heavy": {
+          "damage": 37,
+          "posture": 34,
+          "stamina": 20,
+          "range": 106,
+          "windupMs": 390,
+          "commitmentMs": 950
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 17,
+          "posture": 10,
+          "stamina": 3,
+          "range": 85,
+          "windupMs": 130,
+          "commitmentMs": 420
+        },
+        "heavy": {
+          "damage": 37,
+          "posture": 34,
+          "stamina": 20,
+          "range": 106,
+          "windupMs": 390,
+          "commitmentMs": 950
+        }
+      }
+    },
+    "Moonpiercer": {
+      "soldier": {
+        "light": {
+          "damage": 14,
+          "posture": 7,
+          "stamina": 2,
+          "range": 103,
+          "windupMs": 100,
+          "commitmentMs": 330
+        },
+        "heavy": {
+          "damage": 29,
+          "posture": 23,
+          "stamina": 16,
+          "range": 130,
+          "windupMs": 270,
+          "commitmentMs": 700
+        }
+      },
+      "king": {
+        "light": {
+          "damage": 14,
+          "posture": 7,
+          "stamina": 2,
+          "range": 103,
+          "windupMs": 100,
+          "commitmentMs": 330
+        },
+        "heavy": {
+          "damage": 29,
+          "posture": 23,
+          "stamina": 16,
+          "range": 130,
+          "windupMs": 270,
+          "commitmentMs": 700
+        }
+      }
+    }
+  },
+  "rarityCounts": [
+    4516,
+    3018,
+    1667,
+    704,
+    95
+  ],
+  "rarityWeights": {
+    "normal": [
+      45,
+      30,
+      17,
+      7,
+      1
+    ],
+    "elite": [
+      0,
+      0,
+      75,
+      22,
+      3
+    ],
+    "boss": [
+      0,
+      0,
+      0,
+      85,
+      15
+    ],
+    "shop": [
+      40,
+      35,
+      20,
+      4,
+      1
+    ],
+    "late": [
+      20,
+      35,
+      30,
+      13,
+      2
+    ]
+  },
+  "modes": {
+    "story": {
+      "clearHealing": 12,
+      "enemyHealthMultiplier": 1,
+      "windupMultiplier": 1
+    },
+    "hardcore": {
+      "clearHealing": 0,
+      "enemyHealthMultiplier": 1.1,
+      "windupMultiplier": 0.85
+    },
+    "boss": {
+      "clearHealing": 8,
+      "enemyHealthMultiplier": 1,
+      "windupMultiplier": 0.92
+    }
+  },
+  "crimsonFlaskBaseCost": 14
+}

@@ -1,0 +1,38 @@
+{
+  "stats": {
+    "story": {
+      "runs": 30,
+      "wins": 29,
+      "losses": 1,
+      "transitions": 450,
+      "seconds": 5001.37,
+      "wallMsP95": 0.09,
+      "maxStepMs": 168.2
+    },
+    "hardcore": {
+      "runs": 30,
+      "wins": 1,
+      "losses": 29,
+      "transitions": 219,
+      "seconds": 3370.67,
+      "wallMsP95": 0.038,
+      "maxStepMs": 35.7
+    },
+    "boss": {
+      "runs": 20,
+      "wins": 20,
+      "losses": 0,
+      "transitions": 80,
+      "seconds": 1821.51,
+      "wallMsP95": 0.075,
+      "maxStepMs": 25.4
+    }
+  },
+  "failures": [],
+  "memory": {
+    "firstMB": 6.4,
+    "lastMB": 7.4,
+    "maxMB": 7.6
+  },
+  "elapsedMs": 37313
+}
