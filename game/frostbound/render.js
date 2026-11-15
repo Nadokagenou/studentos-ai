@@ -3,23 +3,6 @@
   const { WIDTH, HEIGHT, BOUNDS, GATE, clamp } = FrostCombat;
   const { NPC, DISCOVERY, SIDE } = FrostWorld;
   const TAU = Math.PI * 2;
-  const TORCHES=[[238,93],[410,93],[550,93],[722,93],[68,321],[892,321]];
-  const PALETTES = {
-    courtyard: ["#3f586e", "#2e425a", "#111e30", "#9cbccc59"],
-    gallery: ["#495466", "#34384a", "#191b30", "#c5b6958c"],
-    forest: ["#3c5354","#253a41","#0b1922","#81b2a779"],
-    crystal: ["#405a78","#263e65","#0d1935","#97b4ff83"],
-    crypt: ["#3c5054", "#293f45", "#111e29", "#75c4ae72"],
-    bridge: ["#3d5768", "#233e58", "#07182a", "#90c8ea70"],
-    throne: ["#4d546e", "#353752", "#18162b", "#c0a1df83"]
-  };
-
-  function generator(seed) {
-    return () => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-      return seed / 4294967296;
-    };
-  }
   function polygon(ctx, color, points) {
     ctx.fillStyle = color;
     ctx.beginPath();
@@ -37,235 +20,6 @@
     ctx.arc(x, y, radius, 0, TAU);
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
     if (outline) { ctx.strokeStyle = outline; ctx.lineWidth = line; ctx.stroke(); }
-  }
-
-  function masonry(ctx, x, y, w, h, random, dark = false) {
-    box(ctx, "#131d2b", x, y, w, h);
-    const stones = dark ? ["#253346", "#2e4054", "#314355"] : ["#385066", "#3e576c", "#34495f", "#496278"];
-    for (let row = 2; row < h; row += 13) {
-      for (let col = (row % 2 ? 10 : -10); col < w; col += 21) {
-        const left = Math.max(col, 1);
-        const width = Math.max(0, Math.min(col + 19, w - 1) - left);
-        box(ctx, stones[Math.floor(random() * stones.length)], x + left, y + row, width, Math.min(11, h - row));
-        box(ctx, "#61778970", x + left, y + row, width, 1);
-      }
-    }
-  }
-  function tree(ctx, x, y, scale) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(scale, scale);
-    polygon(ctx, "#060d19aa", [[-23,0],[0,-25],[59,11],[12,15]]);
-    box(ctx, "#202b38", -3, -19, 6, 23);
-    for (let tier = 0; tier < 5; tier++) {
-      const tip = -92 + tier * 13, size = 8 + tier * 5;
-      polygon(ctx, "#101e2d", [[0,tip],[-size,tip+35],[-size+7,tip+34],[-size-3,tip+39],[size+4,tip+38],[size-5,tip+33],[size,tip+33]]);
-      polygon(ctx, tier % 2 ? "#536d83" : "#648097", [[0,tip+2],[-size+2,tip+33],[-size/2,tip+27],[-1,tip+24],[size-3,tip+31],[size-8,tip+24]]);
-      polygon(ctx, "#99b4c5", [[0,tip+3],[-size+4,tip+29],[-size/2,tip+24],[-2,tip+16]]);
-    }
-    ctx.restore();
-  }
-
-  function buildYard(room) {
-    const ground = document.createElement("canvas");
-    ground.width = WIDTH;
-    ground.height = HEIGHT;
-    const c = ground.getContext("2d");
-    const random = generator(6642);
-    const palette = PALETTES[room.theme];
-    const floor = c.createRadialGradient(470, 248, 36, 480, 308, 526);
-    floor.addColorStop(0, palette[0]);
-    floor.addColorStop(.65, palette[1]);
-    floor.addColorStop(1, palette[2]);
-    box(c, "#0b1524", 0, 0, WIDTH, HEIGHT);
-    c.fillStyle = floor;
-    c.fillRect(47, 83, 866, 466);
-    c.save();
-    c.beginPath();
-    c.rect(49, 92, 862, 452);
-    c.clip();
-    const theme=room.theme;
-    const forest=theme==="forest", crystal=theme==="crystal";
-    for (let row = 0; row < 18; row++) {
-      for (let col = 0; col < 24; col++) {
-        const x = 23 + col * 42 + (row % 2) * 21;
-        const y = 91 + row * 27;
-        const shade = random();
-        if(forest||crystal) {
-          const colors=forest?["#859d9645","#adc6ba22","#152d324a"]:["#9bacf43d","#617bcb35","#6cace639"];
-          if(shade>.18) polygon(c,colors[Math.floor(shade*3)],[[x-14,y+4],[x+6,y-6],[x+29,y+3],[x+33,y+15],[x+14,y+24],[x-20,y+18]]);
-          if(shade>.58) box(c,forest?"#d2e2d749":"#c6edfb49",x+4,y+4,13,1);
-          continue;
-        }
-        polygon(c, shade > .54 ? "#92b3cd24" : "#18283c43",
-          [[x+3,y+2],[x+35,y+1],[x+41,y+6],[x+39,y+23],[x+2,y+25],[x,y+10]]);
-        box(c, "#101c2a71", x+4, y+25, 33, 2);
-        if (random() < .65) box(c, "#8faec047", x+5, y+3, 9 + random()*19, 2);
-        if (random() < .23) polygon(c, "#bccfda27", [[x+1,y+7],[x+8,y+2],[x+25,y+4],[x+17,y+6],[x+12,y+9],[x+4,y+9]]);
-        if (random() < .22) polygon(c, "#111c2d85", [[x+23,y],[x+19,y+7],[x+23,y+13],[x+14,y+20],[x+21,y+12],[x+17,y+8]]);
-      }
-    }
-    for (let i = 0; i < 120; i++) {
-      const x = 48 + random()*864, y = 108 + random()*433;
-      if (random() > .15 + .8 * Math.pow(Math.abs(x - 480) / 441, 2)) continue;
-      const w = 10 + random()*44;
-      polygon(c, ["#4f6d85bb","#64819877","#91abbf55"][i%3], [[x-w/2,y],[x-w*.35,y-4],[x+w*.25,y-6],[x+w*.51,y-3],[x+w*.39,y+3],[x,y+5]]);
-      box(c, "#adced34c", x-w*.26, y-3, w*.4, 2);
-    }
-    c.restore();
-    const ring = (radius, color, width) => circle(c, 480, 320, radius, "", color, width);
-    if(!forest&&!crystal) {
-      ring(136, "#18293b80", 14);
-      ring(141, palette[3], 2);
-      ring(130, "#97b6ca56", 3);
-      ring(103, "#93b8cd31", 2);
-      ring(48, "#9fb8ca56", 2);
-      c.save();
-      c.translate(480, 320);
-      for (let i = 0; i < 8; i++) {
-        c.rotate(Math.PI / 4);
-        polygon(c, "#a1c3d447", [[0,-89],[6,-28],[19,-19],[8,-16],[0,-4],[-8,-16],[-19,-19],[-6,-28]]);
-        polygon(c, "#94b6ca83", [[0,-140],[6,-135],[0,-130],[-6,-135]]);
-      }
-      c.restore();
-    }
-    for (let i = 0; i < 1400; i++) {
-      const x = random() * WIDTH, y = random() * HEIGHT;
-      box(c, i % 3 ? "#b4cde819" : "#07132435", x, y, random() > .91 ? 4 : 2, random() > .91 ? 3 : 1);
-    }
-    masonry(c, 0, 48, WIDTH, 57, random, true);
-    box(c, "#07101dbb", 0, 104, WIDTH, 9);
-    masonry(c, 20, 74, 32, 470, random);
-    masonry(c, 908, 74, 32, 470, random);
-    masonry(c, 38, 543, 884, 25, random, true);
-    for (let i = 0; i < 42; i++) {
-      const x = i * 24;
-      masonry(c, x, 44, 18, 16, random);
-      box(c, "#809cb0", x, 44, 18, 3);
-      box(c, "#597991", x+5, 46, 6, 9);
-      box(c, "#7896a9", x, 543, 21, 3 + random() * 4);
-    }
-    for (let i = 0; i < 29; i++) {
-      for (const x of [21, 908]) {
-        const y = 76 + i * 16;
-        box(c, "#7993ab", x, y, 32, 3);
-        box(c, "#63849f", x + Math.round(random() * 17), y+3, 6, 4 + random()*7);
-      }
-    }
-    const gate = [[428,101],[428,61],[442,42],[458,26],[480,13],[502,26],[518,42],[532,61],[532,101]];
-    const inner = [[439,101],[439,63],[452,46],[480,25],[508,46],[521,63],[521,101]];
-    polygon(c, "#647d94", gate);
-    polygon(c, "#111e2e", inner);
-    for (let i = 0; i < 9; i++) {
-      const x = 441 + i * 9;
-      box(c, i % 2 ? "#344a5d" : "#293a4e", x, 42 + Math.abs(4 - i) * 6, 7, 57 - Math.abs(4 - i) * 6);
-      box(c, "#658198", x + 1, 81, 7, 3);
-    }
-    for (const x of [238, 410, 550, 722]) {
-      masonry(c, x-11, 48, 22, 66, random);
-      box(c, "#8ca7b9", x-12, 48, 24, 5);
-      box(c, "#211c2a", x-3, 76, 6, 20);
-    }
-    for (const x of [268, 692]) {
-      box(c, "#697e92", x-24, 53, 48, 3);
-      polygon(c, "#482733", [[x-18,55],[x+18,55],[x+18,100],[x+4,108],[x-3,103],[x-18,108]]);
-      polygon(c, "#8b4553", [[x-16,56],[x-11,57],[x-13,105],[x-16,107]]);
-      polygon(c, "#a58b8d", [[x,65],[x+7,76],[x,93],[x-7,76]]);
-      box(c, "#452934", x-1, 72, 3, 12);
-    }
-    for (const [x,y,s] of [[37,130,.72],[71,83,.54],[913,115,.6],[929,194,.66],[18,490,.77],[937,526,.94],[54,583,.64],[166,595,.59],[814,595,.68],[893,589,.67],[105,552,.46],[867,547,.52]]) tree(c,x,y,s);
-    if (room.theme === "courtyard") {
-      for (const [x,y,s] of [[278, 555, .44], [682, 555, .44]]) tree(c, x, y, s);
-      for(const x of [158,790]) {
-        box(c,"#2d2730",x-29,122,58,30);
-        box(c,"#7d6660",x-26,121,52,25);
-        for(let i=-20;i<33;i+=13) box(c,"#443c43",x+i,124,3,22);
-        polygon(c,"#93adbe",[[x-31,122],[x-22,118],[x+14,118],[x+29,121],[x+25,126],[x-23,127]]);
-      }
-    } else {
-      roomDecoration(c, room.theme, random);
-    }
-    for (const [x, y, r] of room.pillars) {
-      const w = r * .72;
-      polygon(c, "#0e1c2c71", [[x-w,y],[x+9,y-4],[x+53,y+36],[x+35,y+41],[x-w,y+9]]);
-      masonry(c, x-w, y-35, w*2, 37, random);
-      polygon(c, "#7691a5", [[x-w-2,y-29],[x-w+5,y-38],[x+4,y-41],[x+w+3,y-34],[x+w,y-29]]);
-      box(c, "#9fb8c9", x-w+4, y-37, w+8, 3);
-      box(c, "#121e2b", x-w-5, y-4, w*2+10, 8);
-      box(c, "#526c81", x-w-5, y-4, w*2+10, 2);
-    }
-    const light = c.createLinearGradient(0, 0, 0, HEIGHT);
-    light.addColorStop(0, "#070c1ba2");
-    light.addColorStop(.23, "#0a142b13");
-    light.addColorStop(.70, "#090f1905");
-    light.addColorStop(1, "#040b187d");
-    c.fillStyle = light; c.fillRect(0, 0, WIDTH, HEIGHT);
-    for(const [x,y] of TORCHES) {
-      const glow=c.createRadialGradient(x,y,1,x,y,39);
-      glow.addColorStop(0,"#f3bb6865");
-      glow.addColorStop(1,"#e78a3400");
-      c.fillStyle=glow;c.fillRect(x-40,y-40,80,80);
-    }
-    return ground;
-  }
-
-  function roomDecoration(c, theme, random) {
-    if (theme === "gallery") {
-      for (const x of [165, 795]) {
-        masonry(c, x-34, 150, 68, 178, random, true);
-        box(c, "#826454", x-28, 159, 56, 160);
-        box(c, "#493a40", x-24, 164, 48, 150);
-        for (let y = 173; y < 310; y += 18) box(c, "#c1967866", x-22, y, 44, 2);
-        polygon(c, "#b8a674", [[x-19,231],[x-8,204],[x+9,204],[x+19,231],[x+24,240],[x-24,240]]);
-        box(c, "#d4ba80", x-5, 240, 10, 7);
-      }
-    } else if (theme === "forest") {
-      for (const x of [115,840]) for (const y of [230,365,505]) tree(c,x,y,.69+random()*.32);
-      for (const [x,y] of [[269,220],[678,395]]) {
-        polygon(c,"#383241",[[x-33,y],[x,y-34],[x+37,y],[x+25,y+12],[x-28,y+12]]);
-        polygon(c,"#959ca4",[[x-33,y],[x,y-34],[x+37,y],[x,y-19]]);
-      }
-    } else if (theme === "crystal") {
-      for (const x of [128,832]) for (const y of [205,350,487]) {
-        polygon(c,"#2a4373",[[x-39,y],[x-22,y-44],[x-7,y-9],[x+2,y-72],[x+23,y-53],[x+29,y]]);
-        polygon(c,"#6b99b4",[[x-7,y-9],[x+2,y-72],[x+12,y-44],[x+9,y+1]]);
-        polygon(c,"#90bccb",[[x+2,y-72],[x+23,y-53],[x+12,y-44]]);
-      }
-    } else if (theme === "crypt") {
-      for (const x of [170, 790]) for (const y of [222, 366, 469]) {
-        polygon(c, "#192f39", [[x-37,y+27],[x-37,y-20],[x-22,y-40],[x+22,y-40],[x+37,y-20],[x+37,y+27]]);
-        polygon(c, "#638887", [[x-27,y+18],[x-27,y-16],[x-16,y-31],[x+16,y-31],[x+27,y-16],[x+27,y+18]]);
-        box(c, "#243e49", x-13, y-9, 26, 3);
-        box(c, "#243e49", x-2, y-20, 4, 33);
-      }
-    } else if (theme === "bridge") {
-      for (const x of [63, 785]) {
-        box(c, "#071224be", x, 115, 112, 418);
-        for (let i = 0; i < 9; i++) {
-          const y = 120 + i*46;
-          polygon(c, "#5a7a9169", [[x,y+10],[x+35,y],[x+31,y+11],[x+47,y+29],[x+21,y+21],[x,y+30]]);
-          polygon(c, "#7897ac65", [[x+112,y],[x+84,y+8],[x+89,y+19],[x+67,y+25],[x+112,y+18]]);
-        }
-      }
-      for (const x of [195, 766]) for (let y = 137; y < 513; y += 32) box(c, "#b4deed75", x, y, 3, 19);
-    } else {
-      for(const x of [225,735]) {
-        polygon(c,"#21192f",[[x-31,181],[x-31,90],[x-16,70],[x,56],[x+16,70],[x+31,90],[x+31,181]]);
-        polygon(c,"#555087",[[x-22,174],[x-22,94],[x,66],[x+22,94],[x+22,174]]);
-        polygon(c,"#9a596f",[[x,80],[x+16,124],[x,165],[x-16,124]]);
-        box(c,"#2b2846",x-2,82,4,89);
-        box(c,"#2b2846",x-21,123,42,4);
-      }
-      polygon(c, "#5d334b92", [[393,117],[567,117],[597,521],[363,521]]);
-      for (const side of [-1,1]) {
-        polygon(c, "#b8917370", [[480+side*81,117],[480+side*88,117],[480+side*115,519],[480+side*108,519]]);
-        for (let y = 171; y <= 503; y += 52) {
-          const x = 480 + side * (85 + (y-117) * .065);
-          polygon(c, "#c9a0ab70", [[x,y-7],[x+5,y],[x,y+7],[x-5,y]]);
-        }
-      }
-      polygon(c, "#9d7baf70", [[480,231],[505,278],[480,326],[455,278]]);
-    }
   }
 
   function drawGate(c, time, reduced) {
@@ -779,19 +533,17 @@
     constructor(canvas) {
       this.canvas = canvas;
       this.c = canvas.getContext("2d", { alpha: false });
-      this.room = null;
       this.ground = null;
       this.animation=new FrostAnimation.Scene();
       this.particles=new FrostFeedback.Particles();
       this.actors=[];
-      const random = generator(900);
-      this.snow = Array.from({ length: 102 }, () => [random()*WIDTH, random()*HEIGHT, random()*19+6, random()*2+1]);
+      this.art = new FrostWorldArt.Scene();
     }
     reset() {
       this.animation.reset();
       this.particles.reset();
-      this.room=null;
       this.ground=null;
+      this.art.reset();
       this.animatedRun=null;
       this.animatedRoom=null;
       this.kingFall=null;
@@ -824,10 +576,7 @@
       if (canvas.width !== pixelsW || canvas.height !== pixelsH) { canvas.width = pixelsW; canvas.height = pixelsH; }
       const c = this.c;
       const { x, y, scale, tall } = this.camera(w, h, run.player);
-      if (this.room !== run.room) {
-        this.room=run.room;
-        this.ground=buildYard(this.room);
-      }
+      this.ground=this.art.prepare(run,quality,pixelsW,pixelsH,now);
       if(this.animatedRun!==run||this.animatedRoom!==run.room) {
         this.animatedRun=run;
         this.animatedRoom=run.room;
@@ -840,24 +589,13 @@
         (shake&&!reduced&&run.player.flash>.09?Math.sin(run.time*140)*2:0);
       c.setTransform(ratio, 0, 0, ratio, 0, 0);
       if (x > 0 || y > 0 || x + WIDTH * scale < w || y + HEIGHT * scale < h) {
-        const border=c.createLinearGradient(0,0,0,h);
-        border.addColorStop(0,"#0a1423");
-        border.addColorStop(.5,PALETTES[run.room.theme][2]);
-        border.addColorStop(1,"#0a1423");
-        box(c,border,0,0,w,h);
+        box(c,this.art.picture.theme.dark,0,0,w,h);
       }
       c.setTransform(scale*ratio, 0, 0, scale*ratio, (x+jolt)*ratio, y*ratio);
       c.imageSmoothingEnabled = false;
       c.drawImage(ground, 0, 0);
       const storm=run.environment?.whiteout==="active";
-      if(storm) box(c,"#c5dcf0a1",0,0,WIDTH,HEIGHT);
-      else if(!reduced&&quality==="high"&&["forest","crystal"].includes(run.room.theme)) {
-        const fog=c.createLinearGradient(0,64,WIDTH,470);
-        fog.addColorStop(0,"#07162672");
-        fog.addColorStop(.5,"#b6dff811");
-        fog.addColorStop(1,"#091a2953");
-        box(c,fog,0,0,WIDTH,HEIGHT);
-      }
+      this.art.draw(c,run,reduced,storm,now);
       drawEnvironment(c,run,!reduced);
       if (run.gateOpen) drawGate(c, run.time, reduced);
       if (run.safe && !run.training) {
@@ -912,12 +650,6 @@
         c.restore();
       }
       if(run.warmth) circle(c,run.warmth.x,run.warmth.y,run.warmth.radius,"#ffb55e29","#ffd99c",2);
-      for (const [tx,ty] of TORCHES) {
-        const lift = reduced ? 0 : Math.round(Math.sin(run.time * 12 + tx) * 2);
-        box(c, "#6c3945", tx-4, ty, 8, 4);
-        box(c, "#e39367", tx-3, ty-7-lift, 6, 8+lift);
-        box(c, "#ffe3a0", tx-1, ty-10-lift, 3, 8+lift);
-      }
       for (const enemy of run.enemies) {
         drawKingPresence(c,enemy,run.time,reduced);
         telegraph(c,enemy);
@@ -996,15 +728,6 @@
         box(c,point.color,point.x+point.vx*age,point.y+point.vy*age+age*age*12,point.size,point.size);
       }
       c.globalAlpha=1;
-      if (!reduced) {
-        const count=quality==="low"?18:quality==="medium"?52:this.snow.length;
-        const wind=storm?3.5:run.room.theme==="forest"?1.55:.8;
-        for(let i=0;i<count;i++) {
-          const [sx,sy,speed,size]=this.snow[i];
-          box(c, size > 2.3 ? "#c9e5ff89" : "#c9e5ff57", (sx + run.time*speed*wind) % WIDTH,
-            (sy + run.time*speed) % HEIGHT, size, size*.66);
-        }
-      }
       for(const enemy of run.enemies) tellMark(c,enemy);
       actors.length=0;
       c.setTransform(ratio, 0, 0, ratio, 0, 0);

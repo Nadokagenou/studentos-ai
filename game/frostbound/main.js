@@ -34,6 +34,7 @@
   let failure=null, introTimer=0, requestingFullscreen=false, lastState="TITLE", debugAt=0;
   let audio = null, gain = null, musicGain = null, sfxGain = null, musicStep = 0, nextNote = 0;
   let noiseBuffer=null, voices=0;
+  let ambienceRoom=null, nextAmbience=0, ambienceBeat=0;
   const combatSound=FrostCombatAudio.create(tone,noise);
   let introPreset = "edge", runPreset = "edge", subtitleUntil = 0, hudAt = 0, toastUntil = 0, previewAt = 0;
   const paintedLoadouts = new WeakSet();
@@ -111,8 +112,8 @@
     note.start(t);
     note.stop(t + length + .01);
   }
-  function noise(frequency,length,volume,type="bandpass",delay=0) {
-    if(!audio||!sfxGain||settings.muted||audio.state!=="running"||voices>=24) return;
+  function noise(frequency,length,volume,type="bandpass",delay=0,channel=sfxGain) {
+    if(!audio||!channel||settings.muted||audio.state!=="running"||voices>=24) return;
     if(!noiseBuffer) {
       noiseBuffer=audio.createBuffer(1,Math.ceil(audio.sampleRate*.32),audio.sampleRate);
       const data=noiseBuffer.getChannelData(0);
@@ -130,7 +131,7 @@
     filter.Q.value=.76;
     voice.gain.setValueAtTime(volume,start);
     voice.gain.exponentialRampToValueAtTime(.0001,start+length);
-    source.connect(filter).connect(voice).connect(sfxGain);
+    source.connect(filter).connect(voice).connect(channel);
     voices++;
     source.onended=()=>{source.disconnect();filter.disconnect();voice.disconnect();voices--;};
     source.start(start);
@@ -138,6 +139,22 @@
   }
   function soundtrack() {
     if (!audio || audio.state !== "running" || settings.muted || modal || !intro.hidden) return;
+    if(run&&!run.training&&!run.result&&settings.music>0) {
+      if(ambienceRoom!==run.room) {
+        ambienceRoom=run.room;
+        nextAmbience=audio.currentTime+.65;
+        ambienceBeat=0;
+      }
+      if(audio.currentTime>=nextAmbience&&voices<14) {
+        const [wind,resonance,spacing]=FrostWorldArt.themeFor(run.room).sound;
+        const cue=ambienceBeat++%3;
+        const hush=run.boss?.phase>=2?.56:1;
+        noise(wind*(1+cue*.45),.26,.027*hush,"bandpass",0,musicGain);
+        if(cue===1) tone(resonance,resonance*.91,.65,.018*hush,"sine",.16,musicGain);
+        if(cue===2) noise(wind*3,.11,.016*hush,"bandpass",.24,musicGain);
+        nextAmbience=audio.currentTime+spacing-cue*.36;
+      }
+    }
     if (audio.currentTime < nextNote) return;
     const region = run?.room.theme;
     const patterns = {forest:[55,73.42,82.4,65.4],crystal:[65.4,98,82.4,73.42],gallery:[49,65.4,87.31,65.4],crypt:[41.2,55,61.74,55]};
