@@ -1,0 +1,37 @@
+{
+  "screens": [
+    "desktop title",
+    "Team Beta guide",
+    "landscape rewards",
+    "landscape inventory",
+    "training 1",
+    "training 2",
+    "training 3",
+    "training 4",
+    "training 5",
+    "training 6",
+    "orientation guide"
+  ],
+  "intentional": [
+    "Android",
+    "Ashen Blade",
+    "Boss Rush",
+    "Chrome",
+    "Eldric",
+    "FROSTBOUND",
+    "Frost Crowns",
+    "Frost Edge",
+    "GitHub",
+    "HP",
+    "Hardcore",
+    "SOS",
+    "Safari",
+    "Space",
+    "Team Beta",
+    "The Forgotten Outpost",
+    "WASD",
+    "iPhone",
+    "seed"
+  ],
+  "remaining": {}
+}
