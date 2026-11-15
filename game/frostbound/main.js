@@ -709,7 +709,7 @@
     const resultText = r.won ? (r.kind==="boss"?'<span>The Gatekeeper, Crystal Warden, and Frozen King all fell.</span> ':'')+'<span>'+escape(TEXT.ending)+'</span>'
       : msg("result.loss",{cause:r.cause});
     open("results", '<div class="story-marker">'+MODES[r.kind].name+'</div>'+heading(r.won ? "THE WINTER ENDS" : "YOU HAVE FALLEN")
-      + '<p>' + resultText + '</p>'
+      + '<p class="result-narrative">' + resultText + '</p>'
       + '<div class="result-summary"><span class="rank" id="result-rank">' + r.rank + '</span><div><span class="score">'
       + r.score.toLocaleString("en-US") + '</span><span>Run score</span></div></div><dl class="result-stats">' + stats + '</dl>'
       + (learned.length ? '<p style="margin:12px 0 0">Passives · ' + learned.join(" · ") + '</p>' : '')
@@ -746,6 +746,7 @@
       if (e.kind === "phase") {
         setBanner("hud.phase",1.2,{phase:e.phase===2?"II":"III"});
         if(e.boss==="king") subtitle("hud.kingLine",3,{line:TEXT.phases[e.phase-1]});
+        updateHUD();
       }
       if (e.kind === "reinforcements") setBanner("hud.wave",1.6,{n:e.wave});
       if (e.kind === "clear") choose();
@@ -780,8 +781,9 @@
     setText("room-name",run.training ? "" : run.room.name);
     const hazard=FrostEnvironment.HAZARDS[run.room.hazard];
     get("region-hud").hidden=run.training||(!hazard&&run.room.region===run.room.name);
-    setText("region-hud",[run.room.region,hazard&&(!run.gateOpen||run.room.hazard==="bell")?
-      (run.room.hazard==="bell"&&run.bellSilenced?"Bell silenced":hazard.name):null].filter(Boolean).join(" · "));
+    setText("region-label",run.room.region??"");
+    setText("hazard-label",hazard&&(!run.gateOpen||run.room.hazard==="bell")?
+      (run.room.hazard==="bell"&&run.bellSilenced?"Bell silenced":hazard.name):"");
     const remaining = run.remaining;
     if(run.training) setMessage("remaining","hud.sentinel");
     else if(run.gateOpen) setMessage("remaining","hud.exit");

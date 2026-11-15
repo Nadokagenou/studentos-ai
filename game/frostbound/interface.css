@@ -10,7 +10,7 @@
   --risk: #ffabac;
   --hud-opacity: .94;
   --serif: Georgia, serif;
-  font-family: "Segoe UI", sans-serif;
+  font-family: var(--ui-font);
 }
 
 .title-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); max-width: 24rem; gap: .6rem; }
@@ -85,6 +85,9 @@ body.reduce-motion .panel.entering, body.reduce-motion .hud-toast { animation: n
 .reward-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem;margin-top:1rem; }
 .reward-card { display:flex;flex-direction:column;align-items:flex-start;gap:.58rem;padding:1rem;min-width:0;text-align:left;
   border:1px solid #496078;border-top:3px solid currentColor;border-radius:5px;background:#101c2e; }
+.reward-card > *, .menu-column :is(h3, dt, dd), .panel :is(.button, .shop-item) { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.panel .small-button, .panel .button { white-space: normal; }
+.comparison-table { overflow-wrap: anywhere; }
 .reward-card:hover,.reward-card[aria-pressed="true"] { background:#24364e;border-left-color:currentColor;border-right-color:currentColor;border-bottom-color:currentColor; }
 .reward-card strong { color:#f1f5fa;font:700 1.18rem Georgia,serif; }
 .reward-icon { font-size:1.5rem; }
@@ -121,6 +124,7 @@ body.reduce-motion .panel.entering, body.reduce-motion .hud-toast { animation: n
 .item-grid small { font-size: .76rem; }
 .panel .menu-feedback:not(:empty) { padding: .54rem .65rem; margin: .7rem 0 0; background: #1c382f; color: #b5f3da; border-left: 2px solid var(--good); }
 .menu-feedback:empty { display: none; }
+.item-inspection { min-width: 0; }
 .panel .action-note { margin: .8rem 0 .25rem; color: var(--gold); font-size: .88rem; }
 
 .hud { column-gap: 8px; align-items: start; }

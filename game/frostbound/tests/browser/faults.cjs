@@ -5,7 +5,7 @@ const {chromium,devices}=require("playwright");
 const root=path.resolve(process.argv[2]??path.join(__dirname,"../.."));
 const baseline=process.argv.includes("--baseline");
 const origin="http://frostbound.test",prefix="/frostbound-game/";
-const mime={".html":"text/html",".js":"text/javascript",".css":"text/css",".webp":"image/webp"};
+const mime={".html":"text/html",".js":"text/javascript",".css":"text/css",".woff2":"font/woff2",".webp":"image/webp"};
 
 async function pageFor(browser,kind,options={}) {
   const page=await browser.newPage(options);

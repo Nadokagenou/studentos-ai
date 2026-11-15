@@ -4,8 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#080d16">
-  <title data-i18n-key="title.page">FROSTBOUND v4.5.1 | บททดสอบสุดท้าย</title>
+  <title data-i18n-key="title.page">FROSTBOUND v4.5.2 | บททดสอบสุดท้าย</title>
   <link rel="icon" type="image/webp" href="assets/title.webp">
+  <link rel="preload" href="assets/fonts/noto-sans-thai.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="fonts.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="interface.css">
   <link rel="stylesheet" href="landscape.css">
@@ -16,7 +18,7 @@
       <section class="title-screen" id="title-screen">
         <div class="front-snow snow" aria-hidden="true"></div>
         <div class="hero-copy">
-          <p class="eyebrow"><span aria-hidden="true"></span><span class="release-title" data-i18n-key="title.version">บททดสอบสุดท้าย · v4.5.1 Team Beta</span></p>
+          <p class="eyebrow"><span aria-hidden="true"></span><span class="release-title" data-i18n-key="title.version">บททดสอบสุดท้าย · v4.5.2 Team Beta</span></p>
           <h1>Frostbound</h1>
           <p class="motto" data-i18n-key="title.motto">พิชิตเหมันต์ ชนะด้วยฝีมือ</p>
           <div class="title-actions">
@@ -55,40 +57,44 @@
       </section>
       <section class="playfield" id="playfield" hidden>
         <canvas id="arena" aria-label="Frostbound combat arena" tabindex="-1"></canvas>
-        <div class="hud">
-          <div class="vitals">
-            <div class="portrait" aria-hidden="true">✦</div>
-            <div class="meters">
-              <div class="meter-label"><span>HP</span><span id="health-text">100 / 100</span></div>
-              <div class="meter hp" aria-label="Health"><i id="health"></i></div>
-              <div class="stamina-line"><span>STA</span><div class="meter stamina" aria-label="Stamina"><i id="stamina"></i></div></div>
+        <div class="field-status">
+          <div class="hud">
+            <div class="vitals">
+              <div class="portrait" aria-hidden="true">✦</div>
+              <div class="meters">
+                <div class="meter-label"><span>HP</span><span id="health-text">100 / 100</span></div>
+                <div class="meter hp" aria-label="Health"><i id="health"></i></div>
+                <div class="stamina-line"><span>STA</span><div class="meter stamina" aria-label="Stamina"><i id="stamina"></i></div></div>
+              </div>
             </div>
+            <div class="encounter">
+              <p id="wave">Room 1 / 5</p>
+              <strong id="room-name"></strong>
+              <span id="region-hud" hidden><span id="region-label"></span> <span id="hazard-label"></span></span>
+              <span id="remaining">3 foes remaining</span>
+            </div>
+            <div class="hud-actions"><span id="crowns" class="hud-crowns" aria-label="Frost Crowns"></span>
+              <button class="pause-button" id="pause" aria-label="Pause game"><span aria-hidden="true">Ⅱ</span><span class="pause-label">Pause</span></button></div>
           </div>
-          <div class="encounter">
-            <p id="wave">Room 1 / 5</p>
-            <strong id="room-name"></strong>
-            <span id="region-hud" hidden></span>
-            <span id="remaining">3 foes remaining</span>
+          <div id="boss-hud" class="boss-hud" hidden>
+            <div class="meter-label"><span id="boss-name">The Frozen King</span><span id="phase">Phase I</span></div>
+            <div class="meter hp"><i id="boss-health"></i></div>
+            <div id="posture-line" class="stamina-line" hidden><span>Posture</span><div class="meter posture"><i id="boss-posture"></i></div></div>
           </div>
-          <div class="hud-actions"><span id="crowns" class="hud-crowns" aria-label="Frost Crowns"></span>
-            <button class="pause-button" id="pause" aria-label="Pause game"><span aria-hidden="true">Ⅱ</span><span class="pause-label">Pause</span></button></div>
+          <div class="announcement" id="announcement" aria-hidden="true"></div>
+          <div id="combat-notice" class="combat-notice" role="status" hidden></div>
+          <div id="safe-status" class="safe-status" hidden></div>
+          <div class="gate-guide" id="gate-guide" hidden><span aria-hidden="true">↑</span> North gate open</div>
         </div>
-        <div id="boss-hud" class="boss-hud" hidden>
-          <div class="meter-label"><span id="boss-name">The Frozen King</span><span id="phase">Phase I</span></div>
-          <div class="meter hp"><i id="boss-health"></i></div>
-          <div id="posture-line" class="stamina-line" hidden><span>Posture</span><div class="meter posture"><i id="boss-posture"></i></div></div>
-        </div>
-        <div class="announcement" id="announcement" aria-hidden="true"></div>
-        <div id="subtitle" class="subtitle" hidden></div>
-        <div id="combat-notice" class="combat-notice" role="status" hidden></div>
-        <div id="toast" class="hud-toast" role="status" hidden></div>
-        <div id="safe-status" class="safe-status" hidden></div>
-        <button id="interact" class="small-button interact" hidden></button>
-        <div class="gate-guide" id="gate-guide" hidden><span aria-hidden="true">↑</span> North gate open</div>
-        <div class="lesson" id="lesson" hidden>
-          <strong id="lesson-title"></strong>
-          <span id="lesson-body"></span>
-          <button class="text-button" id="skip-lesson">Skip step</button>
+        <div class="field-messages">
+          <div id="subtitle" class="subtitle" hidden></div>
+          <div id="toast" class="hud-toast" role="status" hidden></div>
+          <button id="interact" class="small-button interact" hidden></button>
+          <div class="lesson" id="lesson" hidden>
+            <strong id="lesson-title"></strong>
+            <span id="lesson-body"></span>
+            <button class="text-button" id="skip-lesson">Skip step</button>
+          </div>
         </div>
         <div class="loadout-hud" id="loadout-hud"><span id="weapon-icon" aria-hidden="true"></span><span id="weapon-name"></span></div>
         <div class="belt" id="belt"><span id="cooldowns" class="cooldowns"></span>
@@ -99,9 +105,9 @@
           <div class="stick" id="stick" aria-label="Movement joystick"><div id="knob"></div></div>
           <div class="touch-actions">
             <button data-action="heavy" aria-label="Heavy attack">Heavy</button>
-            <button data-action="dash">Dash</button>
-            <button data-action="parry">Parry</button>
-            <button data-action="light" class="touch-attack" aria-label="Light attack">Strike</button>
+            <button data-action="dash" aria-label="Dash"><span data-i18n-key="touch.dash">พุ่ง</span></button>
+            <button data-action="parry" aria-label="Parry"><span data-i18n-key="touch.parry">ปัด</span></button>
+            <button data-action="light" class="touch-attack" aria-label="Light attack"><span data-i18n-key="touch.light">โจมตี</span></button>
             <button data-action="skill" id="touch-skill" class="landscape-only" aria-label="Active skill" disabled>Skill</button>
             <button data-action="potion" id="touch-potion" class="landscape-only" aria-label="Use potion" disabled>Potion</button>
           </div>

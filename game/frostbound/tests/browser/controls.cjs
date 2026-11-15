@@ -2,7 +2,7 @@ const fs=require("node:fs"),path=require("node:path"),{chromium,devices}=require
 const assert=require("node:assert/strict");
 const root=path.resolve(process.argv[2]||path.join(__dirname,"../..")), out=path.resolve(process.argv[3]||"visual-qa/controls");
 fs.mkdirSync(out,{recursive:true});
-const contentTypes={".js":"application/javascript; charset=utf-8",".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".webp":"image/webp"};
+const contentTypes={".js":"application/javascript; charset=utf-8",".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".woff2":"font/woff2",".webp":"image/webp"};
 async function setup(browser, options) {
  const page=await browser.newPage(options), errors=[];
  page.on("pageerror",e=>errors.push(e.message));

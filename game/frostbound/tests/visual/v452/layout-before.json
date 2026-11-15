@@ -1,0 +1,154 @@
+{
+  "screens": {
+    "desktop Thai menu": [],
+    "desktop English menu": [],
+    "Settings": [],
+    "records": [],
+    "credits": [],
+    "mode selection": [],
+    "intro": [],
+    "combat HUD": [],
+    "pause": [],
+    "reward cards": [],
+    "inventory and equipment": [],
+    "story dialogue": [],
+    "merchant": [],
+    "boss dialogue": [],
+    "boss subtitle and HUD": [],
+    "victory": [],
+    "defeat": [],
+    "training 1": [],
+    "training 2": [],
+    "training 3": [],
+    "training 4": [],
+    "training 5": [],
+    "training 6": []
+  },
+  "docks": [
+    {
+      "name": "Story HUD",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "boss phase with subtitle and notification",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "740x360",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "568x320",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "narrow boss phase",
+      "safeArea": true,
+      "problems": [
+        "boss-hud overlaps announcement",
+        "announcement leaves the safe area",
+        "subtitle overlaps stick",
+        "light leaves the safe area"
+      ]
+    },
+    {
+      "name": "932x430",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 1",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 2",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 3",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 4",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 5",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "training 6",
+      "safeArea": false,
+      "problems": []
+    },
+    {
+      "name": "1024x768",
+      "safeArea": false,
+      "problems": []
+    }
+  ],
+  "fonts": {
+    "UI Thai": [
+      {
+        "familyName": "Leelawadee UI",
+        "postScriptName": "LeelawadeeUI-Bold",
+        "isCustomFont": false,
+        "glyphCount": 15
+      }
+    ],
+    "UI English": [
+      {
+        "familyName": "Segoe UI",
+        "postScriptName": "SegoeUI-Bold",
+        "isCustomFont": false,
+        "glyphCount": 7
+      }
+    ],
+    "narrative Thai": [
+      {
+        "familyName": "Leelawadee UI",
+        "postScriptName": "LeelawadeeUI",
+        "isCustomFont": false,
+        "glyphCount": 58
+      }
+    ]
+  },
+  "canvas": [
+    {
+      "text": "PERFECT PARRY",
+      "font": "bold 12px \"Segoe UI\", \"Leelawadee UI\", Tahoma, sans-serif",
+      "inside": true
+    },
+    {
+      "text": "PERFECT PARRY",
+      "font": "bold 12px \"Segoe UI\", \"Leelawadee UI\", Tahoma, sans-serif",
+      "inside": true
+    },
+    {
+      "text": "ปัดป้องสมบูรณ์แบบ",
+      "font": "bold 12px \"Segoe UI\", \"Leelawadee UI\", Tahoma, sans-serif",
+      "inside": true
+    },
+    {
+      "text": "ปัดป้องสมบูรณ์แบบ",
+      "font": "bold 12px \"Segoe UI\", \"Leelawadee UI\", Tahoma, sans-serif",
+      "inside": true
+    }
+  ],
+  "switches": [
+    "pause",
+    "rewards",
+    "inventory",
+    "merchant",
+    "Story room"
+  ]
+}

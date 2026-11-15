@@ -3,9 +3,9 @@
   const languages=["en","th"];
   const storageKey="frostbound.language.v1";
   const messages={
-    "title.page":["FROSTBOUND v4.5.1 | The Final Trial","FROSTBOUND v4.5.1 | บททดสอบสุดท้าย"],
-    "title.version":["The Final Trial · v4.5.1 Team Beta","บททดสอบสุดท้าย · v4.5.1 Team Beta"],
-    "title.motto":["Master the Frost. Win by Skill.","พิชิตเหมันต์ ชนะด้วยฝีมือ"],
+    "title.page":["FROSTBOUND v4.5.2 | The Final Trial","FROSTBOUND v4.5.2 | บททดสอบสุดท้าย"],
+    "title.version":["The Final Trial · v4.5.2 Team Beta","บททดสอบสุดท้าย · v4.5.2 Team Beta"],
+    "title.motto":["Master the Frost. Win by Skill.","ฝ่าเหมันต์ด้วยฝีมือ"],
     "title.new":["New Run","เริ่มการเดินทาง"],
     "title.best":["Best score","คะแนนสูงสุด"],
     "controls.modes":["Game Modes","โหมดเกม"],
@@ -22,6 +22,9 @@
     "controls.retry":["Retry","ลองใหม่"],
     "controls.home":["Title screen","หน้าแรก"],
     "controls.guide":["Team Beta guide and feedback","คู่มือและแบบรายงาน Team Beta"],
+    "touch.light":["Strike","โจมตี"],
+    "touch.dash":["Dash","พุ่ง"],
+    "touch.parry":["Parry","ปัด"],
     "orientation.title":["Rotate your device to play","หมุนหน้าจอเพื่อเริ่มการต่อสู้"],
     "orientation.help":["FROSTBOUND is designed for landscape gameplay.","FROSTBOUND ออกแบบมาเพื่อการเล่นแนวนอน"],
     "orientation.continue":["Continue in Portrait","เล่นในแนวตั้งต่อ"],
@@ -42,7 +45,7 @@
     "hud.guardianTell":["Optional guardian · {tell}","ผู้พิทักษ์ทางเลือก · {tell}"],
     "hud.prompt":["{action}{hint}","{action}{hint}"],
     "hud.inspect":["Inspect {name}{hint}","สำรวจ {name}{hint}"],
-    "hud.duel":["Optional duel · {name}{hint}","ดวลทางเลือก · {name}{hint}"],
+    "hud.duel":["Optional duel · {name}{hint}","ท้าดวล {name}{hint}"],
     "hud.potionEmpty":["Quick slot empty. Assign a potion in Inventory.","ช่องลัดว่างอยู่ เลือกยาใส่ช่องลัดได้ในกระเป๋า"],
     "hud.potionDepleted":["{name} depleted. Reassign in a safe area.","{name} หมดแล้ว จัดช่องลัดใหม่ได้ในพื้นที่ปลอดภัย"],
     "hud.drink":["Drink {name}","ดื่ม {name}"],
@@ -82,10 +85,10 @@
     "shop.owned":["{count} owned","มี {count} ชิ้น"],
     "shop.price":["{action} · {price} FC","{action} · {price} FC"],
     "shop.purchase":["Buy {name} for {price} Frost Crowns?","ซื้อ {name} ด้วย {price} Frost Crowns หรือไม่"],
-    "result.loss":["The winter claims another wanderer. Final blow · {cause}","เหมันต์พรากนักเดินทางไปอีกคน · สิ่งที่ทำให้ล้มลง: {cause}"],
+    "result.loss":["The winter claims another wanderer. Final blow · {cause}","เหมันต์พรากผู้พเนจรไปอีกคน · การโจมตีสุดท้าย: {cause}"],
     "result.seed":["Run seed {n}","เลข seed ของรอบ {n}"],
     "result.rank":["Rank {rank}","ระดับ {rank}"],
-    "guide.page":["FROSTBOUND v4.5.1 | Team Beta Guide","FROSTBOUND v4.5.1 | คู่มือ Team Beta"],
+    "guide.page":["FROSTBOUND v4.5.2 | Team Beta Guide","FROSTBOUND v4.5.2 | คู่มือ Team Beta"],
     "guide.title":["Playtest FROSTBOUND","ทดสอบ FROSTBOUND"],
     "guide.subtitle":["Team Beta guide for the SOS team","คู่มือ Team Beta สำหรับทีม SOS"],
     "guide.play":["Open game ↗","เปิดเกม ↗"],
@@ -119,7 +122,7 @@
     "guide.privacy":["GitHub Issues are public. Remove real names, student information and account details from text and images before submitting.",
       "รายการแจ้งปัญหาบน GitHub เป็นสาธารณะ กรุณาตัดชื่อจริง ข้อมูลนักเรียน และข้อมูลบัญชีออกจากข้อความหรือภาพก่อนส่ง"],
     "guide.copy":["Report template","แบบรายงานสำหรับคัดลอก"],
-    "guide.report":[`Game version: FROSTBOUND v4.5.1 Team Beta
+    "guide.report":[`Game version: FROSTBOUND v4.5.2 Team Beta
 Device / OS / browser:
 Mode / region / room:
 Run seed (if available, on the results screen):
@@ -130,7 +133,7 @@ Enjoyment (1–5):
 Favorite weapon or mechanic:
 What happened / what did you expect?
 Steps to reproduce / screenshot (optional):
-What would you change first?`,`เวอร์ชันเกม: FROSTBOUND v4.5.1 Team Beta
+What would you change first?`,`เวอร์ชันเกม: FROSTBOUND v4.5.2 Team Beta
 อุปกรณ์ / ระบบปฏิบัติการ / เบราว์เซอร์:
 โหมด / ภูมิภาค / ห้อง:
 เลข seed (ถ้ามี จากหน้าผลการเล่น):
@@ -219,17 +222,29 @@ What would you change first?`,`เวอร์ชันเกม: FROSTBOUND v4.
   function markup(key,params={}) {
     return '<span '+keyAttribute+'="'+escape(key)+'" '+paramsAttribute+'="'+escape(JSON.stringify(params))+'">'+escape(t(key,params))+'</span>';
   }
-  function renderBinding(node,field,{key,params}) {
-    const text=t(key,params);
+  function renderBinding(node,field,binding) {
+    if(binding.language!==locale) {
+      binding.text=t(binding.key,binding.params);
+      binding.language=locale;
+    }
+    const text=binding.text;
     if(field==="text") {
       if(node.textContent!==text) node.textContent=text;
     } else if(node.getAttribute(field)!==text) node.setAttribute(field,text);
   }
   function setMessage(node,key,params={},field="text") {
-    const fields=bindings.get(node)??new Map();
-    fields.set(field,{key,params});
-    bindings.set(node,fields);
-    renderBinding(node,field,fields.get(field));
+    let fields=bindings.get(node);
+    if(!fields) {fields=new Map();bindings.set(node,fields);}
+    let binding=fields.get(field);
+    if(binding?.key!==key||!sameParams(binding.params,params)) {
+      binding={key,params};
+      fields.set(field,binding);
+    }
+    renderBinding(node,field,binding);
+  }
+  function sameParams(before,after) {
+    const names=Object.keys(after);
+    return names.length===Object.keys(before).length&&names.every(name=>Object.hasOwn(before,name)&&before[name]===after[name]);
   }
   function clearBinding(node,field) {
     bindings.get(node)?.delete(field);
@@ -238,9 +253,10 @@ What would you change first?`,`เวอร์ชันเกม: FROSTBOUND v4.
     let fields=records.get(node);
     if(!fields) {fields=new Map();records.set(node,fields);}
     const previous=fields.get(field);
+    if(previous?.language===locale&&previous.rendered===current) return;
     const source=previous?.rendered===current?previous.source:current;
     const rendered=translate(source);
-    fields.set(field,{source,rendered});
+    fields.set(field,{source,rendered,language:locale});
     if(current!==rendered) write(rendered);
   }
   function localize(node) {

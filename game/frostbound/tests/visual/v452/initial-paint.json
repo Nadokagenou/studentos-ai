@@ -1,0 +1,94 @@
+[
+  {
+    "build": "before",
+    "screen": "desktop",
+    "firstPaint": 244,
+    "fonts": []
+  },
+  {
+    "build": "before",
+    "screen": "landscape",
+    "firstPaint": 156,
+    "fonts": []
+  },
+  {
+    "build": "after",
+    "screen": "desktop",
+    "firstPaint": 168,
+    "fonts": [
+      {
+        "filename": "noto-sans-thai.woff2",
+        "duration": 33.5,
+        "receivedAt": 51.099999994039536
+      },
+      {
+        "filename": "noto-sans-latin.woff2",
+        "duration": 97.59999999403954,
+        "receivedAt": 166.8999999910593
+      }
+    ]
+  },
+  {
+    "build": "after",
+    "screen": "landscape",
+    "firstPaint": 180,
+    "fonts": [
+      {
+        "filename": "noto-sans-thai.woff2",
+        "duration": 37.900000005960464,
+        "receivedAt": 56.5
+      },
+      {
+        "filename": "noto-sans-latin.woff2",
+        "duration": 99.20000000298023,
+        "receivedAt": 171.5
+      }
+    ]
+  },
+  {
+    "build": "after",
+    "screen": "desktop",
+    "firstPaint": 172,
+    "fonts": [
+      {
+        "filename": "noto-sans-thai.woff2",
+        "duration": 26.5,
+        "receivedAt": 45.5
+      },
+      {
+        "filename": "noto-sans-latin.woff2",
+        "duration": 88.40000000596046,
+        "receivedAt": 151.40000000596046
+      }
+    ]
+  },
+  {
+    "build": "after",
+    "screen": "landscape",
+    "firstPaint": 176,
+    "fonts": [
+      {
+        "filename": "noto-sans-thai.woff2",
+        "duration": 36.1000000089407,
+        "receivedAt": 52.70000000298023
+      },
+      {
+        "filename": "noto-sans-latin.woff2",
+        "duration": 73.5,
+        "receivedAt": 169.3999999910593
+      }
+    ]
+  },
+  {
+    "build": "before",
+    "screen": "desktop",
+    "firstPaint": 168,
+    "fonts": []
+  },
+  {
+    "build": "before",
+    "screen": "landscape",
+    "firstPaint": 140,
+    "fonts": []
+  }
+]

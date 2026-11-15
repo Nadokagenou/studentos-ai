@@ -385,7 +385,7 @@
       circle(c,x,y-12,pose.state==="perfect"?29:23,pose.state==="perfect"?"#aeeaff36":"#8cdbf61b","#a5e7ff",1.6);
   }
 
-  function drawEffect(c, fx, reduced) {
+  function drawEffect(c, fx, reduced, view) {
     const t = fx.age / fx.duration;
     c.save();
     c.globalAlpha = 1 - t;
@@ -439,11 +439,15 @@
       if (!reduced) box(c, "#7abce3aa", fx.x-9, fx.y-26, 17, 26);
     } else if (fx.kind === "word") {
       const label=FrostI18n.translate(fx.label);
-      c.font = "bold 12px 'Segoe UI', 'Leelawadee UI', Tahoma, sans-serif";
-      c.textAlign = "center"; c.lineWidth = 3; c.strokeStyle = "#0b1523";
+      const {scale,left,right,top,bottom}=view;
+      c.font = `700 ${Math.max(12,12/scale)}px "Noto Sans Thai", "Leelawadee UI", "Segoe UI", Tahoma, sans-serif`;
+      c.textAlign = "center"; c.lineWidth = Math.max(2,2/scale); c.strokeStyle = "#0b1523";
+      const metrics=c.measureText(label), pad=c.lineWidth/2+2/scale;
+      const x=clamp(fx.x,left+metrics.actualBoundingBoxLeft+pad,right-metrics.actualBoundingBoxRight-pad);
+      const y=clamp(fx.y-t*26,top+metrics.actualBoundingBoxAscent+pad,bottom-metrics.actualBoundingBoxDescent-pad);
       c.fillStyle = fx.color;
-      c.strokeText(label, fx.x, fx.y - t * 26);
-      c.fillText(label, fx.x, fx.y - t * 26);
+      c.strokeText(label,x,y);
+      c.fillText(label,x,y);
     } else {
       const base = fx.kind === "parry" ? 23 : 20;
       circle(c, fx.x, fx.y-10, base+57*t, "", "#c8eeff", 2);
@@ -721,8 +725,15 @@
         c.restore();
       }
       this.particles.expire(run.time);
+      let textView;
       for(const fx of run.fx) {
-        if(damageNumbers||!fx.damage) drawEffect(c,fx,reduced);
+        if(damageNumbers||!fx.damage) {
+          if(fx.kind==="word"&&!textView) textView={
+            scale,left:Math.max(0,-(x+jolt)/scale),right:Math.min(WIDTH,(w-x-jolt)/scale),
+            top:Math.max(0,-y/scale),bottom:Math.min(HEIGHT,(h-y)/scale)
+          };
+          drawEffect(c,fx,reduced,textView);
+        }
         if(!reduced&&fx.kind==="impact") this.particles.consume(fx,run.time,quality);
       }
       if(!reduced) for(const point of this.particles.active) {
