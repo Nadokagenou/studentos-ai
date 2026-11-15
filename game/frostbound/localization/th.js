@@ -43,7 +43,7 @@ Fullscreen	เต็มจอ
 Enter fullscreen	เปิดเต็มจอ
 Exit fullscreen	ออกจากเต็มจอ
 Choose a game mode	เลือกโหมดเกม
-Every run starts fresh. An active run cannot be saved or resumed after leaving.	ทุกครั้งเริ่มการเดินทางใหม่ เมื่อออกจากเกมจะกลับมาเล่นรอบเดิมต่อไม่ได้
+Every run starts fresh. An active run cannot be saved or resumed after leaving.	ทุกรอบเริ่มใหม่ เมื่อออกจากรอบ ความคืบหน้าจะหายไป
 Story Run	โหมดเนื้อเรื่อง
 Standard	มาตรฐาน
 Escalating	หนักขึ้นตามลำดับ
@@ -79,11 +79,11 @@ High	สูง
 Medium	ปานกลาง
 Low	ต่ำ
 Low · 30 FPS	ต่ำ · 30 FPS
-Damage numbers	แสดงตัวเลขดาเมจ
+Damage numbers	แสดงตัวเลขความเสียหาย
 Camera shake	การสั่นของกล้อง
 Mouse aim arrow	ลูกศรเล็งตามเมาส์
 Control hints	คำใบ้การควบคุม
-UI scale	ขนาดหน้าต่างเกม
+UI scale	ขนาดส่วนติดต่อ
 HUD opacity	ความทึบของข้อมูลบนจอ
 Audio	เสียง
 Mute audio	ปิดเสียง
@@ -107,14 +107,14 @@ Training Room	ห้องฝึก
 Pick an active skill before entering the first arena.	เลือกสกิลใช้งานหนึ่งอย่างก่อนเข้าสนามแรก
 Take one find from the cache. Equipment goes to your Inventory.	เลือกของจากหีบหนึ่งชิ้น อุปกรณ์ที่ได้จะอยู่ในกระเป๋า
 the fork ahead	ทางแยกข้างหน้า
-Equips in your empty skill slot	ติดตั้งในช่องสกิลที่ว่าง
+Equips in your empty skill slot	ใส่ลงช่องสกิลที่ว่าง
 Adds to Inventory	เข้ากระเป๋า
 No auto-equip	ยังไม่ได้สวม
 Current	ปัจจุบัน
-Unavailable with current Inventory.	กระเป๋าหรืออุปกรณ์ตอนนี้ไม่รองรับ
+Unavailable with current Inventory.	รับไม่ได้ด้วยของที่มีตอนนี้
 Boss Rush preparation	เตรียมพร้อมสำหรับ Boss Rush
 Hidden treasure	สมบัติที่ซ่อนอยู่
-Room cleared	เคลียร์ห้องแล้ว
+Room cleared	ผ่านห้องแล้ว
 Choose your reward	เลือกรางวัล
 Replace active skill	เปลี่ยนสกิลใช้งาน
 Claim reward	รับรางวัล
@@ -167,7 +167,7 @@ Final blow	การโจมตีปิดฉาก
 Run score	คะแนนการเดินทาง
 Passives	สกิลติดตัว
 Retry	ลองใหม่
-North gate open. Walk to the top of the room.	ประตูเหนือเปิดแล้ว เดินไปด้านบนของห้อง
+North gate open. Walk to the top of the room.	ประตูเหนือเปิดแล้ว เดินขึ้นไปด้านบนของห้อง
 Phase I	เฟส I
 Phase II	เฟส II
 Phase III	เฟส III
@@ -360,30 +360,30 @@ Parry {n}s	ปัดป้อง {n} วิ
 Potion {n}s	ยา {n} วิ
 Wanderer	ผู้พเนจร
 The kingdom did not fall in a single night.	อาณาจักรไม่ได้ล่มสลายในคืนเดียว
-First came the silence.	ความเงียบมาเยือนก่อน
-Then the snow.	แล้วหิมะก็โปรยลงมา
-And finally, a king who refused to let winter end.	สุดท้ายคือราชาผู้ไม่ยอมให้เหมันต์สิ้นสุด
-You have crossed the frozen border for one reason.	เจ้าข้ามชายแดนเยือกแข็งมาด้วยเหตุผลเดียว
-To reach the throne.	เพื่อไปให้ถึงบัลลังก์
-So. Another wanderer reaches my throne.	อ้อ... ผู้พเนจรอีกคนมาถึงบัลลังก์ของข้า
-This winter ends tonight.	เหมันต์นี้จะจบลงคืนนี้
-You mistake persistence for power. Come, then. Show me what remains of your courage.	เจ้าเข้าใจว่าความดื้อดึงคือพลัง เข้ามาสิ ให้ข้าเห็นว่าเจ้ายังเหลือความกล้าเพียงใด
-You have learned to survive. But can you endure?	เจ้ารู้วิธีเอาชีวิตรอดแล้ว แต่จะยืนหยัดได้นานเพียงใด
-Enough! If the kingdom must fall, it will fall beneath the snow!	พอที! หากอาณาจักรต้องล่มสลาย ก็ให้จมอยู่ใต้หิมะ!
-“At last… The silence…” The crown falls. For the first time in generations, the wind carries no frost.	“ในที่สุด… ก็เงียบเสียที…” มงกุฎร่วงลง เป็นครั้งแรกในรอบหลายชั่วอายุคนที่สายลมพัดมาโดยไม่พาไอเย็น
+First came the silence.	ความเงียบมาก่อน
+Then the snow.	แล้วหิมะก็ตามมา
+And finally, a king who refused to let winter end.	สุดท้ายคือราชาผู้ไม่ยอมให้ฤดูหนาวจบลง
+You have crossed the frozen border for one reason.	เจ้าข้ามชายแดนที่จับเป็นน้ำแข็งมาเพื่อสิ่งเดียว
+To reach the throne.	ไปให้ถึงบัลลังก์
+So. Another wanderer reaches my throne.	ผู้พเนจรอีกคนมาถึงบัลลังก์ข้าแล้วสินะ
+This winter ends tonight.	คืนนี้จะเป็นคืนสุดท้ายของฤดูหนาว
+You mistake persistence for power. Come, then. Show me what remains of your courage.	เจ้าเข้าใจผิดว่าความดื้อดึงคือพลัง เข้ามาสิ ให้ข้าดูว่าเจ้ายังเหลือความกล้าเท่าไร
+You have learned to survive. But can you endure?	เจ้ารอดมาได้ แต่จะยืนหยัดได้อีกนานแค่ไหน
+Enough! If the kingdom must fall, it will fall beneath the snow!	พอแล้ว! หากอาณาจักรต้องล่ม ก็ให้หิมะกลบมันเสีย!
+“At last… The silence…” The crown falls. For the first time in generations, the wind carries no frost.	“ในที่สุด… ก็เงียบเสียที…” มงกุฎร่วงลง เป็นครั้งแรกในรอบหลายชั่วคนที่สายลมพัดมาโดยไม่มีไอเย็น
 The Gatekeeper, Crystal Warden, and Frozen King all fell.	Gatekeeper, Crystal Warden และ The Frozen King ล้มลงแล้ว
-Another wanderer? Hah. The snow never stops bringing me fools.	ผู้พเนจรอีกคนหรือ หึ หิมะนี่ขยันพาคนบ้าบิ่นมาหาข้าเสียจริง
+Another wanderer? Hah. The snow never stops bringing me fools.	ผู้พเนจรอีกคนรึ หึ หิมะนี่ขยันส่งพวกบ้าบิ่นมาหาข้าจริง ๆ
 Are you selling something?	เจ้ามีอะไรขายบ้าง
-Steel, medicine, and a little hope. Though hope is terribly expensive these days.	เหล็กกล้า ยา และความหวังสักหน่อย แต่ช่วงนี้ความหวังราคาแพงเหลือเกิน
-Beyond that gate lies a king who has forgotten how to die.	หลังประตูนั้นมีราชาผู้ลืมไปแล้วว่าตายอย่างไร
+Steel, medicine, and a little hope. Though hope is terribly expensive these days.	เหล็กกล้า ยา แล้วก็ความหวังนิดหน่อย ช่วงนี้อย่างหลังแพงเอาเรื่อง
+Beyond that gate lies a king who has forgotten how to die.	หลังประตูนั่นมีราชาที่ลืมไปแล้วว่าต้องตายยังไง
 Can he be defeated?	มีทางโค่นเขาไหม
 Everything can. The question is what it costs.	ทุกสิ่งย่อมล้มได้ อยู่ที่เจ้าต้องจ่ายเท่าไรต่างหาก
-You look dreadful. Excellent news for my potion business.	สภาพเจ้าดูแย่ทีเดียว ข่าวดีสำหรับร้านยาของข้า
+You look dreadful. Excellent news for my potion business.	สภาพเจ้าแย่เอาเรื่อง ข่าวดีสำหรับร้านยาข้าเลย
 Well, well. Perhaps I underestimated you.	อืม... ดูเหมือนข้าจะประเมินเจ้าต่ำไป
-You visit me often for someone who never spends a coin.	แวะมาบ่อยดีนะ สำหรับคนที่ไม่เคยควักสักเหรียญ
+You visit me often for someone who never spends a coin.	แวะมาบ่อยดีนี่ ทั้งที่ยังไม่เคยควักสักเหรียญ
 Planning to fight a king, or drown yourself in medicine?	เจ้าจะไปสู้กับราชา หรือจะจมกองขวดยาเสียก่อน
 Back again? Your footprints held up better than the last fellow’s.	กลับมาแล้วหรือ รอยเท้าเจ้าอยู่ได้นานกว่าคนก่อนเสียอีก
-The crown kept the crops alive one winter. The king never took it off.	ครั้งหนึ่งมงกุฎช่วยให้พืชผลรอดผ่านเหมันต์ ราชาจึงไม่ยอมถอดมันอีกเลย
+The crown kept the crops alive one winter. The king never took it off.	ครั้งหนึ่งมงกุฎช่วยให้พืชผลรอดฤดูหนาว หลังจากนั้นราชาก็ไม่ถอดมันอีกเลย
 I carried letters for the court. I still carry a few, though the names on them are long dead.	ข้าเคยส่งจดหมายให้ราชสำนัก ยังพกติดตัวอยู่สองสามฉบับ แม้คนที่มีชื่อบนนั้นจะตายไปนานแล้ว
 Take your time. The cold isn't going anywhere.	ค่อย ๆ ดูเถอะ ความหนาวไม่หนีไปไหนหรอก
 A sharp blade means nothing in careless hands.	ดาบคมแค่ไหนก็ไร้ค่าในมือคนประมาท
@@ -402,9 +402,9 @@ Armor saves lives. Confidence gets them killed.	เกราะช่วยช�
 Careful. Powerful steel demands a steady hand.	ระวังให้ดี เหล็กกล้าเช่นนี้ต้องอาศัยมือที่นิ่ง
 Good choice. Now make sure you actually wear it.	เลือกได้ดี ทีนี้ก็อย่าลืมสวมเสียล่ะ
 Coins for the road.	เหรียญไว้ใช้ระหว่างทาง
-The last Warden’s watchfire is buried beside the ruined gate.	กองไฟของผู้เฝ้าด่านคนสุดท้ายฝังอยู่ใต้หิมะข้างประตูที่พังลง
-Keep an eye on the treeline. Footsteps continue after you stop.	จับตาแนวป่าไว้ แม้เจ้าหยุดเดิน เสียงฝีเท้าก็ยังไม่หยุด
-The ice beneath the floor is splitting. Watch for circles before they erupt.	น้ำแข็งใต้พื้นกำลังแยกตัว ระวังวงเตือนก่อนมันปะทุ
+The last Warden’s watchfire is buried beside the ruined gate.	กองไฟของยามคนสุดท้ายจมอยู่ใต้หิมะข้างซากประตู
+Keep an eye on the treeline. Footsteps continue after you stop.	คอยดูแนวต้นไม้ แม้เจ้าหยุดเดิน เสียงฝีเท้าก็ยังดังอยู่
+The ice beneath the floor is splitting. Watch for circles before they erupt.	น้ำแข็งใต้พื้นกำลังแตก มองหาวงเตือนก่อนน้ำแข็งปะทุ
 Broken masonry still drops from the bell tower that overlooks the city.	เศษหินยังร่วงจากหอระฆังที่ตั้งตระหง่านเหนือเมือง
 The Warden who once trained you rises from the throne.	ผู้พิทักษ์ที่เคยฝึกสอนเจ้าลุกขึ้นจากบัลลังก์
 The outpost’s captain still answers the alarm.	นายกองประจำด่านยังตอบรับเสียงสัญญาณเตือน

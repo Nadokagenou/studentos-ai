@@ -7,7 +7,7 @@ const root = path.resolve(process.argv[2] || path.join(__dirname, "../.."));
 const output = path.resolve(process.argv[3] || "visual-qa");
 const prefix = "/frostbound-game/";
 const origin = "http://frostbound.test";
-const mime = {".js":"text/javascript", ".css":"text/css", ".webp":"image/webp", ".html":"text/html"};
+const mime = {".js":"text/javascript", ".css":"text/css", ".woff2":"font/woff2",".webp":"image/webp", ".html":"text/html"};
 const seed = 4212;
 const profileOnly=process.argv.includes("--profile-only");
 const regions = ["outpost", "forest", "depths", "capital", "throne"];
@@ -29,7 +29,21 @@ async function capture(browser, name, viewport) {
     return route.fulfill({contentType:mime[path.extname(file)],path:file});
   });
   await page.addInitScript(() => {
-    let renderType,combat;
+    let renderType,combat,localeApi,uiSpent=0;
+    window.qaUiSamples=[];
+    Object.defineProperty(window,"FrostI18n",{get:()=>localeApi,set:value=>{
+      localeApi=value;
+      for(const method of ["setText","setMessage","setAttribute"]) {
+        const original=value[method];
+        value[method]=function(...args){
+          if(!window.qaLive) return original.apply(this,args);
+          const start=performance.now();
+          const result=original.apply(this,args);
+          uiSpent+=performance.now()-start;
+          return result;
+        };
+      }
+    }});
     Object.defineProperty(window,"FrostRenderer",{get:()=>renderType,set:Type=>{
       renderType=class extends Type { constructor(canvas) { super(canvas); window.qaRenderer=this; } };
     }});
@@ -37,7 +51,14 @@ async function capture(browser, name, viewport) {
     window.qaRAF=raf.bind(window);
     let first=true;
     window.requestAnimationFrame=callback=>{
-      if(first||window.qaLive) { first=false; return raf(callback); }
+      if(first||window.qaLive) {
+        first=false;
+        return raf(time=>{
+          uiSpent=0;
+          callback(time);
+          if(uiSpent>0) window.qaUiSamples.push(uiSpent);
+        });
+      }
       window.qaPending=callback;
       return 0;
     };
@@ -60,6 +81,15 @@ async function capture(browser, name, viewport) {
     },true);
   });
   await page.goto(origin + prefix + "?debug=1");
+  const initial=await page.evaluate(async()=>{
+    await document.fonts.ready;
+    await new Promise(resolve=>qaRAF(()=>qaRAF(resolve)));
+    const nav=performance.getEntriesByType("navigation")[0];
+    return {firstContentfulPaint:performance.getEntriesByName("first-contentful-paint")[0]?.startTime??null,
+      domContentLoaded:nav.domContentLoadedEventEnd,
+      fonts:performance.getEntriesByType("resource").filter(entry=>entry.name.endsWith(".woff2"))
+        .map(({name,duration,responseEnd})=>({name:name.split("/").at(-1),duration,responseEnd}))};
+  });
   await page.waitForFunction(() => [...document.images].every(image => image.complete && image.naturalWidth));
   await page.locator("#training").click();
   if(await page.locator("#portrait-continue:visible").count()) await page.locator("#portrait-continue").click();
@@ -90,7 +120,7 @@ async function capture(browser, name, viewport) {
       return {id:room.id,type:room.type,theme:room.theme};
     };
     document.getElementById("wave").textContent="";
-    document.getElementById("region-hud").textContent="";
+    document.getElementById("region-hud").hidden=true;
     document.getElementById("room-name").textContent="";
     document.getElementById("announcement").textContent="";
     document.getElementById("lesson").hidden=true;
@@ -124,6 +154,8 @@ async function capture(browser, name, viewport) {
       const observer=new PerformanceObserver(list=>tasks.push(...list.getEntries().map(entry=>entry.duration)));
       observer.observe({type:"longtask"});
       qaShow(1,quality);
+      qaRun.fx=[{kind:"word",label:"PERFECT PARRY",x:500,y:335,age:.2,duration:.7,color:"#e5fbff"},
+        {kind:"word",label:"CHILLED",x:430,y:360,age:.35,duration:.7,color:"#d9eaff"}];
       const settings={quality,reduced:false,shake:false,damageNumbers:true};
       let previous=0, rendered=0;
       await new Promise(resolve=>{
@@ -173,10 +205,11 @@ async function capture(browser, name, viewport) {
     await page.waitForTimeout(520);
   }
   const input=await page.evaluate(()=>qaDelays);
-  assert(input.length>=4,"Not enough accepted input samples");
+  const ui=await page.evaluate(()=>qaUiSamples);
   assert.deepEqual(errors,[]);
+  assert(input.length>=4,name+" had "+input.length+" accepted input samples");
   await page.close();
-  return {rows,profiles,input,stress,errors};
+  return {rows,profiles,input,stress,initial,ui,errors};
 }
 
 (async()=>{

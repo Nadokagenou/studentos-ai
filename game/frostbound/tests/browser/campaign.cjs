@@ -4,14 +4,16 @@ const fs=require("node:fs");
 const path=require("node:path");
 const controller=require("../stress/pilot.cjs");
 const {translationAudit}=require("./translation-audit.cjs");
+const {polishChecks}=require("./polish-checks.cjs");
 const root=path.resolve(process.argv[2]||path.join(__dirname,"../.."));
 const out=path.resolve(process.argv[3]||"visual-qa/campaign");
 fs.mkdirSync(out,{recursive:true});
 const publicUrl=process.argv.slice(4).find(arg=>/^https?:/.test(arg));
 const auditThai=process.argv.includes("--thai");
 const audit=auditThai?translationAudit(out):null;
+const polish=auditThai?polishChecks(out,false):null;
 const url=publicUrl?new URL("?debug=1",publicUrl).href:"http://frostbound.test/frostbound-game/index.html?debug=1";
-const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".webp":"image/webp"};
+const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".woff2":"font/woff2",".webp":"image/webp"};
 (async()=>{
  const b=await chromium.launch({executablePath:process.env.FROST_CHROME||"C:/Program Files/Google/Chrome/Application/chrome.exe",args:["--disable-background-networking"]});
  const errors=[];
@@ -69,7 +71,11 @@ const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=
   }
   const click=(p,id)=>p.locator("#"+id+":visible")[touchPages.has(p)?"tap":"click"]();
   const ui=(p,id)=>p.locator('[data-ui="'+id+'"]:visible')[touchPages.has(p)?"tap":"click"]();
-  const check=(p,screen)=>audit?.check(p,screen);
+  const check=async(p,screen)=>{
+    if(!audit) return;
+    await audit.check(p,screen);
+    await polish.inspect(p,screen,".shell");
+  };
   const expectText=(thai,english)=>auditThai?thai:english;
   const step=(p,n=2)=>p.evaluate(n=>frames(n),n);
   const until=async(p,selector,count=240)=>{
@@ -330,5 +336,5 @@ const types={".js":"text/javascript; charset=utf-8",".html":"text/html; charset=
   assert.deepEqual(errors,[]);
   completed=true;
   console.log("PASS reward choice and safe management, Story clear, touch active and Boss Rush clear, Hardcore ending and records.");
- }finally{await b.close();audit?.finish(completed);}
+ }finally{await b.close();audit?.finish(completed);polish?.finish(completed);}
 })().catch(e=>{console.error(e);process.exitCode=1});

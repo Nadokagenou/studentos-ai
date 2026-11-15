@@ -13,7 +13,7 @@ test("new and inaccessible storage defaults to Thai, and explicit English persis
   assert.equal(i18n.t("hud.stage",{n:12}),"ด่าน 12");
   assert.deepEqual(i18n.getAvailableLanguages(),["en","th"]);
   assert.equal(i18n.t("hud.stageWave",{n:4,wave:2,total:3}),"ด่าน 4 · ระลอก 2/3");
-  assert.equal(i18n.t("hud.duel",{name:"The Gatekeeper",hint:" [F]"}),"ดวลทางเลือก · The Gatekeeper [F]");
+  assert.equal(i18n.t("hud.duel",{name:"The Gatekeeper",hint:" [F]"}),"ท้าดวล The Gatekeeper [F]");
   assert.equal(i18n.translate("Untranslated English sentence."),"Untranslated English sentence.");
   assert.equal(i18n.t("missing.key"),"");
   assert.deepEqual(i18n.missingKeys(),["missing.key"]);
