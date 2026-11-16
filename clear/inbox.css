@@ -1,18 +1,5 @@
-/* ============================================================
-   inbox.css — กล่องเข้า + แหล่งข้อมูล + แผงเชื่อมกลุ่ม LINE   ·  *** ALT ***
-   ------------------------------------------------------------
-   แยกเป็นไฟล์ของตัวเองเพราะเป็นชั้นใหม่ทั้งชั้น ไม่ได้แก้ของเดิม —
-   ถอดออกทั้งฟีเจอร์ก็แค่เอา <link> กับ <script> สองบรรทัดออก
-
-   การ์ดในกล่องเข้าต้องตอบ 3 อย่างในสายตาเดียว:
-     มาจากไหน · AI อ่านได้ว่าอะไร · มั่นใจแค่ไหน
-   ตัวเลขความมั่นใจต้องโชว์เสมอ เพราะมันคือเหตุผลที่แอปถามหรือไม่ถาม
-   ============================================================ */
-
 .sec-title{font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
   color:var(--faint); margin:24px 2px 10px}
-
-/* ---------- การ์ดที่รอให้ตัดสินใจ ---------- */
 .ib{padding:15px 15px 13px; margin-bottom:10px; border-radius:var(--r-card);
   background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
 .ib-top{display:flex; align-items:center; justify-content:space-between; gap:10px}
@@ -27,7 +14,6 @@
 .ib-meta{display:flex; flex-wrap:wrap; gap:7px 12px; margin-top:6px; font-size:11.5px; color:var(--muted);
   font-variant-numeric:tabular-nums}
 .ib-meta .miss{color:var(--warn); font-weight:600}
-/* ข้อความดิบที่ครูพิมพ์จริง — เก็บไว้ให้เทียบได้ว่า AI อ่านตกอะไรไป */
 .ib-raw{margin-top:10px; padding:9px 11px; border-radius:11px; background:var(--card2);
   font-size:11.5px; line-height:1.6; color:var(--muted)}
 .ib-act{display:flex; gap:7px; margin-top:12px; flex-wrap:wrap}
@@ -39,8 +25,6 @@
 .ib-act button:active{transform:scale(.97)}
 .ib-act .ib-go{flex:2}
 .ib-act .warn{color:var(--alert)}
-
-/* ปุ่มหลักสีเน้น — ใช้ทั้งในการ์ดและในแผงเชื่อม LINE */
 .ib-go{min-height:40px; padding:0 14px; border-radius:11px; cursor:pointer;
   border:1px solid var(--blue); background:var(--blue); color:var(--on-accent);
   font-family:inherit; font-size:12.5px; font-weight:600;
@@ -48,8 +32,6 @@
   transition:transform .16s ease}
 .ib-go svg{width:14px; height:14px}
 .ib-go:active{transform:scale(.97)}
-
-/* บันทึกย้อนหลัง — บอกได้ว่า "ทำไมงานนี้ไม่ขึ้น" ซึ่งสำคัญพอ ๆ กับตอนมันขึ้น */
 .ib-log{display:flex; align-items:center; gap:11px; padding:11px 13px; margin-bottom:7px;
   border-radius:var(--r-tile); background:var(--card2)}
 .ib-log-ic{width:30px; height:30px; flex:none; border-radius:10px; background:var(--card);
@@ -61,12 +43,7 @@
 .ib-log-bd .s{font-size:11px; color:var(--muted); margin-top:1px}
 .ib-log.accepted .ib-log-ic{background:var(--good-soft); color:var(--good)}
 .ib-log.duplicate .ib-log-ic{background:var(--warn-soft); color:var(--warn)}
-/* ข้อความที่ตัดสินว่าไม่ใช่งาน — จางกว่าเพื่อน เพราะมีไว้ให้ตรวจย้อนหลังเฉย ๆ
-   ไม่ใช่ของที่ต้องอ่านทุกวัน แต่ก็ต้องหาเจอเวลาสงสัยว่า "งานหายไปไหน" */
 .ib-log.noise{opacity:.55}
-
-/* ---------- ไม่มีอะไรค้าง ---------- */
-/* กล่องเข้าว่าง = ระบบทำงานถูก ไม่ใช่ความผิดพลาด ข้อความจึงต้องอ่านแล้วสบายใจ */
 .ib-empty{padding:34px 20px; text-align:center; border-radius:var(--r-card);
   background:var(--card); border:1px solid var(--line)}
 .ib-empty-ic{width:44px; height:44px; margin:0 auto 12px; border-radius:14px;
@@ -75,15 +52,12 @@
 .ib-empty-ic svg{width:22px; height:22px}
 .ib-empty-t{font-size:15px; font-weight:700; color:var(--ink); letter-spacing:-.02em}
 .ib-empty-p{font-size:12.5px; color:var(--muted); margin:6px 0 0; line-height:1.6}
-
 .ib-wide{width:100%; min-height:46px; margin-top:14px; border-radius:var(--r-tile); cursor:pointer;
   border:1px solid var(--line); background:var(--card2); color:var(--muted);
   font-family:inherit; font-size:13px; font-weight:600;
   display:flex; align-items:center; justify-content:center; gap:7px; transition:transform .16s ease}
 .ib-wide svg{width:15px; height:15px}
 .ib-wide:active{transform:scale(.985); color:var(--blue)}
-
-/* ---------- แหล่งข้อมูล ---------- */
 .src{display:flex; align-items:flex-start; gap:12px; padding:14px 14px; margin-bottom:9px;
   border-radius:var(--r-card); background:var(--card); border:1px solid var(--line)}
 .src.on{box-shadow:var(--shadow)}
@@ -94,7 +68,6 @@
 .src-bd{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px}
 .src-bd .t{font-size:14px; font-weight:700; color:var(--ink); letter-spacing:-.015em}
 .src-bd .s{font-size:12px; color:var(--muted); line-height:1.5}
-/* สิ่งที่ยังขาด เขียนตรง ๆ ว่าติดอะไร — "เร็ว ๆ นี้" ไม่ได้บอกอะไรกับใครเลย */
 .src-need{display:flex; gap:7px; margin-top:7px; padding:8px 10px; border-radius:10px;
   background:var(--warn-soft); color:var(--warn); font-size:11.5px; line-height:1.5; font-weight:600}
 .src-need svg{width:13px; height:13px; flex:none; margin-top:2px}
@@ -103,12 +76,9 @@
   background:var(--good-soft); color:var(--good); font-size:12px; font-weight:700;
   font-variant-numeric:tabular-nums; display:flex; align-items:center; justify-content:center}
 .src-foot{font-size:11.5px; color:var(--faint); text-align:center; margin:14px 2px 0; line-height:1.6}
-
-/* ---------- แผงเชื่อมกลุ่ม LINE ---------- */
 .lk-code{margin-top:11px; padding:14px; border-radius:var(--r-tile); text-align:center;
   background:var(--blue-soft); border:1.5px dashed var(--blue)}
 .lk-lb{font-size:11.5px; font-weight:600; color:var(--muted)}
-/* รหัสต้องใหญ่พอให้มองจอนี้แล้วพิมพ์ในอีกแอปได้โดยไม่ต้องมองสลับไปมา */
 .lk-val{font-size:30px; font-weight:700; letter-spacing:.06em; color:var(--blue); margin:8px 0 6px;
   font-family:ui-monospace, SFMono-Regular, Menlo, monospace}
 .lk-hint{display:flex; align-items:center; justify-content:center; gap:6px;
@@ -131,39 +101,21 @@
   font-family:inherit; font-size:12px; font-weight:600;
   display:inline-flex; align-items:center; gap:6px}
 .lk-new svg{width:13px; height:13px}
-
-/* ---------- บัญชีที่เชื่อมผ่าน API ---------- */
-/* ใช้แถว .lk-room ตัวเดิมที่กลุ่ม LINE ใช้อยู่ — ของสองอย่างนี้คือเรื่องเดียวกัน
-   ในสายตาผู้ใช้ ("อะไรที่เชื่อมไว้แล้วบ้าง") จึงไม่ควรหน้าตาคนละแบบ
-   ต่างกันแค่ตรงนี้มีบรรทัดสถานะเพิ่มมา จึงต้องเลิกจัดกึ่งกลางแนวตั้ง */
 .lk-room.col{align-items:flex-start; flex-wrap:wrap}
 .lk-room.col .lk-room-bd{gap:2px}
-/* .ib-act button ชนะ .ib-go ด้วย specificity (0,1,1 vs 0,1,0) ปุ่มเน้นที่อยู่ในแถวปุ่ม
-   จึงกลายเป็นสีเทาเหมือนปุ่มรอง · จงใจแก้เฉพาะในแถวบัญชีเท่านั้น ไม่แก้ทั้งระบบ
-   เพราะการ์ดในกล่องเข้าก็เข้าข่ายเดียวกัน และการเปลี่ยนหน้าตาจอนั้นเป็นคนละเรื่องกับงานนี้ */
 .lk-room .ib-act .ib-go{background:var(--blue); border-color:var(--blue); color:var(--on-accent)}
 .src-state{display:flex; align-items:center; gap:5px; margin-top:4px;
   font-size:11px; font-weight:600; line-height:1.5}
 .src-state svg{width:12px; height:12px; flex:none}
 .src-state.ok{color:var(--good)}
 .src-state.bad{color:var(--warn)}
-
-/* ช่องวางลิงก์ปฏิทิน — ช่องกรอกของแอปถูกเขียนไว้ใต้ .fm-card ทั้งหมด
-   ซึ่งเป็นของฟอร์มเพิ่มงาน ไม่ใช่ของหน้านี้ จึงต้องมีตัวของตัวเองหนึ่งตัว */
 .src-in{width:100%; margin-top:10px; background:var(--card2); border:none;
   border-radius:12px; min-height:44px; padding:0 13px; font-size:13px;
   font-family:inherit; color:var(--ink); -webkit-appearance:none; appearance:none}
 .src-in:focus{outline:2px solid var(--blue); outline-offset:-2px}
 .src-help{margin-top:9px; font-size:11px; color:var(--faint); line-height:1.75}
 .src-help b{color:var(--muted); font-weight:600}
-
-/* "รอโรงเรียนอนุมัติ" ต่างจาก "รอตั้งค่า" และ "ต่อไม่ได้" จริง ๆ สำหรับคนที่รอ:
-   ของนี้ต่อได้ แต่ต้องให้ผู้ใหญ่ที่ไม่ใช่เรากดอนุญาตก่อน — รอเราไปทำก็ไม่มีวันได้ */
 .src-tag.admin{background:var(--warn-soft); color:var(--warn)}
-
-/* ---------- การ์ด "เรียนรู้จากคุณ" ---------- */
-/* ระบบที่เรียนรู้ได้ต้องมองเห็นได้ว่ามันเรียนอะไรไป และล้างทิ้งได้เสมอ
-   ไม่งั้นเวลามันคัดผิด ผู้ใช้จะรู้สึกว่าแอปมีใจของตัวเองและควบคุมไม่ได้ */
 .brain{margin-top:18px; padding:14px 15px; border-radius:var(--r-card);
   background:var(--blue-soft); border:1px solid var(--line)}
 .brain-hd{display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:var(--blue)}
@@ -173,33 +125,18 @@
 .brain-rs{margin-top:11px; min-height:32px; padding:0 12px; border-radius:9px; cursor:pointer;
   border:1px solid var(--line); background:var(--card); color:var(--muted);
   font-family:inherit; font-size:11.5px; font-weight:600}
-
-/* ---------- ป้ายจำนวนที่รอตรวจ บนไทล์หน้าแรก ---------- */
-/* ตัวเลขนี้คือเหตุผลเดียวที่นักเรียนจะเปิดจอนี้ ถ้าไม่เด่นพอก็เท่ากับไม่มี */
 .mtile .mt-ct.hot{background:var(--alert); color:var(--on-accent)}
-
-/* ตรามาร์คแบรนด์บนหัวการ์ด "เรียนรู้จากคุณ" — เป็นรูปหลายสี ต้องรองพื้นขาว
-   และต้องใหญ่กว่าไอคอนเส้นนิดหน่อยถึงจะเห็นว่าเป็นรูปหนังสือ ไม่ใช่ก้อนสีมั่ว ๆ */
 .brain-hd svg[data-brand], .brain-hd > svg:first-child{
   width:20px; height:20px; padding:2px; border-radius:6px; background:#fff}
-
-/* ---------- ข้อความเดียว หลายงาน ---------- */
-/* ครูสั่งงานทั้งสัปดาห์ทีเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
-   การ์ดนี้จึงหน้าตาเป็น "เช็คลิสต์ที่ติ๊กมาให้แล้ว" ไม่ใช่ "คำถามสิบเอ็ดข้อ" —
-   สิ่งที่ผู้ใช้ต้องทำเหลือแค่ปลดติ๊กอันที่ไม่เอา ซึ่งส่วนใหญ่ไม่ต้องทำอะไรเลย */
 .ib-batch-n{display:inline-flex; align-items:center; gap:5px; padding:4px 9px 5px;
   border-radius:999px; background:var(--blue-soft, var(--card2)); color:var(--blue);
   font-size:11px; font-weight:700; white-space:nowrap}
 .ib-batch-n svg{width:12px; height:12px}
-
 .ib-rows{margin-top:10px; border-radius:12px; overflow:hidden;
   border:1px solid var(--line); background:var(--card2)}
 .ibr{display:flex; align-items:center; gap:10px; padding:9px 11px;
   border-bottom:1px solid var(--line)}
 .ibr:last-child{border-bottom:0}
-
-/* ช่องติ๊ก — เป้ากดต้องใหญ่กว่ากล่องที่เห็น เพราะรายการยาวสิบกว่าบรรทัดบนจอมือถือ
-   กดพลาดหนึ่งครั้งแปลว่าเผลอเอางานที่ไม่ได้ตั้งใจเข้าแผน */
 .ibr-ck{width:22px; height:22px; flex:none; padding:0; cursor:pointer;
   border-radius:7px; border:1.5px solid var(--line-strong, var(--line));
   background:var(--card); color:var(--on-accent);
@@ -208,38 +145,27 @@
 .ibr-ck svg{width:14px; height:14px}
 .ibr-ck:active{transform:scale(.9)}
 .ibr.on .ibr-ck{background:var(--blue); border-color:var(--blue)}
-
 .ibr-bd{flex:1; min-width:0; display:flex; flex-direction:column; cursor:pointer}
 .ibr-bd .t{font-size:12.5px; font-weight:600; color:var(--ink); line-height:1.45;
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .ibr-bd .s{font-size:11px; color:var(--muted); margin-top:1px}
 .ibr-bd .s.miss{color:var(--warn); font-weight:600}
 .ibr-bd .s.flag{color:var(--muted); font-style:italic}
-
 .ibr-ed{width:30px; height:30px; flex:none; padding:0; cursor:pointer;
   border:0; border-radius:9px; background:transparent; color:var(--muted);
   display:inline-flex; align-items:center; justify-content:center}
 .ibr-ed svg{width:14px; height:14px}
 .ibr-ed:active{transform:scale(.9)}
-
-/* บรรทัดที่ถูกตัดออก ยังอ่านได้อยู่ ไม่ได้หายไป — ต้องเห็นว่าเราคิดอะไรถึงตัดมันออก
-   ไม่งั้น "จับซ้ำได้" กลายเป็น "งานหายไปเฉย ๆ" ในสายตาคนใช้ */
 .ibr.off{opacity:.5}
 .ibr.off .ibr-bd .t{text-decoration:line-through; text-decoration-color:var(--muted)}
 .ibr.accepted .ibr-ck{background:var(--good); border-color:var(--good)}
-
 .ib-more{width:100%; min-height:36px; margin-top:8px; cursor:pointer;
   border:0; border-radius:10px; background:transparent; color:var(--muted);
   font-family:inherit; font-size:12px; font-weight:600;
   display:inline-flex; align-items:center; justify-content:center; gap:5px}
 .ib-more svg{width:13px; height:13px; transform:rotate(90deg)}
 .ib-more:active{color:var(--blue)}
-
 .ib-act .ib-go[disabled]{opacity:.45; cursor:default}
-
-/* ---------- แผงตัวเชื่อม ---------- */
-/* สวิตช์เปิด/ปิด — มีเฉพาะตัวเชื่อมที่ไหลเข้ามาเองโดยไม่มีใครสั่ง
-   ทางที่ผู้ใช้กดเองไม่มีสวิตช์ เพราะสวิตช์ที่ปิดสิ่งที่ผู้ใช้เพิ่งกดคือสวิตช์ที่โกหก */
 .tg{flex:none; width:42px; height:25px; padding:2px; margin-top:6px; cursor:pointer;
   border:0; border-radius:999px; background:var(--line);
   display:inline-flex; align-items:center;
@@ -251,15 +177,10 @@
 .tg.on .tg-k{transform:translateX(17px)}
 .tg:active .tg-k{transform:scale(.92)}
 .tg.on:active .tg-k{transform:translateX(17px) scale(.92)}
-
-/* ปิดอยู่ = ยังอ่านได้ ไม่ได้หายไป — ต้องเห็นว่ามันมีอยู่ถึงจะนึกออกว่าเปิดกลับได้ */
 .src.muted{box-shadow:none}
 .src.muted .src-ic{background:var(--card2); color:var(--faint)}
 .src.muted .src-bd .t{color:var(--muted)}
 .src.off{opacity:.82}
-
-/* วิธีใช้แบบนับขั้น — ใช้กับ "แชร์จากแอปอื่น" ที่คนไม่รู้ว่ามีอยู่
-   ขั้นตอนต้องอยู่ตรงนี้ ไม่ใช่ในหน้าช่วยเหลือ เพราะที่นี่คือที่เดียวที่เขาจะมาหามัน */
 .src-how{display:flex; flex-direction:column; gap:5px; margin-top:9px;
   padding:9px 11px; border-radius:11px; background:var(--card2)}
 .src-how span{display:flex; align-items:center; gap:8px;
@@ -268,38 +189,19 @@
   background:var(--blue-soft); color:var(--blue);
   font-size:10px; font-weight:800;
   display:inline-flex; align-items:center; justify-content:center}
-
-/* ข้อจำกัดของ "เครื่องนี้" ไม่ใช่ของแอป — เช่น iOS ไม่รองรับปุ่มแชร์เข้าเว็บแอป
-   ต้องเด่นกว่า .src-note เพราะถ้าไม่เห็น เขาจะกดแชร์แล้วหาไม่เจอแล้วคิดว่าแอปพัง */
 .src-warn{display:flex; gap:7px; margin-top:7px; padding:8px 10px; border-radius:10px;
   background:var(--warn-soft); color:var(--warn);
   font-size:11.5px; font-weight:600; line-height:1.5}
 .src-warn svg{width:13px; height:13px; flex:none; margin-top:2px}
-
-/* ทางเลือกแทนตัวที่ต่อไม่ได้ — บอกทางออกในที่เดียวกับที่บอกว่าตัน
-   ไม่งั้นหน้านี้กลายเป็นรายการของที่ใช้ไม่ได้ ซึ่งอ่านแล้วรู้สึกว่าแอปทำอะไรไม่ได้เลย */
 .src-alt{display:flex; align-items:flex-start; gap:7px; margin-top:7px;
   padding:8px 10px; border-radius:10px; background:var(--good-soft); color:var(--good);
   font-size:11.5px; font-weight:600; line-height:1.5}
 .src-alt svg{width:13px; height:13px; flex:none; margin-top:2px}
-
-/* ป้ายเหตุผล — "รอตั้งค่า" กับ "ต่อไม่ได้" ต่างกันคนละเรื่องสำหรับคนที่รอ
-   อันแรกรอแล้วได้ อันหลังรอไปก็ไม่มีวันได้ สีจึงต้องไม่เหมือนกัน */
 .src-tag{flex:none; margin-top:6px; padding:4px 9px 5px; border-radius:999px;
   font-size:10.5px; font-weight:700; white-space:nowrap}
 .src-tag.setup{background:var(--warn-soft); color:var(--warn)}
 .src-tag.noapi{background:var(--card2); color:var(--faint)}
-
 .src-sub{margin:-4px 2px 9px; font-size:11.5px; color:var(--faint); line-height:1.6}
-
-/* ============================================================
-   1C40 · จอกล่องเข้าแบบใหม่
-   ------------------------------------------------------------
-   การ์ดสถานะ (คำตอบ + ตัวเลขสามช่อง) → รอตัดสินใจ → ที่ผ่านมา → แหล่งงาน
-   รายการทุกชุดเป็นการ์ดใบเดียวคั่นด้วยเส้น ไม่ใช่กล่องเทาแยกกันทีละแถว
-   (กล่องเทาเรียงกันหลายใบอ่านเป็น "ของหลายชิ้นที่ไม่เกี่ยวกัน" ทั้งที่เป็นรายการเดียวกัน)
-   สีเน้นมาจาก --fill ของธีม · สถานะ "ไม่มีอะไรค้าง" ใช้ --good เพราะเป็นข่าวดี ไม่ใช่สีแบรนด์
-   ============================================================ */
 .ib2-hero{position:relative; overflow:hidden; margin-top:4px; padding:18px 18px 16px; border-radius:24px;
   background:
     radial-gradient(130% 100% at 0% 0%, color-mix(in srgb, var(--fill) 16%, transparent), transparent 62%),
@@ -326,18 +228,14 @@
 .ib2-stats b{font-size:22px; font-weight:800; line-height:1.1; color:var(--ink); font-variant-numeric:tabular-nums}
 .ib2-stats span{font-size:11.5px; color:var(--muted)}
 .ib2-stats .hot b{color:var(--fill)}
-
 .ib2-sec{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:24px 4px 9px}
 .ib2-sec span{font-size:13.5px; font-weight:700; color:var(--ink)}
 .ib2-sec button{border:0; background:none; padding:4px 2px; cursor:pointer;
   font-family:inherit; font-size:12.5px; font-weight:700; color:var(--fill)}
-
 .ib2-list{border-radius:20px; overflow:hidden; background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
 .ib2-list > * + *{border-top:1px solid var(--line)}
-/* แถวบันทึกเดิม (.ib-log) เป็นกล่องเทาของตัวเอง — ในการ์ดรวมให้เป็นแถวเปล่า */
 .ib2-list .ib-log{margin:0; padding:11px 14px; border-radius:0; background:none}
 .ib2-list .ib-log-ic{background:var(--surface)}
-
 .ib2-src{display:flex; align-items:center; gap:12px; width:100%; padding:12px 14px; border:0; background:none;
   font-family:inherit; text-align:left; color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent}
 .ib2-src:active{background:var(--surface)}
@@ -352,40 +250,22 @@
 .ib2-src-bd .s.off i{background:var(--alert)}
 .ib2-src-bd .s.wait i{background:var(--warn)}
 .ib2-src > svg{width:16px; height:16px; flex:none; color:var(--faint)}
-/* "เชื่อม" เป็นป้ายในแถว ไม่ใช่ปุ่มซ้อนปุ่ม — ทั้งแถวคือปุ่มอยู่แล้ว */
 .ib2-src-go{flex:none; padding:6px 13px; border-radius:999px; font-size:12px; font-weight:700;
   background-color:var(--fill); color:var(--on-fill);
   background-image:radial-gradient(120% 100% at 18% -8%, rgba(255,255,255,.42), transparent 62%);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1.5px 2px rgba(0,0,0,.12)}
-
-/* .scr-body เป็น flex ที่มี gap 24px ระหว่างลูกทุกชิ้น — หัวข้อกับรายการของมันห่างกันเท่ากับระหว่างหมวด
-   จอนี้คุมระยะเองด้วย margin (หัวข้อ 24 บน 9 ล่าง) ให้หัวข้ออยู่ติดของที่มันเป็นหัว */
 #inboxBody{gap:0}
-/* การ์ดที่รอตัดสินใจ — มุมกับเงาชุดเดียวกับการ์ดอื่นในจอนี้ */
 #inboxBody .ib{border-radius:20px}
 #inboxBody .brain{margin-top:24px; border-radius:20px}
-/* ปุ่มหลักของการ์ดรอตัดสินใจอยู่แถวของตัวเองเต็มความกว้าง — สามปุ่มเรียงกันในการ์ดกว้าง ~300px
-   ปุ่ม "เพิ่มเข้าแผน" ถูกบีบจนตกเป็นสองบรรทัด และพื้นโดน .ib-act button (พื้นเทา) ทับจนดูเป็นปุ่มรอง
-   ทั้งที่มันคือคำตอบที่ถูกเกือบทุกครั้ง */
 #inboxBody .ib-act .ib-go{flex:1 1 100%; min-height:44px; white-space:nowrap;
   background-color:var(--fill); color:var(--on-fill); border-color:transparent; font-size:13.5px; font-weight:700}
 #inboxBody .ib-act button:not(.ib-go){white-space:nowrap}
-
-/* ============================================================
-   1C40 · จอการแจ้งเตือน + ป้ายเด้งเมื่อมีข้อความเข้ามา
-   ------------------------------------------------------------
-   แถวแบบ iOS/IG: รูปคน (หรือไอคอนแหล่งงาน) + ป้ายชนิดเล็กมุมรูป · ประโยคเดียวว่าเกิดอะไร ·
-   ตัวอย่างข้อความ · เวลา · จุดสีธีมบอกว่ายังไม่อ่าน
-   รายการใช้การ์ดรวม .ib2-list ชุดเดียวกับกล่องเข้า สองจอนี้จึงเป็นของบ้านเดียวกัน
-   ============================================================ */
 #notifBody{gap:0}
 .nt-chips{display:flex; gap:7px; margin:4px 0 2px}
 .nt-chips .cp-chip{padding:7px 15px; font-size:13px}
-
 .nt-row, .nt-login{display:flex; align-items:flex-start; gap:12px; width:100%; padding:13px 14px; border:0; background:none;
   font-family:inherit; text-align:left; color:var(--ink); cursor:pointer; -webkit-tap-highlight-color:transparent}
 .nt-row:active, .nt-login:active{background:var(--surface)}
-/* ยังไม่อ่าน = พื้นสีธีมจาง ๆ ทั้งแถว — จุดเล็กอย่างเดียวหาไม่เจอตอนกวาดตาเร็ว ๆ */
 .nt-row.new{background:color-mix(in srgb, var(--fill) 7%, transparent)}
 .nt-ic{position:relative; flex:none}
 .nt-av{width:44px; height:44px; border-radius:50%; object-fit:cover; display:grid; place-items:center;
@@ -414,7 +294,6 @@
 .nt-login{margin-top:14px; align-items:center; border-radius:20px; background:var(--card);
   border:1px dashed color-mix(in srgb, var(--fill) 35%, var(--line))}
 .nt-login > svg{width:16px; height:16px; color:var(--faint); flex:none}
-
 .nt-empty{margin-top:14px; padding:30px 22px 26px; text-align:center; border-radius:24px;
   background:color-mix(in srgb, var(--card) 80%, transparent); border:1px solid var(--line); box-shadow:var(--shadow)}
 .nt-empty-ic{width:58px; height:58px; margin:0 auto 14px; border-radius:20px; display:grid; place-items:center;
@@ -425,10 +304,6 @@
 .nt-empty-ic svg{width:28px; height:28px}
 .nt-empty-t{font-size:17px; font-weight:800; letter-spacing:-.02em; color:var(--ink)}
 .nt-empty-p{margin:6px auto 0; max-width:270px; font-size:12.5px; line-height:1.6; color:var(--muted)}
-
-/* ---------- ป้ายเด้ง ----------
-   ลงมาจากขอบบนแบบแจ้งเตือนของ iOS · กระจกเบลอ แตะแล้วเปิดห้องคุยนั้นเลย
-   อยู่ใน .phone (เหมือน toast) จึงไม่หลุดกรอบบนจอกว้าง · ไม่บังปุ่มอะไรนานเกิน 5 วิ */
 .nt-banner{position:absolute; left:10px; right:10px; top:calc(env(safe-area-inset-top) + 8px); z-index:96;
   display:flex; align-items:center; gap:11px; padding:11px 13px; border-radius:22px; cursor:pointer;
   background:color-mix(in srgb, var(--card) 78%, transparent);
@@ -446,16 +321,9 @@
 .nt-bn-tx{font-size:12.5px; line-height:1.4; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .nt-bn-tx em{font-style:normal; font-weight:700; color:var(--fill)}
 .nt-banner:not(.show){pointer-events:none}
-@media (prefers-reduced-motion: reduce){ .nt-banner{transition:opacity .2s ease; transform:none} }
-
-/* ============================================================
-   15 ต.ค. 69 · ข่าวสารจากทีม (scr-news · news.js)
-   ------------------------------------------------------------
-   การ์ดใบละประกาศ ไม่ใช่แถวในรายการแบบจอแจ้งเตือน — ข่าวมีเนื้อความกับข้อย่อยให้อ่าน
-   ประเภทข่าวบอกด้วยไอคอน + คำ (ไม่พึ่งสีอย่างเดียว · ทุกประเภทใช้สีตระกูลเดียวของธีม)
-   ไม่ใช้ทองที่ไหนเลย — ทองสงวนไว้ให้ของที่ผู้ใช้ทำสำเร็จ ประกาศจากทีมไม่ใช่ความสำเร็จของเขา
-   แถวที่มีทั้งข้อความกับป้ายใช้ grid ไม่ใช้ flex (span ที่เป็น flex item ใน alt/ กว้าง 0)
-   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+.nt-banner{transition:opacity .2s ease; transform:none}
+}
 .nw-list{display:grid; gap:12px}
 .nw-card{padding:16px 16px 14px; border-radius:20px; background:var(--card); border:1px solid var(--line); box-shadow:var(--shadow)}
 .nw-card.new{border-color:color-mix(in srgb, var(--fill) 45%, var(--line))}
@@ -486,9 +354,5 @@
 .nw-draftbar{margin:4px 2px 12px; padding:10px 12px; border-radius:14px; border:1px dashed var(--line);
   background:var(--surface); font-size:12.5px; line-height:1.5; color:var(--muted)}
 .nw-draftbar + .nw-list{margin-bottom:8px}
-
-/* ประกาศสำคัญที่ทีมเขียนเอง (kind: notice) — ปักไว้บนสุด
-   ใช้ --warn (อำพัน) ไม่ใช่ทอง: ทองแปลว่า "ทำสำเร็จ" ส่วนนี่แปลว่า "ควรรู้" · ทุกธีมนิยาม --warn/--warn-soft ไว้ครบ
-   ไม่ทำแถบสีข้างการ์ด (Impeccable จับว่าเป็นท่าของหน้าตาแบบ AI) — กรอบทั้งใบกับชิปพอ */
 .nw-card.notice{border-color:color-mix(in srgb, var(--warn) 55%, var(--line))}
 .nw-card.notice .nw-kind{background:var(--warn-soft); color:var(--warn)}
