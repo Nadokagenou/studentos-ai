@@ -1745,20 +1745,35 @@ function syncMergeKeys(local, remote, base) {
 
 // ถาม rev · ถ้า cloud ขยับไปจากที่เห็นล่าสุด ลากก้อนลงมารวม · คืน true เมื่อรวมแล้ว (ผู้เรียก renderAll เอง)
 // เรียกผ่าน syncSerial เท่านั้น
+// ---------- Clear · แถว cloud ของตัวเอง (16 พ.ย. 69) ----------
+// Clear ห้ามเขียนลง user_state (แถวของแอปหลัก) — รูปแบบข้อมูลของ clear จะเปลี่ยนไปเรื่อย ๆ
+// ตาราง user_state_clear สร้างด้วย supabase/migrations/20261116120000_user_state_clear.sql
+// ยังไม่ได้รันบนฐานจริง = ตารางไม่มี → ปิดซิงก์เงียบ ๆ ใช้ในเครื่องอย่างเดียว (ไม่ถอยไปเขียน user_state เด็ดขาด)
+const CLOUD_TABLE = 'user_state_clear';
+let clearCloudMissing = false;
+function clearTableMissing(err) {
+  const c = err && (err.code || ''), m = String(err && err.message || '');
+  if (c === 'PGRST205' || c === '42P01' || /user_state_clear/.test(m) && /not find|does not exist/i.test(m)) {
+    if (!clearCloudMissing) console.warn('[clear] ยังไม่มีตาราง user_state_clear — ซิงก์ cloud ปิดอยู่ ใช้ในเครื่องอย่างเดียว');
+    clearCloudMissing = true;
+    return true;
+  }
+  return false;
+}
 async function cloudPull() {
   // ถาม rev ก่อนว่าของบน cloud ใหม่กว่าที่เครื่องนี้เห็นล่าสุดไหม — ตัวเลขตัวเดียว
   // ไม่กี่ไบต์ ถูกกว่าลากก้อน 26KB ลงมาเทียบเองทุกครั้งที่เปิดแอปหลายสิบเท่า
   // (เปิดแอปส่วนใหญ่ไม่มีอะไรเปลี่ยนบน cloud เพราะเครื่องนี้เองเป็นคนเขียนล่าสุด)
-  if (!sb || !currentUser) return false;
+  if (!sb || !currentUser || clearCloudMissing) return false;
   const pullUser=currentUser.id;
-  const { data: head, error: headErr } = await sb.from('user_state')
+  const { data: head, error: headErr } = await sb.from(CLOUD_TABLE)
     .select('rev').eq('id', pullUser).maybeSingle();
   if (currentUser?.id!==pullUser) return false;
-  if (headErr) throw headErr;
+  if (headErr) { if (clearTableMissing(headErr)) return false; throw headErr; }
   if (!head) { lastSeenRev = -1; return false; }   // ยังไม่มีแถว — pushRound จะสร้างให้
   if (head.rev === lastSeenRev) return false;
 
-  const { data, error } = await sb.from('user_state')
+  const { data, error } = await sb.from(CLOUD_TABLE)
     .select('data, avatar, rev').eq('id', pullUser).maybeSingle();
   if (currentUser?.id!==pullUser) return false;
   if (error) throw error;
@@ -1882,7 +1897,7 @@ function pushSnapshot() {
 
 // เรียกผ่าน syncSerial เท่านั้น · โยน error ให้ pushToCloud บอกผู้ใช้
 async function pushRound() {
-  if (!sb || !currentUser) return;
+  if (!sb || !currentUser || clearCloudMissing) return;
   const pushUser=currentUser.id;
   // ข้อมูลในเครื่องเป็นของบัญชีอื่น = ห้ามส่ง จนกว่า syncFromCloud จะรับมาเป็นของบัญชีนี้ (adoptAccountIfNeeded)
   // ยังไม่มีเจ้าของ (ใช้แบบไม่ล็อกอินมาก่อน) ส่งได้ — รอบนี้ดึงมารวมกับ cloud ก่อนเขียนอยู่แล้ว (cloudPull ข้างล่าง)
@@ -1901,7 +1916,7 @@ async function pushRound() {
   for (let attempt = 0; ; attempt++) {
     if (attempt === 3) throw new Error('cloud keeps changing — will retry on next save');
     const pulled=await cloudPull();
-    if (currentUser?.id!==pushUser) return;
+    if (currentUser?.id!==pushUser || clearCloudMissing) return;
     if (pulled) {
       renderAll();
       snap = pushSnapshot();
@@ -1919,11 +1934,11 @@ async function pushRound() {
     // การเปิดแอปครั้งถัดไปจะต้องลากทั้งก้อนลงมาเทียบใหม่ทั้งที่เครื่องนี้เองเป็นคนเขียน
     // lastSeenRev = -1 คือ cloud ยังไม่มีแถวของบัญชีนี้ (cloudPull บอก) — สร้างใหม่ด้วย upsert แบบเดิม
     const res = lastSeenRev < 0
-      ? await sb.from('user_state').upsert(row).select('rev,vault:data->vault').maybeSingle()
-      : await sb.from('user_state').update(row).eq('id', pushUser).eq('rev', lastSeenRev)
+      ? await sb.from(CLOUD_TABLE).upsert(row).select('rev,vault:data->vault').maybeSingle()
+      : await sb.from(CLOUD_TABLE).update(row).eq('id', pushUser).eq('rev', lastSeenRev)
           .select('rev,vault:data->vault').maybeSingle();
     if (currentUser?.id!==pushUser) return;
-    if (res.error) throw res.error;
+    if (res.error) { if (clearTableMissing(res.error)) return; throw res.error; }
     back = res.data;
     if (back) break;
   }

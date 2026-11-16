@@ -1,0 +1,38 @@
+/* ============================================================
+   Student OS Clear · ซ่อนทางเข้าฟีเจอร์ที่ไม่ใช่การจดงาน (เฟส 1 · 16 พ.ย. 69)
+   ------------------------------------------------------------
+   สคริปต์ของฟีเจอร์พวกนี้ไม่ถูกโหลดแล้ว (ดู index.html) — ปุ่มที่ยังโผล่จะกดแล้วพัง
+   ไฟล์นี้โหลดท้ายสุด · เลี่ยง :is()/:has() เพราะเป็นตัวกินเวลาคิดสไตล์หลัก (วัด 9 พ.ย. 69)
+   เฟส 2 จะวาดหน้าแรกใหม่ ไฟล์นี้จะสั้นลง
+   ============================================================ */
+
+/* แถบล่าง: ถอดแท็บแชท AI */
+.tab[data-scr="scr-ai"] { display: none !important; }
+
+/* แผ่นเพิ่มงาน: ถอด "ถามน้องฮูก" */
+.as-hero.wide[onclick*="scr-ai"] { display: none !important; }
+
+/* หน้าแรก: ช่องถาม AI (เฟส 2 เปลี่ยนเป็นช่องจดงาน) */
+.td-ask { display: none !important; }
+
+/* หน้าแรก: ไฟต่อเนื่อง/โทเคน · ไทล์ข้อความ/เพื่อน/ของสะสม/ร้านค้า */
+.td-top .tt-streak,
+.td-top .tt-tok,
+.td-tiles [onclick^="openDmInbox"],
+.td-tiles [onclick^="openFeed"],
+.td-tiles [onclick="go('scr-badges')"],
+.td-tiles [onclick="go('scr-shop')"] { display: none !important; }
+
+/* แท็บฉัน: ห้อง/เหรียญตรา/ต่อเนื่อง · เช็คอินรับโทเคน · ทางเข้าโซเชียล/ร้านค้า/ข่าว */
+#showBox .shw-room,
+#showBox .shw-badge,
+#showBox .shw-streak,
+#peDaily,
+.pf-entry .pe-shop,
+.pf-entry .pe-soon,
+.pf-entry .pe-pro,
+.pf-entry [onclick^="openDmInbox"],
+.pf-entry [onclick^="openFeed"],
+.pf-entry [onclick^="openBoard"],
+.pf-entry [onclick="go('scr-news')"],
+.pf-entry [onclick^="location.href='feedback.html'"] { display: none !important; }
