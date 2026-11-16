@@ -141,6 +141,7 @@ const SHELL = [
   "compat.js",
   "clear.css",
   "clear.js",
+  "clear-home.js",
   "vendor/supabase-2.118.0.js",
   "classrooms.js",
   "halloween/death-quests.js",
