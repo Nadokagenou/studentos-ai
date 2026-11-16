@@ -96,3 +96,21 @@
    เฟส 4 · ธีมเหลือ ตามระบบ / สว่าง / มืด — CSS ของธีมอื่นถูกตัดออกแล้ว ปุ่มของมันต้องไม่โผล่
    ============================================================ */
 [data-th]:not([data-th="system"]):not([data-th="light"]):not([data-th="dark"]) { display: none !important; }
+
+/* รอบ 2 · กำลังฟังเสียง — ไมค์เต้น กรอบช่องเป็นสีเตือนเบา ๆ */
+.clr-in.listening { border-color: var(--alert); }
+.clr-in.listening .clr-mic { background: var(--alert); color: #fff; animation: clr-pulse 1s ease-in-out infinite; }
+.clr-in.listening .clr-cam { display: none; }
+@keyframes clr-pulse { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .clr-in.listening .clr-mic { animation: none; } }
+
+/* รอบ 3 · สวิตช์ "ส่งงานที่ส่งเข้ามา มาที่ Clear" บนจอตัวเชื่อม */
+.clr-rt { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 14px 16px; background: var(--card);
+  border: 1.5px solid var(--blue); border-radius: 16px; }
+.clr-rt > div { flex: 1; min-width: 0; }
+.clr-rt b { display: block; font-size: 15px; color: var(--ink); }
+.clr-rt small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.clr-rt-b { flex: none; border: 0; border-radius: 12px; padding: 9px 16px; font: inherit; font-weight: 700;
+  background: var(--blue); color: var(--on-accent, #fff); }
+.clr-rt-b.on { background: var(--card2); color: var(--ink); }
+.clr-rt-b:disabled { opacity: .6; }
