@@ -1,0 +1,148 @@
+/* 25 ต.ค. 69 · เจ้าของ: "ให้ธีม Moon & Candle และ Halloween มีปุ่มทั้งหมดคล้ายธีมหลัก เปลี่ยนสีกับพื้นหลัง พวก UI ทำให้เหมือนให้หมด"
+   ไฟล์นี้เคยแต่งทุกคอมโพเนนต์ใหม่หมด (มุมเบี้ยว 17px/5px · ไล่สีเฉพาะ · ขอบเฉพาะ · ปุ่ม/การ์ด/แถบ/แผ่น/ช่องกรอก ~240 กฎ)
+   ตอนนี้เหลือแค่ ① โทเคนสีของธีม (:root[data-theme=…]) ② ฉากพื้นหลัง (.hw-scene · ท้องฟ้า · สุสาน · เทียน · ผี · ค้างคาว)
+   ③ ปุ่มเสียง/การเคลื่อนไหว (.hw-controls) · เอฟเฟกต์คลิก · กล่องตั้งค่าธีม ④ กฎคุมการเคลื่อนไหวของฉาก (โหมดประหยัด/ลดการเคลื่อนไหว)
+   ปุ่ม การ์ด แถบล่าง ช่องกรอก ใช้กฎเดียวกับธีมหลักทั้งหมด จึงต่างแค่สีกับฉาก
+   กฎที่ถอดออกดูได้ใน git (คอมมิตก่อนหน้านี้) · แยกด้วยสคริปต์ที่จัดกลุ่มตามตัวเลือก ไม่ได้ลบมือทีละกฎ */
+/* Moon & Candle (theme id: moonlight) — a sample theme for the team to develop further.
+   Built on the Halloween scene and runtime (theme-main.js treats it as part of the Halloween family),
+   but every rule here is scoped to [data-theme="moonlight"], so the Halloween theme is untouched.
+   Hand-off notes: halloween/docs/moon-and-candle.md */
+/* ===== Palette 60 : 30 : 10 · "Moonlight and candle" ============================
+   60 Midnight Purple  — the night sky: canvas, navigation chrome, sheets, the hero card
+   30 Vibrant Blue     — moonlight: thin glass cards with a lit top edge, icons, selected states
+   10 Vivid Deep Orange — the one candle: primary CTA and the add button glow; "today/now" markers
+   Glass tokens (--hw-card*) are translucent and always sit on --hw-glass-base, so text never
+   depends on the art behind them. App tokens (--card, --card2 …) get the solid equivalent.
+   Every colour below refers to these tokens. Night is the default tone;
+   html[data-hw-tone="light"] swaps the tokens and nothing else (toggle: ฉัน › ตั้งค่า › ธีมสี › โทนสี).
+   Contrast is checked by halloween/tests/palette.test.mjs for both tones. */
+:root[data-theme="moonlight"]{
+ color-scheme:dark;
+ /* 60 · Midnight Purple */
+ --hw-canvas:#170B36;--hw-canvas-top:#26115A;--hw-canvas-low:#0F0727;
+ --hw-chrome:#1E1046;--hw-chrome-2:#2A1763;--hw-well:#120830;
+ --hw-violet:#8B5CFF;--hw-violet-line:#A487FF4D;--hw-scrim:#0A0420C2;
+ /* Hero card: deeper sky with moonlight from the top right */
+ --hw-hero-a:#30197A;--hw-hero-b:#190D42;--hw-moon:#8CC8FF3D;--hw-hero-line:#B9A5FF4D;
+ /* 30 · Vibrant Blue as moonlit glass */
+ --hw-glass-base:#170B369E;
+ --hw-card:#7084FF38;--hw-card-low:#2B2F9E29;--hw-card-hi:#8A9CFF4D;--hw-card-well:#0F07274D;
+ --hw-moon-rim:#CDE4FF4D;--hw-glass-blur:blur(14px) saturate(140%);
+ --hw-blue:#2F8CFF;--hw-sky:#7DD3FF;--hw-sky-text:#8FDAFF;--hw-sky-2:#A5B4FF;
+ --hw-blue-line:#AFC3FF29;--hw-blue-line-strong:#9FCBFF66;
+ /* 10 · Vivid Deep Orange as candlelight */
+ --hw-orange:#FF7A3D;--hw-orange-cta:#D63F00;--hw-orange-cta-low:#B53300;--hw-orange-hi:#FFBA8C;
+ --hw-on-orange:#FFFFFF;--hw-orange-glow:#FF5A1A47;
+ --hw-candle:inset 0 1px 0 #FFDEC48C,0 10px 28px #FF5C1A8C,0 0 70px #FF6E2847;
+ --hw-candle-ink:#FFC59A;--hw-engrave:0 -1px 0 #00000080,0 1px 0 #FFFFFF1A;
+ /* Text */
+ --hw-ink:#F4F2FF;--hw-ink-2:#CFC6F2;--hw-ink-blue:#CCD8FF;--hw-ink-3:#BCCBF7;
+ /* Status: meaning stays fixed, never borrows the accent */
+ --hw-good:#5BE3A4;--hw-good-bg:#0F5C3E;--hw-good-ink:#D9FFEC;
+ --hw-warn:#FFCF5C;
+ --hw-alert:#FFB3C3;--hw-alert-bg:#6E1430;--hw-alert-ink:#FFD7DF;
+ --hw-shadow:#05011299;--hw-ring:#0F072766;
+ /* App tokens: every screen inherits the palette from here */
+ --scr:var(--hw-canvas);--card:#2B2662;--card2:#3A3773;--surface:#3A3773;
+ --ink:var(--hw-ink);--muted:var(--hw-ink-blue);--faint:var(--hw-ink-3);--line:var(--hw-blue-line);
+ --blue:var(--hw-sky-text);--blue-soft:#2B3A86;--blue-deep:#A9DCFF;--neon:var(--hw-sky);
+ --fill:var(--hw-sky);--fill-on:#061433;--on-fill:#061433;--on-accent:#061433;
+ --alert:var(--hw-alert);--warn:var(--hw-warn);--good:var(--hw-good);--fire:var(--hw-alert);
+ --alert-soft:#FFB3C326;--warn-soft:#FFCF5C26;--good-soft:#5BE3A426;
+ --pri-red-soft:#FFB3C32E;--pri-red-text:var(--hw-alert);
+ --pri-yellow-soft:#FFCF5C2E;--pri-yellow-text:var(--hw-warn);
+ --pri-green-soft:#5BE3A42E;--pri-green-text:var(--hw-good);
+ --gold-soft:#F0C14A42;--gold-text:#F0C14A;
+ --grad-brand:linear-gradient(125deg,#1F6FF0,#6A3BF0);--grad-hero:linear-gradient(140deg,#1D4FC4,#3A1C8C);
+ --shadow:0 12px 35px var(--hw-shadow);--shadow-lg:0 20px 55px var(--hw-shadow);--shadow-brand:0 8px 26px #2F8CFF40;
+ --glass:#1E1046E8;--glass-line:var(--hw-violet-line);--skel:#ffffff0c;--skel-hi:#ffffff18;
+ --pg:var(--hw-canvas);--pg-ink:var(--hw-ink);--pg-muted:var(--hw-ink-2);--frame:var(--hw-canvas);
+ --soft-card:#2B2662ED;--soft-shadow:0 3px 7px #04010844,0 16px 34px -12px #04010899;--soft-shadow-lg:0 8px 18px #04010855,0 30px 60px -18px #040108aa;
+}
+:root[data-theme="moonlight"][data-hw-tone="light"]{
+ color-scheme:light;
+ --hw-canvas:#F3EDFF;--hw-canvas-top:#E3D5FF;--hw-canvas-low:#FBF8FF;
+ --hw-chrome:#FBF8FF;--hw-chrome-2:#F2EBFF;--hw-well:#FFFFFF;
+ --hw-violet:#6D3BFF;--hw-violet-line:#6D3BFF33;--hw-scrim:#2A175A66;
+ --hw-hero-a:#EDE4FF;--hw-hero-b:#DCCBFF;--hw-moon:#FFFFFFB3;--hw-hero-line:#6D3BFF33;
+ --hw-glass-base:#F3EDFF66;
+ --hw-card:#FFFFFF9E;--hw-card-low:#EAF3FF8C;--hw-card-hi:#DCEBFFC7;--hw-card-well:#FFFFFF80;
+ --hw-moon-rim:#FFFFFF;--hw-glass-blur:blur(14px) saturate(140%);
+ --hw-blue:#0858D6;--hw-sky:#0858D6;--hw-sky-text:#0050C8;--hw-sky-2:#3B3FD9;
+ --hw-blue-line:#0858D626;--hw-blue-line-strong:#0858D666;
+ --hw-orange:#B33500;--hw-orange-cta:#D63F00;--hw-orange-cta-low:#B53300;--hw-orange-hi:#FF8A4C;
+ --hw-on-orange:#FFFFFF;--hw-orange-glow:#D63F0038;
+ --hw-candle:inset 0 1px 0 #FFD9BF99,0 8px 22px #D63F0059,0 0 46px #FF6E2826;
+ --hw-candle-ink:#B33500;--hw-engrave:0 1px 0 #FFFFFFCC;
+ --card:#FAF8FF;--card2:#E1EBFF;--surface:#E1EBFF;
+ --hw-ink:#1B0F3D;--hw-ink-2:#4A3C7A;--hw-ink-blue:#33407A;--hw-ink-3:#4A5690;
+ --hw-good:#0B6E43;--hw-good-bg:#D3F5E4;--hw-good-ink:#0B4F31;
+ --hw-warn:#7A4F00;
+ --hw-alert:#B3122C;--hw-alert-bg:#FFE0E6;--hw-alert-ink:#8C0E22;
+ --hw-shadow:#2A175A26;--hw-ring:#FFFFFF66;
+ --blue-soft:#CFE3FF;--blue-deep:#003F9E;
+ --fill-on:#FFFFFF;--on-fill:#FFFFFF;--on-accent:#FFFFFF;
+ --alert-soft:#B3122C1A;--warn-soft:#7A4F001A;--good-soft:#0B6E431A;
+ --pri-red-soft:#FBDDD9;--pri-yellow-soft:#FBEFC4;--pri-green-soft:#D9EFE1;
+ --gold-soft:#FBEFC4;--gold-text:#8A6206;
+ --shadow-brand:0 8px 22px #0858D633;
+ --glass:#FBF8FFE6;--skel:#1B0F3D0d;--skel-hi:#1B0F3D17;
+ --soft-card:#FAF8FFF0;--soft-shadow:0 2px 6px #2A175A14,0 14px 30px -14px #2A175A38;--soft-shadow-lg:0 4px 12px #2A175A1a,0 28px 54px -18px #2A175A45;
+}
+:root[data-theme="moonlight"] .hw-scene{display:block;position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:paint}
+:root[data-theme="moonlight"] .phone{isolation:isolate;background:radial-gradient(ellipse at 85% 0,var(--hw-canvas-top),transparent 60%),linear-gradient(180deg,var(--hw-canvas),var(--hw-canvas-low));border-color:var(--hw-violet-line)}
+:root[data-theme="moonlight"] .screens{position:relative;z-index:1;background:transparent}
+:root[data-theme="moonlight"] .screen{background:transparent}
+:root[data-theme="moonlight"] .fx,:root[data-theme="moonlight"] .starfield{display:none!important}
+:root[data-theme="moonlight"] .hw-haze{position:absolute;inset:-12%;background:radial-gradient(ellipse at 15% 80%,#2F8CFF26,transparent 40%),radial-gradient(ellipse at 82% 28%,#8B5CFF33,transparent 45%);animation:hw-haze 22s ease-in-out infinite alternate}
+:root[data-theme="moonlight"] .hw-mist{position:absolute;inset:50% -50% -25%;background:radial-gradient(ellipse at center,#A9C8FF1c 0,transparent 60%);animation:hw-mist 30s ease-in-out infinite alternate}
+:root[data-theme="moonlight"] .hw-spark{position:absolute;width:3px;height:3px;background:#A9E4FF;border-radius:50%;box-shadow:0 0 9px #5CC8FF;left:calc(var(--i)*7%);top:calc(21% + var(--i)*5%);opacity:.5;animation:hw-spark calc(6s + var(--i)*.7s) ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.8s)}
+:root[data-theme="moonlight"] .hw-ghost{position:absolute;width:54px;height:74px;left:7%;top:23%;opacity:.25;animation:hw-ghost 13s ease-in-out infinite alternate;filter:drop-shadow(0 0 12px #A9B8FF55)}
+:root[data-theme="moonlight"] .hw-candle:before{content:"";position:absolute;bottom:calc(100% - 2px);left:-1px;width:11px;height:22px;border-radius:85% 10% 75% 50%;transform:rotate(-18deg);background:radial-gradient(ellipse at 50% 75%,#fff2cf,#FF7A33 55%,#D63F0000 75%);box-shadow:0 0 25px 8px #FF5A1A2a;animation:hw-flame 2s ease-in-out infinite alternate}
+:root[data-theme="moonlight"] .hw-wanderer{position:absolute;left:0;bottom:70px;width:45px;height:60px;opacity:.37;animation:hw-wander 38s linear infinite;filter:drop-shadow(0 0 14px #7DD3FF55)}
+:root[data-theme="moonlight"] .hw-ground-fog{position:absolute;left:-30%;right:-30%;bottom:-40px;height:190px;background:radial-gradient(ellipse at 35% 80%,#A9C0FF33,transparent 54%),radial-gradient(ellipse at 75% 70%,#A487FF2e,transparent 48%);animation:hw-ground-fog 24s ease-in-out infinite alternate}
+@media(max-width:599px){
+ :root[data-theme="moonlight"] .hw-night{animation:hw-night-drift 24s ease-in-out infinite alternate}
+ :root[data-theme="moonlight"] .hw-wanderer{animation-duration:24s;opacity:.47}
+ :root[data-theme="moonlight"] .hw-wanderer.distant{animation-duration:36s;opacity:.26}
+}
+:root[data-theme="moonlight"] .hw-preferences input[type=range]{width:120px;accent-color:var(--fill)}
+:root[data-theme="moonlight"] .hw-controls{position:fixed;z-index:97;bottom:88px;right:12px;display:flex;gap:5px;align-items:center;opacity:.9}
+:root[data-theme="moonlight"] .hw-controls button{width:33px;height:33px;display:grid;place-items:center;background:var(--hw-chrome-2,#2A1763);color:var(--hw-ink,#F4F2FF);border:1px solid var(--hw-violet-line,#A487FF4D);border-radius:11px;font:14px/1 sans-serif;cursor:pointer;box-shadow:0 4px 14px var(--hw-shadow,#05011299)}
+:root[data-theme="moonlight"] .hw-burst{position:fixed;z-index:10000;pointer-events:none;display:block;width:8px;height:8px;background:#A9E4FF;border-radius:50%;box-shadow:0 0 13px #5CC8FF;animation:hw-burst 850ms ease-out forwards;left:var(--x);top:var(--y)}
+:root[data-theme="moonlight"] .hw-burst:nth-of-type(2n){background:#FF9A5C;box-shadow:0 0 13px #FF6A2B}
+:root[data-theme="moonlight"] .hw-ring{position:fixed;z-index:9998;pointer-events:none;border:1px solid #7DD3FF;border-radius:50%;width:60px;height:60px;margin:-30px;left:var(--x);top:var(--y);animation:hw-ring .8s ease-out forwards;box-shadow:0 0 25px #5CC8FF33}
+html[data-quality="medium"] .hw-scene *,html[data-hw-motion="still"] .hw-scene *,html[data-hw-motion="still"][data-theme="moonlight"] button:after{animation:none!important}
+@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-scene *,html[data-theme="moonlight"]:not([data-hw-motion="full"]) button:after,html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){animation:none!important}html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){display:none!important}}
+@media(min-width:1024px) and (hover:hover) and (pointer:fine){
+ :root[data-theme="moonlight"] .hw-night{background-position:center 38%;opacity:.8}
+ :root[data-theme="moonlight"] .hw-controls{bottom:16px;right:18px}
+ .hw-controls button{width:37px;height:37px}
+ :root[data-theme="moonlight"] .hw-ghost{left:38%;top:13%;width:70px}
+ :root[data-theme="moonlight"] .hw-candle{left:calc(var(--desktop-rail,248px) + 10px);bottom:30px}
+}
+:root[data-theme="moonlight"] .hw-controls{right:144px}
+@media(max-width:599px){
+ :root[data-theme="moonlight"] .hw-controls{bottom:75px;right:8px}
+ :root[data-theme="moonlight"] .hw-night{background-position:65% center}
+}
+:root[data-theme="moonlight"] .hw-controls{right:144px!important}
+/* 60% stays visible: the night art sits under a purple wash instead of hiding the canvas. */
+:root[data-theme="moonlight"] .hw-night{opacity:.58}
+/* Light tone (แสงจันทร์): same structure, the night art fades to a pale wash. */
+:root[data-theme="moonlight"][data-hw-tone="light"] .hw-night{opacity:.13}
+:root[data-theme="moonlight"][data-hw-tone="light"] .hw-graveyard{opacity:.22}
+:root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-bats,.hw-candle){opacity:.3}
+:root[data-theme="moonlight"][data-hw-tone="light"] :is(.hw-spark,.hw-wanderer,.hw-ghost){opacity:.16}
+:root[data-theme="moonlight"][data-hw-tone="light"] .hw-haze{background:radial-gradient(ellipse at 15% 80%,#0858D61a,transparent 40%),radial-gradient(ellipse at 82% 28%,#6D3BFF22,transparent 45%)}
+
+/* 26 ต.ค. 69 · เจ้าของ: "Moon & Candle ปรับให้พวก UI มีสีหลักคือฟ้ากับส้มหน่อย"
+   เดิมทั้งแอปเป็นฟ้าล้วน (--fill กับ --blue เป็นฟ้าทั้งคู่) ส้มเทียนมีแค่ปุ่ม "+" กับขีดใต้แท็บ
+   แบ่งหน้าที่สองสีตามชื่อธีม: ฟ้าจันทร์ = ของที่กดหลัก (--fill · ปุ่มเริ่ม · ไทล์ · ปุ่มส่ง) · ส้มเทียน = สีรองทั้งแอป (--blue)
+   --blue ถูกใช้ ~250 ที่ (ลิงก์ "ดูทั้งหมด" · ชิป · ตัวเน้น · ตัวเลือกที่เลือกอยู่ · แถบความคืบหน้า) ส้มจึงกระจายไปทุกจอเอง
+   ของที่ทาพื้นด้วย --blue ใช้ตัวหนังสือ --on-accent: โทนมืด = กรมท่าเข้มบนส้มอ่อน · โทนสว่าง = ขาวบนส้มเข้ม (ตั้งให้ใหม่ด้านล่าง)
+   ไล่สีแบรนด์ (แถบความคืบหน้า · ก้อนที่ใช้ --grad-brand) = จันทร์ → เทียน
+   --blue-soft (พื้นของที่เลือกอยู่ เช่นแท็บห้อง) เป็นม่วงอมส้มทึบ ไม่ใช่ส้มโปร่ง — ส้มโปร่งบนพื้นมืดทำให้ตัวหนังสือสว่างข้างบนได้แค่ 3.0 */
+:root[data-theme="moonlight"]{--blue:#FFB27A;--blue-soft:#5A2C46;--blue-deep:#FFC9A0;--grad-brand:linear-gradient(125deg,#5CC8FF,#FF8A3D)}
+:root[data-theme="moonlight"][data-hw-tone="light"]{--blue:#B83C00;--blue-soft:#FFE3CC;--blue-deep:#8A2E00;--on-accent:#FFFFFF;--grad-brand:linear-gradient(125deg,#0858D6,#D63F00)}

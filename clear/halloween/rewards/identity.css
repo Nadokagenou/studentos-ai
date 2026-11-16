@@ -1,0 +1,407 @@
+/* ============================================================
+   ตัวตนของธีม Halloween ทั้ง 6 — 25 ต.ค. 69
+   เจ้าของ (/ui-ux-pro-max): "ปรับให้ UI แต่ธีมมีเอกลักษณ์ของแต่ละธีมฮาลาวีน
+     Dutchman · Moon & Candle · Halloween · Jack'o Lantern · Vampire Mansion · Eternal Graveyard"
+   ก่อนหน้านี้ทั้ง 6 ธีมถอดการแต่งคอมโพเนนต์เองออกให้ใช้ UI ของธีมหลัก (ปุ่มเหมือนกันหมด ต่างแค่สีกับฉาก)
+   รอบนี้ใส่ตัวตนกลับด้วย "ระบบตัวตนของธีมหลัก" ตัวเดียวกับ 12 ธีมใน alt.css (ทรง --id-* · ผิวปุ่มหลัก · แท็บที่เลือก
+   · หัวข้อจอ · ท่าเปลี่ยนจอ · ท่ากดไอคอน) — UI ยังเป็นชุดเดียวกับธีมหลัก ต่างกันที่ทรงกับนิสัยแบบที่ธีมหลักต่างกันเอง
+   แต่ละธีมมีแนวคิดเดียว ทุกชิ้นตามแนวคิดนั้น:
+     Halloween คลาสสิก (Midnight Academy) — หนังสือคาถา: มุมสันหนังสือ · สันทองด้านซ้าย · เปลี่ยนจอแบบพลิกหน้า
+     Moon & Candle — ข้างขึ้นข้างแรม: ทรงกลม · เงาเสี้ยวจันทร์ · แท็บที่เลือกมีเปลวเทียนส้มใต้ · จันทร์ขึ้น
+     Dutchman — เรือผี: ช่องหน้าต่างเรือกลมขอบทองเหลือง · เรือโคลงตอนกด · คลื่นยกตอนเปลี่ยนจอ
+     Jack'o Lantern — ฟักทองจุดเทียน: ทรงฟักทองป้อม · แสงเทียนอุ่นในปุ่ม · ไฟกะพริบตอนเปลี่ยนจอ
+     Vampire Mansion — คฤหาสน์: ตราประจำตระกูล (ล่างโค้ง) · กรอบรูปเส้นคู่ · ค่อย ๆ ปรากฏแบบผ้ากำมะหยี่
+     Eternal Graveyard — ป้ายหลุมศพ: หัวโค้งฐานตรง · ฐานหินหนา · โผล่ขึ้นจากดิน · กดแล้วจมลงดิน
+   กติกาที่ยังคงไว้ (เหมือนระบบเดิม): ไทล์กริดหน้าแรก (.tg-ic) ทรงเดียวกันทุกธีม (เจ้าของสั่ง 12 ต.ค. 69)
+   · สีบอกสถานะไม่เปลี่ยน · ทองเฉพาะของสำเร็จจริง (สันทองหนังสือ/ขอบทองเหลืองเป็นสีของวัสดุ ไม่ใช่เหรียญ/รางวัล — ใช้โทนทองหม่น)
+   · ทุกท่าใช้ transform/opacity · ลดการเคลื่อนไหว = ไม่ขยับ
+   โหลดหลัง glass.css (ปุ่มกลับกระจกใน glass.css ใช้ !important) จึงต้องมาทีหลังจึงชนะ
+   ============================================================ */
+
+/* ---------- ทรงของแต่ละธีม (ชื่อตัวแปรเดียวกับ alt.css) ---------- */
+:root[data-theme="halloween"] {
+  --id-tile: 6px 18px 18px 6px; --id-chip: 50%; --id-btn: 8px 18px 18px 8px; --id-tab: 5px 14px 14px 5px;
+  --id-bar: 12px 26px 26px 12px; --id-back: 5px 14px 14px 5px; --id-ctl: 4px 12px 12px 4px; --id-in: 6px 16px 16px 6px;
+  --id-title-ink: linear-gradient(100deg, #FFC27A, #F59A45 45%, #C58BFF);   /* ฟักทอง → แม่มด (26 ต.ค. 69) */
+  --hwi-ring: inset 3px 0 0 #C9A06A;                                     /* สันหนังสือ */
+}
+:root[data-theme="moonlight"] {
+  --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px;
+  --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; --id-in: 999px;
+  --id-title-ink: linear-gradient(100deg, #A9DCFF, #7DD3FF 45%, #FFB27A);   /* จันทร์ → เทียน (26 ต.ค. 69) */
+  --hwi-ring: inset -5px -4px 0 -1px rgba(6, 12, 48, .28);               /* เงาเสี้ยวจันทร์ */
+}
+:root[data-theme="moonlight"][data-hw-tone="light"] {
+  --id-title-ink: linear-gradient(100deg, #0858D6, #3A1C8C 55%, #B83C00);
+  --hwi-ring: inset -5px -4px 0 -1px rgba(30, 40, 120, .14);
+}
+:root[data-theme="hw-ghostship"] {
+  --id-tile: 50%; --id-chip: 50%; --id-btn: 999px; --id-tab: 999px;
+  --id-bar: 30px; --id-back: 50%; --id-ctl: 999px; --id-in: 999px;
+  --id-title-ink: linear-gradient(100deg, #E6F7F0, #A4D7C8 50%, #6FB8A8);
+  --hwi-ring: 0 0 0 2px #B89A62, 0 0 0 3px rgba(0, 0, 0, .35);           /* ขอบทองเหลืองช่องหน้าต่างเรือ */
+}
+:root[data-theme="hw-jackhollow"] {
+  --id-tile: 46% 46% 42% 42% / 54% 54% 46% 46%; --id-chip: 50%; --id-btn: 22px; --id-tab: 18px;
+  --id-bar: 28px; --id-back: 46% 46% 42% 42% / 54% 54% 46% 46%; --id-ctl: 14px; --id-in: 18px;
+  --id-title-ink: linear-gradient(100deg, #FFD9A0, #F0A04B 55%, #E5B37D);
+  --hwi-ring: inset 0 0 12px rgba(255, 150, 50, .5), 0 0 14px -4px rgba(255, 140, 40, .6);   /* แสงเทียนในฟักทอง */
+}
+:root[data-theme="hw-vampire"] {
+  --id-tile: 12px 12px 50% 50% / 12px 12px 34% 34%; --id-chip: 50%; --id-btn: 10px; --id-tab: 10px;
+  --id-bar: 16px; --id-back: 10px 10px 50% 50% / 10px 10px 36% 36%; --id-ctl: 6px; --id-in: 10px;
+  --id-title-ink: linear-gradient(100deg, #F7D3E2, #DAA4BA 50%, #C2577E);
+  --hwi-ring: 0 0 0 1px var(--fill), 0 0 0 3px var(--card), 0 0 0 4px color-mix(in srgb, var(--fill) 55%, transparent);   /* กรอบรูปเส้นคู่ */
+}
+:root[data-theme="hw-graveyard"] {
+  --id-tile: 50% 50% 6px 6px / 42% 42% 6px 6px; --id-chip: 50%; --id-btn: 18px 18px 6px 6px; --id-tab: 14px 14px 5px 5px;
+  --id-bar: 24px 24px 12px 12px; --id-back: 50% 50% 6px 6px / 44% 44% 6px 6px; --id-ctl: 12px 12px 4px 4px; --id-in: 14px 14px 6px 6px;
+  --id-title-ink: linear-gradient(100deg, #F2EEF8, #C1B4E7 55%, #9C8FC8);
+  --hwi-ring: inset 0 -3px 0 rgba(0, 0, 0, .3), 0 0 0 1px color-mix(in srgb, var(--fill) 35%, transparent);   /* ฐานหิน */
+}
+
+/* ---------- ใช้ทรงกับชิ้นเดียวกับที่ธีมหลักใช้ ---------- */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.es-ic, .nt-empty-ic, .set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) {
+  border-radius: var(--id-tile) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.tc-cta, .btn.primary, .fm-save, .sai-cta, .ck-cta, .pro-cta, .ep-save, .ai-read, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go, .fr-go, .gc-go) {
+  border-radius: var(--id-btn) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]):not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { border-radius: var(--id-tab); }
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.sh-btn, .set-back, .ch-back, .hw-back, .tp-back, .sh-back, .lg-back, .rp-back, .back, .fc-x, button[aria-label^="กลับ"]) {
+  border-radius: var(--id-back) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone .tabbar { border-radius: var(--id-bar) !important; }
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.tk-thumb, .tk-mode.on, .gbg-ind, .bd-seg-k, .fd-scope.on, .chip, .cp-chip, .so-chip, .cx2-chip, .sp, .tk-modes, .gbg, .bd-seg) {
+  border-radius: var(--id-ctl) !important;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.fr-search, .sai-bar, #menuBody .td-ask, .ep .ep-f > input[type="text"], .set-row input[type="text"]) {
+  border-radius: var(--id-in) !important;
+}
+/* หัวข้อจอไล่สีของธีม (ตัวหนังสือล้วน · ไม่ใช้กับคำทักทายหน้าแรก — เหตุผลเดียวกับ alt.css ⑤) */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.page-title, .fd-title) {
+  background-image: var(--id-title-ink); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+
+/* ---------- ลายเซ็นของแต่ละธีม: วงรอบไอคอนในแถว · ปุ่มกลับ ---------- */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: var(--hwi-ring) !important; }
+
+/* ---------- ผิวปุ่มหลัก ---------- */
+:root[data-theme="halloween"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 4px 0 0 #C9A06A, inset 0 1px 0 rgba(255, 255, 255, .45), 0 12px 24px -10px rgba(139, 91, 153, .7) !important;
+}
+:root[data-theme="moonlight"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .6), 0 0 0 1px rgba(169, 220, 255, .35), 0 0 26px -6px rgba(125, 211, 255, .75) !important;
+}
+:root[data-theme="hw-ghostship"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 2px #B89A62, 0 0 0 3.5px rgba(0, 0, 0, .3), 0 12px 24px -10px rgba(20, 60, 60, .8) !important;
+}
+:root[data-theme="hw-jackhollow"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), inset 0 0 18px rgba(255, 170, 70, .45), 0 0 28px -6px rgba(255, 130, 30, .75) !important;
+}
+:root[data-theme="hw-vampire"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 0 2px var(--card), 0 0 0 3px var(--fill), 0 14px 26px -10px rgba(120, 30, 70, .8) !important;
+}
+:root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 4px 0 color-mix(in srgb, var(--fill) 45%, #12101e), 0 12px 20px -8px rgba(0, 0, 0, .6) !important;
+}
+:root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active {
+  transform: translateY(3px) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 1px 0 color-mix(in srgb, var(--fill) 45%, #12101e) !important;
+}
+
+/* ---------- แท็บที่เลือกบนแถบล่าง ---------- */
+:root[data-theme="halloween"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 3px 0 0 #C9A06A !important; }
+:root[data-theme="moonlight"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 -2.5px 0 #FF9A3D, 0 6px 14px -6px rgba(255, 154, 61, .7) !important; }
+:root[data-theme="hw-ghostship"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1.5px #B89A62 !important; }
+:root[data-theme="hw-jackhollow"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 0 12px rgba(255, 160, 60, .55), 0 0 16px -4px rgba(255, 130, 30, .7) !important; }
+:root[data-theme="hw-vampire"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: 0 0 0 1px var(--fill), 0 0 0 3px var(--card), 0 0 0 4px color-mix(in srgb, var(--fill) 50%, transparent) !important; }
+:root[data-theme="hw-graveyard"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .28), 0 0 0 1px color-mix(in srgb, var(--fill) 40%, transparent) !important; }
+
+/* ---------- ท่าเปลี่ยนจอ (เฉพาะเข้าจอย่อย/ถอยกลับ · กดแท็บล่างใช้ท่ากลางเหมือนทุกธีม — กติกาเดียวกับ alt.css) ---------- */
+/* หนังสือคาถา: พลิกหน้า — เอียงเข้าจากขอบนิดเดียว */
+:root[data-theme="halloween"] body:not([data-godir="lat"]) .screen.on { animation: hwi-page .42s cubic-bezier(.22, 1, .36, 1) both; transform-origin: 0 50%; }
+@keyframes hwi-page { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 0, 0) skewY(.6deg) scaleX(.985); } }
+/* จันทร์ขึ้น: ลอยขึ้นช้า ๆ */
+:root[data-theme="moonlight"] body:not([data-godir="lat"]) .screen.on { animation: hwi-moonrise .52s cubic-bezier(.16, 1, .3, 1) both; }
+@keyframes hwi-moonrise { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 12px, 0); } }
+/* เรือผี: คลื่นยก — ขึ้นแล้วโยนกลับนิดหนึ่ง */
+:root[data-theme="hw-ghostship"] body:not([data-godir="lat"]) .screen.on { animation: hwi-swell .56s cubic-bezier(.3, 1, .4, 1) both; }
+@keyframes hwi-swell {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .5), 10px, 0); }
+  60% { opacity: 1; transform: translate3d(0, -2px, 0); }
+  100% { opacity: 1; transform: none; }
+}
+/* ฟักทอง: ไฟเทียนกะพริบสองจังหวะก่อนติดเต็ม */
+:root[data-theme="hw-jackhollow"] body:not([data-godir="lat"]) .screen.on { animation: hwi-flicker .4s linear both; }
+@keyframes hwi-flicker {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 4px, 0); }
+  30% { opacity: .85; transform: translate3d(calc(var(--id-dx) * .15), 1px, 0); }
+  45% { opacity: .6; }
+  70% { opacity: 1; transform: none; }
+  100% { opacity: 1; transform: none; }
+}
+/* คฤหาสน์: ค่อย ๆ ปรากฏแบบผ้ากำมะหยี่ — ช้า นุ่ม หดจากใหญ่นิดเดียว */
+:root[data-theme="hw-vampire"] body:not([data-godir="lat"]) .screen.on { animation: hwi-velvet .5s cubic-bezier(.4, 0, .2, 1) both; }
+@keyframes hwi-velvet { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .3), 0, 0) scale(1.012); } }
+/* สุสาน: โผล่ขึ้นจากดิน */
+:root[data-theme="hw-graveyard"] body:not([data-godir="lat"]) .screen.on { animation: hwi-rise .48s cubic-bezier(.22, 1, .36, 1) both; transform-origin: 50% 100%; }
+@keyframes hwi-rise { from { opacity: 0; transform: translate3d(calc(var(--id-dx) * .4), 14px, 0) scaleY(.985); } }
+
+/* ---------- ท่าตอนกดไอคอนหน้าแรก ---------- */
+:root[data-theme="halloween"] .phone .tg-t:active .tg-ic { transform: rotate(-3deg) scale(.94) !important; }
+:root[data-theme="moonlight"] .phone .tg-t:active .tg-ic { transform: scale(.9) !important; }
+:root[data-theme="hw-ghostship"] .phone .tg-t:active .tg-ic { transform: rotate(-5deg) translateY(2px) scale(.95) !important; }
+:root[data-theme="hw-jackhollow"] .phone .tg-t:active .tg-ic { transform: translateY(2px) scale(.93) !important; filter: brightness(1.18); }
+:root[data-theme="hw-vampire"] .phone .tg-t:active .tg-ic { transform: scale(.94) !important; opacity: .85; }
+:root[data-theme="hw-graveyard"] .phone .tg-t:active .tg-ic { transform: translateY(4px) scale(.96) !important; }
+
+/* ลดการเคลื่อนไหว = ไม่ขยับ (กฎใน alt.css มาก่อนไฟล์นี้ จึงต้องเขียนซ้ำให้ชนะท่าข้างบน) */
+@media (prefers-reduced-motion: reduce) {
+  :root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) body[data-godir] .screen.on { animation: none !important; }
+  :root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone .tg-t:active .tg-ic { transform: none !important; }
+  :root[data-theme="hw-graveyard"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go):active { transform: none !important; }
+}
+
+/* ============================================================
+   ของแต่งมุมการ์ด + เอฟเฟกต์บรรยากาศ — 25 ต.ค. 69
+   เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้" (เลือก: สี UI ให้เข้ากว่านี้แต่อย่าให้รกตา · ของแต่งมุมการ์ด · เอฟเฟกต์บรรยากาศ)
+   ข้อจำกัดที่ตั้งเอง (เคยถอดผี/ควัน/เลือดออกจากปุ่มเพราะ "ดูรก" 23 ต.ค.):
+     • ของแต่งอยู่เฉพาะมุมขวาบนของการ์ดใหญ่ไม่กี่ใบ (การ์ด "ทำอันนี้ก่อน" · การ์ดโฟกัสในจองาน · การ์ดสถิติ) ไม่แตะปุ่ม
+     • วาดใต้เนื้อหา (z-index -1 ในการ์ดที่ isolate) โปร่ง .3 ย้อมสีหลักของธีม — ไม่บังป้าย "ด่วนมาก" หรือตัวหนังสือ
+     • รูปเป็น SVG ใช้เป็น mask สีจึงมาจาก --fill ของธีม ไม่ใช่สีฝังในรูป
+     • บรรยากาศ: ของบินผ่านนาน ๆ ครั้ง (บินจริง ~4 วิ ใน 26 วิ) · หมอกพื้นล่าง · อยู่ในฉากหลังเนื้อหาเสมอ
+     • ขยับด้วย transform/opacity เท่านั้น · โหมดประหยัดและลดการเคลื่อนไหว = ไม่มีของบิน หมอกหยุดนิ่ง
+   ============================================================ */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus, .st-card) {
+  position: relative; isolation: isolate;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus, .st-card)::before {
+  content: ""; position: absolute; top: 0; right: 0; width: 54px; height: 54px; z-index: -1; pointer-events: none;
+  background: color-mix(in srgb, var(--fill) 70%, #fff); opacity: .3;
+  -webkit-mask: var(--hwi-corner) top right / contain no-repeat; mask: var(--hwi-corner) top right / contain no-repeat;
+}
+/* การ์ด "ทำอันนี้ก่อน" กับการ์ดโฟกัสในจองานมีหัวทาสีหลักทึบ ของที่อยู่ใต้เนื้อหาจะโดนหัวบังมิด
+   → วางบนหัวแทน ตรงที่ว่างขวามือใต้ป้าย "ด่วนมาก" (หัวสูง ~125px · ป้ายอยู่แถวบนสุด) เป็นรอยปั๊มสีเข้มจาง ๆ บนสีหลัก */
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme^="hw-"]) .phone :is(.td-now, .td-clear, #scr-tasks .tb-focus)::before {
+  top: 46px; right: 12px; width: 46px; height: 46px; z-index: 1;
+  background: var(--on-fill); opacity: .18;
+}
+/* หนังสือคาถา: ใยแมงมุมที่มุม · สุสาน: แมงมุมห้อยจากเส้นใย */
+:root[data-theme="halloween"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round'%3E%3Cpath d='M47 1H5M47 1L12 23M47 1L28 37M47 1v41'/%3E%3Cpath d='M37 1q-1 6 4 7.5t6 5.5M27 1q-1 11 8 14.5T47 26M16 1q-1 16 12 22.5T47 38' stroke-width='1'/%3E%3C/svg%3E"); }
+:root[data-theme="hw-graveyard"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M36 0v17'/%3E%3Cpath d='M32.5 20l-6-4M32 23h-7M32.5 26l-6 4M39.5 20l6-4M40 23h7M39.5 26l6 4'/%3E%3Ccircle cx='36' cy='24' r='4.5' fill='%23000'/%3E%3Ccircle cx='36' cy='18.5' r='2.4' fill='%23000'/%3E%3C/svg%3E"); }
+/* จันทร์เสี้ยว + ดาว */
+:root[data-theme="moonlight"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M37 5a12 12 0 1 0 9 19A10 10 0 1 1 37 5z'/%3E%3Cpath d='M20 9l1.2 3.3 3.3 1.2-3.3 1.2L20 18l-1.2-3.3-3.3-1.2 3.3-1.2zM27 27l.8 2.2 2.2.8-2.2.8L27 33l-.8-2.2-2.2-.8 2.2-.8z'/%3E%3C/svg%3E"); }
+/* พวงมาลัยเรือ */
+:root[data-theme="hw-ghostship"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none' stroke='%23000' stroke-linecap='round'%3E%3Ccircle cx='33' cy='15' r='9' stroke-width='2.4'/%3E%3Ccircle cx='33' cy='15' r='2.6' fill='%23000'/%3E%3Cpath d='M33 1v28M19 15h28M23 5l20 20M43 5L23 25' stroke-width='2'/%3E%3C/svg%3E"); }
+/* ฟักทองกับเถา */
+:root[data-theme="hw-jackhollow"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cellipse cx='33' cy='24' rx='12' ry='9.5'/%3E%3Cpath d='M32 15c-.5-3 .5-5.5 2.5-7' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M35 11c4-5 9-4 11-1' fill='none' stroke='%23000' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
+/* ค้างคาว */
+:root[data-theme="hw-vampire"] { --hwi-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M33 17c-1.3-1.8-2.7-1.8-3.8-.8-1-3-4.8-4.8-9.7-3.8 2.8 1 3.9 2.9 3.9 5.8-1.9-1-3.9-1-5.8 0 2.9 1 4.8 2.9 5.8 5.8 1.9-1.9 4.8-2.9 7.7-1.9.9-1.9 1.4-2.4 1.9-2.4s1 .5 1.9 2.4c2.9-1 5.8 0 7.7 1.9 1-2.9 2.9-4.8 5.8-5.8-1.9-1-3.9-1-5.8 0 0-2.9 1.1-4.8 3.9-5.8-4.9-1-8.7.8-9.7 3.8-1.1-1-2.5-1-3.8.8z'/%3E%3C/svg%3E"); }
+
+/* ---------- บรรยากาศ: ของบินผ่านฟ้านาน ๆ ครั้ง ----------
+   ฉาก Halloween/Moon & Candle คือ .hw-scene · ธีมชีวนิเวศคือ .hw-biome-scene — ทั้งคู่อยู่หลังเนื้อหา กดทะลุได้ */
+:root:is([data-theme="halloween"], [data-theme="moonlight"]) .hw-scene::after,
+:root[data-theme^="hw-"] .hw-biome-scene::after {
+  content: ""; position: absolute; left: 0; top: 13%; width: 46px; height: 26px; pointer-events: none; z-index: 3;
+  background: color-mix(in srgb, var(--scr) 55%, #000);
+  -webkit-mask: var(--hwi-flyer) center / contain no-repeat; mask: var(--hwi-flyer) center / contain no-repeat;
+  opacity: 0; animation: hwi-fly 26s linear infinite; will-change: transform, opacity;
+}
+:root:is([data-theme="halloween"], [data-theme="moonlight"], [data-theme="hw-jackhollow"], [data-theme="hw-vampire"]) {
+  --hwi-flyer: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 46 26'%3E%3Cpath d='M23 9c-1.5-2-3-2-4.2-.9-1.1-3.4-5.4-5.4-10.9-4.3 3.1 1.1 4.4 3.3 4.4 6.5-2.2-1.1-4.4-1.1-6.5 0 3.3 1.1 5.4 3.3 6.5 6.5 2.2-2.2 5.4-3.3 8.7-2.2 1-2.2 1.6-2.7 2-2.7s1 .5 2 2.7c3.3-1.1 6.5 0 8.7 2.2 1.1-3.2 3.2-5.4 6.5-6.5-2.1-1.1-4.3-1.1-6.5 0 0-3.2 1.3-5.4 4.4-6.5-5.5-1.1-9.8.9-10.9 4.3-1.2-1.1-2.7-1.1-4.2.9z'/%3E%3C/svg%3E");
+}
+/* เรือผี · สุสาน: ดวงไฟผีลอยผ่านแทนค้างคาว — เรืองสีหลักของธีม */
+:root:is([data-theme="hw-ghostship"], [data-theme="hw-graveyard"]) .hw-biome-scene::after {
+  width: 14px; height: 14px; border-radius: 50%; top: 42%;
+  -webkit-mask: none; mask: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--fill) 70%, #fff) 0 30%, color-mix(in srgb, var(--fill) 55%, transparent) 55%, transparent 72%);
+  box-shadow: 0 0 18px 6px color-mix(in srgb, var(--fill) 35%, transparent);
+  animation: hwi-wisp 30s ease-in-out infinite;
+}
+@keyframes hwi-fly {
+  0%, 84% { opacity: 0; transform: translate3d(-60px, 0, 0) scale(.8); }
+  86% { opacity: .85; }
+  90% { transform: translate3d(38vw, -14px, 0) scale(.9); }
+  95% { transform: translate3d(72vw, 6px, 0) scale(.75); opacity: .75; }
+  100% { opacity: 0; transform: translate3d(calc(100vw + 60px), -10px, 0) scale(.65); }
+}
+@keyframes hwi-wisp {
+  0%, 70% { opacity: 0; transform: translate3d(8vw, 0, 0); }
+  76% { opacity: .9; transform: translate3d(22vw, -16px, 0); }
+  84% { opacity: .55; transform: translate3d(44vw, 8px, 0); }
+  92% { opacity: .85; transform: translate3d(66vw, -10px, 0); }
+  100% { opacity: 0; transform: translate3d(84vw, 4px, 0); }
+}
+/* หมอกพื้นในธีมชีวนิเวศ (Halloween/Moon & Candle มีหมอกของฉากอยู่แล้ว) — ลอยช้า ๆ ใต้แถบล่าง */
+:root[data-theme^="hw-"] .hw-biome-scene::before {
+  content: ""; position: absolute; left: -20%; right: -20%; bottom: -30px; height: 190px; pointer-events: none; z-index: 2;
+  background:
+    radial-gradient(ellipse 45% 55% at 30% 75%, color-mix(in srgb, var(--fill) 16%, rgba(255,255,255,.1)), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 72% 85%, color-mix(in srgb, var(--fill) 12%, rgba(255,255,255,.08)), transparent 70%);
+  animation: hwi-fog 22s ease-in-out infinite alternate; will-change: transform;
+}
+@keyframes hwi-fog { from { transform: translate3d(-5%, 0, 0); opacity: .7; } to { transform: translate3d(5%, -10px, 0); opacity: 1; } }
+
+:root[data-lite] :is(.hw-scene, .hw-biome-scene)::after,
+html[data-hw-motion="still"] :is(.hw-scene, .hw-biome-scene)::after { display: none; }
+:root[data-lite] .hw-biome-scene::before, html[data-hw-motion="still"] .hw-biome-scene::before { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-hw-motion="full"]) :is(.hw-scene, .hw-biome-scene)::after { display: none; }
+  html:not([data-hw-motion="full"]) .hw-biome-scene::before { animation: none; }
+}
+
+/* ---------- Moon & Candle · ฟ้าจันทร์ + ส้มเทียน (26 ต.ค. 69 · เจ้าของ: "ให้พวก UI มีสีหลักคือฟ้ากับส้ม") ----------
+   ของกดหลักเป็นฟ้า (--fill) · สีรองทั้งแอปเป็นส้ม (--blue ใน theme-moonlight.css) · สองจุดนี้เป็นตัวแทนของ "เทียน" ที่ต้องเห็นชัด:
+   ปุ่ม "+" กลางแถบล่าง = เปลวเทียน (เคยเป็นส้มก่อนถอดกฎแต่งของธีม แล้วกลายเป็นฟ้าตามธีมหลัก)
+   ชิป "วันนี้ไปไหน?" = ทางลัดรอง ไม่ใช่ปุ่มหลัก → ส้มอ่อน */
+:root[data-theme="moonlight"] .phone .tabbar .tab.scan .scan-dot {
+  background:
+    radial-gradient(120% 90% at 26% -4%, rgba(255, 255, 255, .5) 0%, rgba(255, 255, 255, .08) 44%, transparent 64%),
+    radial-gradient(circle at 40% 30%, #FFC08F, #FF7A2E 55%, #C23F00) !important;
+  color: #2A0E00 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 0 18px -2px rgba(255, 122, 46, .7) !important;
+}
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask {
+  background: color-mix(in srgb, var(--blue) 22%, transparent) !important;
+  color: var(--blue) !important;
+}
+/* ตัวหนังสือข้างในชิปมีสีของตัวเอง (em) ไม่รับสีจากปุ่ม · โทนสว่างใช้ส้มเข้มกว่า (--blue-deep) ให้ถึง 4.5 บนพื้นส้มอ่อน */
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask * { color: inherit !important; }
+:root[data-theme="moonlight"][data-hw-tone="light"] .phone #menuBody .rl-day.ask { color: #6E2200 !important; background: color-mix(in srgb, var(--blue) 12%, #fff) !important; }
+:root[data-theme="moonlight"] .phone #menuBody .rl-day.ask {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
+}
+
+/* ---------- Halloween คลาสสิก · ส้มฟักทอง + ม่วงแม่มด (26 ต.ค. 69 · เจ้าของ: "ธีม halloween ด้วย") ----------
+   แบบเดียวกับ Moon & Candle แต่สลับบท: ส้ม = ของกดหลัก (--fill) · ม่วง = สีรอง (--blue ใน theme-main.css)
+   ปุ่ม "+" = แสงน้ำยาแม่มดสีม่วง · ชิป "วันนี้ไปไหน?" = ม่วงอ่อน */
+:root[data-theme="halloween"] .phone .tabbar .tab.scan .scan-dot {
+  background:
+    radial-gradient(120% 90% at 26% -4%, rgba(255, 255, 255, .45) 0%, rgba(255, 255, 255, .08) 44%, transparent 64%),
+    radial-gradient(circle at 40% 30%, #C792F5, #8A3FD4 55%, #4E1C80) !important;   /* ม่วงลึกพอให้ไอคอนขาวถึง 3:1 ทั้งก้อน */
+  color: #FFFFFF !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45), 0 0 18px -2px rgba(164, 91, 234, .75) !important;
+}
+:root[data-theme="halloween"] .phone #menuBody .rl-day.ask {
+  background: color-mix(in srgb, var(--blue) 22%, transparent) !important;
+  color: var(--blue-deep) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--blue) 50%, transparent) !important;
+}
+:root[data-theme="halloween"] .phone #menuBody .rl-day.ask * { color: inherit !important; }
+
+/* ============================================================
+   เรือนลับแล (thai-ghost) · ตัวตนของธีม — 26 ต.ค. 69
+   เจ้าของ (/ui-ux-pro-max): "แก้ธีมเรือนลับแล ให้ธีมมีเอกลักษณ์ของแต่ละธีม" (แบบที่ธีม Halloween ทั้ง 6 ได้ในไฟล์นี้)
+   แนวคิดเดียว: "โคมลอยเหนือสระจันทร์หยก" — ต่อจากลายเซ็นที่เจ้าของเลือกเองแล้ว (ภาพวาดจันทร์หยก + โคมลอย ใน alt.css)
+   ฐานจากคลัง ui-ux-pro-max: Organic Biophilic (โค้งธรรมชาติ · เงานุ่ม · เขียว) — คลังไม่มีสไตล์สถาปัตยกรรมไทยโดยตรง
+     ทรง      = โคม: มนทั้งบนล่าง บนอิ่มกว่า (สัดส่วนเดียวกับโคม .tg-lanterns ในฉาก) · ไม่ซ้ำทรงธีมไหน (ใบไม้เป็นของ earth/genesis)
+     วง       = ระลอกน้ำสองชั้นรอบไอคอน/ปุ่มหลัก/แท็บ — เหมือนเงาจันทร์ตกลงสระ
+     ปุ่มหลัก = จันทร์หยก + แสงโคมอุ่นที่ขอบล่าง (แสงไฟ ไม่ใช่สีทองตกแต่ง — ทองยังสงวนให้ของสำเร็จจริง)
+     หัวข้อ   = แสงจันทร์ → หยก
+     เปลี่ยนจอ = ลอยขึ้นแบบโคม โยกนิดหนึ่งก่อนนิ่ง · กดไอคอน = แตะผิวน้ำ จุ่มลงแล้วมีระลอก
+   ข้อห้ามเดิมของธีมนี้ยังอยู่ครบ: ไม่มีผี ไม่มีลายบัว/เครื่องราง/กรอบทอง และ "ไม่มีของแต่งบนปุ่ม" (เทสต์ invite-theme)
+   — ตัวตนมาจากทรง เงา และท่าเคลื่อนไหวเท่านั้น · ไทล์กริดหน้าแรก (.tg-ic) ทรงเดิมเหมือนทุกธีม
+   ============================================================ */
+:root[data-theme="thai-ghost"] {
+  --id-tile: 46% 46% 38% 38% / 52% 52% 40% 40%; --id-chip: 50%; --id-btn: 22px 22px 15px 15px; --id-tab: 16px 16px 11px 11px;
+  --id-bar: 28px 28px 22px 22px; --id-back: 46% 46% 38% 38% / 52% 52% 40% 40%; --id-ctl: 14px 14px 9px 9px; --id-in: 18px 18px 12px 12px;
+  --id-title-ink: linear-gradient(100deg, #F6FBF3, #D8E8C9 40%, #8FCDA9);
+  --tgi-ripple: 0 0 0 1px #D8E8C966, 0 0 0 4px #D8E8C914, 0 0 0 5px #D8E8C92E;
+}
+:root[data-theme="thai-ghost"] .phone :is(.es-ic, .nt-empty-ic, .set-ic, .pe-ic, .as-ic, .tb-nd-ic, .soon-ic, .bd-entry-ic, .bd-guest-ic, .fd-blank-ic, .dm-blank-ic) {
+  border-radius: var(--id-tile) !important;
+}
+:root[data-theme="thai-ghost"] .phone :is(.tc-cta, .btn.primary, .fm-save, .sai-cta, .ck-cta, .pro-cta, .ep-save, .ai-read, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go, .fr-go, .gc-go) {
+  border-radius: var(--id-btn) !important;
+}
+:root[data-theme="thai-ghost"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) { border-radius: var(--id-tab); }
+:root[data-theme="thai-ghost"] .phone :is(.sh-btn, .set-back, .ch-back, .hw-back, .tp-back, .sh-back, .lg-back, .rp-back, .back, .fc-x, button[aria-label^="กลับ"]) {
+  border-radius: var(--id-back) !important;
+}
+:root[data-theme="thai-ghost"] .phone .tabbar { border-radius: var(--id-bar) !important; }
+:root[data-theme="thai-ghost"] .phone :is(.tk-thumb, .tk-mode.on, .gbg-ind, .bd-seg-k, .fd-scope.on, .chip, .cp-chip, .so-chip, .cx2-chip, .sp, .tk-modes, .gbg, .bd-seg) {
+  border-radius: var(--id-ctl) !important;
+}
+:root[data-theme="thai-ghost"] .phone :is(.fr-search, .sai-bar, #menuBody .td-ask, .ep .ep-f > input[type="text"], .set-row input[type="text"]) {
+  border-radius: var(--id-in) !important;
+}
+/* หัวข้อจอ: ไล่แสงจันทร์ → หยก · เงาตัวหนังสือเดิม (text-shadow ใน alt.css) ซึมผ่านตัวอักษรโปร่งแล้วขุ่น
+   จึงย้ายเงาไปเป็น drop-shadow ของทั้งก้อน · กรอบสูงขึ้น .3em แล้วยกกลับ — สระบน/วรรณยุกต์ไทยไม่โดนตัด (เทคนิคเดียวกับ contrast.css) */
+:root[data-theme="thai-ghost"] .phone :is(.page-title, .fd-title) {
+  background-image: var(--id-title-ink); -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent; text-shadow: none;
+  filter: drop-shadow(0 1px 6px #04110CE6);
+  padding-block: .3em; position: relative; top: -.3em; margin-bottom: -.6em;
+}
+:root[data-theme="thai-ghost"] .phone #scr-tasks .tk-head-row .page-title { margin-bottom: -.6em; }
+/* ระลอกน้ำรอบไอคอนในแถว */
+:root[data-theme="thai-ghost"] .phone :is(.set-ic, .pe-ic, .as-ic) { box-shadow: var(--tgi-ripple) !important; }
+/* ปุ่มหลัก: จันทร์หยก + ระลอก + แสงโคมอุ่นใต้ขอบล่าง */
+:root[data-theme="thai-ghost"] .phone :is(.tc-cta, .btn.primary, .fm-save, .fr-gate-go, .es-go:not(.ghost), .bd-guest-go) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -10px 14px -10px rgba(246, 180, 90, .55),
+    0 0 0 1px #D8E8C980, 0 0 0 5px #D8E8C91A, 0 12px 26px -12px rgba(0, 8, 4, .85) !important;
+}
+/* ปุ่ม "เริ่มทำเลย" ของการ์ดหน้าแรก — ปุ่มที่กดบ่อยที่สุดของแอป ต้องได้ตัวตนด้วย
+   (กฎใน alt.css ใช้ #menuBody + !important จึงต้องเจาะจงเท่ากันขึ้นไป) · ปุ่มข้าง ✓ ⏰ ได้ทรงโคมตาม ไม่มีของแต่ง */
+:root[data-theme="thai-ghost"] .phone #menuBody .tn-cta {
+  border-radius: var(--id-btn) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7), inset 0 -10px 14px -10px rgba(246, 180, 90, .55),
+    0 0 0 1px #D8E8C980, 0 0 0 5px #D8E8C91A, 0 12px 26px -12px rgba(0, 8, 4, .85) !important;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .tn-ib { border-radius: var(--id-ctl) !important; }
+/* แท็บที่เลือก: จันทร์ + ระลอกจาง */
+:root[data-theme="thai-ghost"]:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) {
+  box-shadow: 0 0 0 3px #D8E8C924, 0 0 14px -4px #D8E8C999 !important;
+}
+/* เปลี่ยนจอ: ลอยขึ้นแบบโคม แล้วโยกนิดหนึ่ง (เฉพาะเข้าจอย่อย/ถอยกลับ — กดแท็บล่างใช้ท่ากลางเหมือนทุกธีม) */
+:root[data-theme="thai-ghost"] body:not([data-godir="lat"]) .screen.on { animation: tgi-float .6s cubic-bezier(.2, .9, .3, 1) both; }
+@keyframes tgi-float {
+  0% { opacity: 0; transform: translate3d(calc(var(--id-dx) * .35), 16px, 0) rotate(-.4deg); }
+  65% { opacity: 1; transform: translate3d(0, -2px, 0) rotate(.15deg); }
+  100% { opacity: 1; transform: none; }
+}
+/* กดไอคอนหน้าแรก: แตะผิวน้ำ — จุ่มลงพร้อมระลอก */
+:root[data-theme="thai-ghost"] .phone .tg-t .tg-ic { transition: transform .18s cubic-bezier(.23, 1, .32, 1), box-shadow .3s ease; }
+:root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: translateY(2px) scale(.94) !important; box-shadow: 0 0 0 6px #D8E8C91F, 0 0 0 1px #D8E8C966 !important; }
+/* ---------- หัวการ์ด "ควรทำอะไร" ให้เป็นเรือนลับแล — 26 ต.ค. 69 · เจ้าของ: "ตรงนี้แต่งให้มันตรงธีมหน่อย" ----------
+   หัวเขียวป่าทึบ #174E39 ยังเป็นก้อนทึบก้อนเดียวของหน้าแรก (เทสต์ธีม) · แต่งจากลายเซ็นเดิมของธีมเท่านั้น ไม่มีบัว/เครื่องราง/ทอง
+   ① จันทร์เสี้ยวหยกหลังมุมขวา (::before · มาสก์วงกลมกัดเป็นเสี้ยว) + แสงฟุ้งรอบจันทร์ในพื้นหัว
+   ② โคมลอยสองดวงเล็ก ๆ ลอยขึ้นลงช้า ๆ (::after · transform อย่างเดียว · โหมดลื่น/ลดการเคลื่อนไหว = นิ่ง)
+   ③ ระลอกสระจาง ๆ สองวงที่ขอบล่างของหัว
+   ทุกชิ้นอยู่ใต้ตัวหนังสือ (ลูกของหัว z-index 2) · จันทร์จางพอให้ชื่องานที่ยาวทับแล้วยังอ่านออก */
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head {
+  background:
+    radial-gradient(circle at calc(100% - 52px) 78px, rgba(216,232,201,.22), transparent 74px),
+    radial-gradient(ellipse 130px 16px at 18% 104%, transparent 62%, rgba(216,232,201,.14) 64%, transparent 69%),
+    radial-gradient(ellipse 230px 26px at 18% 104%, transparent 72%, rgba(216,232,201,.09) 74%, transparent 78%),
+    radial-gradient(circle at 96% 0%, #5FB08A45, transparent 48%),
+    #174E39 !important;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::before {
+  content: ""; display: block; position: absolute; z-index: 1; pointer-events: none;
+  top: 46px; right: 20px; width: 64px; height: 64px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 40%, #F6FBF3, #D8E8C9 58%, #A9CDB0);
+  -webkit-mask: radial-gradient(circle at 70% 32%, transparent 0 46%, #000 48%);
+          mask: radial-gradient(circle at 70% 32%, transparent 0 46%, #000 48%);
+  opacity: .5;
+}
+:root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::after {
+  content: ""; display: block; position: absolute; z-index: 1; pointer-events: none;
+  /* ระหว่างท้ายบรรทัด "ใช้เวลา … นาที" กับจันทร์ — มุมขวาบนเป็นที่ของป้าย "ด่วนมาก" (โคมเคยไปซ่อนหลังป้าย) */
+  top: 78px; right: 88px; width: 48px; height: 52px;   /* ใต้บรรทัดชื่องาน (ชื่อยาวบนมือถือวิ่งเกือบถึงขอบขวา) · ซ้ายจันทร์ */
+  background:
+    radial-gradient(ellipse 6.5px 8.5px at 24% 70%, #FFF3D0, #F6B45A 58%, transparent 82%),
+    radial-gradient(ellipse 5px 6.5px at 76% 28%, #FFF3D0, #F6B45A 58%, transparent 82%),
+    radial-gradient(ellipse 17px 19px at 24% 70%, rgba(246,178,90,.34), transparent 70%),
+    radial-gradient(ellipse 13px 15px at 76% 28%, rgba(246,178,90,.28), transparent 70%);
+  opacity: .9; animation: tgi-lantern 7s ease-in-out infinite alternate;
+}
+@keyframes tgi-lantern { from { transform: translate3d(0, 6px, 0); } to { transform: translate3d(3px, -6px, 0); } }
+:root[data-theme="thai-ghost"]:is([data-lite="1"], [data-quality="low"]) .phone #menuBody .td-now .tn-head::after { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  :root[data-theme="thai-ghost"] body[data-godir] .screen.on { animation: none !important; }
+  :root[data-theme="thai-ghost"] .phone #menuBody .td-now .tn-head::after { animation: none; }
+  :root[data-theme="thai-ghost"] .phone .tg-t:active .tg-ic { transform: none !important; }
+}

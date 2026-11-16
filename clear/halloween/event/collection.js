@@ -1,0 +1,16 @@
+/* Public reward catalogue. Ownership and equipment remain in the account vault. */
+(()=>{
+ 'use strict';
+ const C=window.StudentOSHalloweenRewards,grid=document.getElementById('rewardGrid'),dialog=document.getElementById('rewardDialog');
+ const kinds={all:'ทั้งหมด',room:'ของแต่งห้อง',costume:'ชุดมาสคอต',theme:'ธีม',effect:'เอฟเฟกต์',relic:'วัตถุ Mystical',badge:'เหรียญ'};
+ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const image=item=>'../rewards/'+(item.asset||'assets/'+item.id+'.svg');
+ let kind='all',rarity='all';
+ function source(item){if(item.source==='final-boss')return 'พิชิตราชันเที่ยงคืน';if(item.source==='complete-shop')return 'ซื้อครบตามรายการร้านอีเวนต์';if(item.source==='ritual')return 'พิธีอัญเชิญในห้องวงเวท';if(item.source==='main-quest')return (item.kind==='theme'?'ชนะผู้พิทักษ์หลังจบเควส · ':'เควสของ ')+C.biomes[item.biome].npc;return 'แลกในร้านหรือผสมตามสูตรในอีเวนต์';}
+ function render(){const items=C.items.filter(x=>(kind==='all'||x.kind===kind)&&(rarity==='all'||x.rarity===rarity));document.getElementById('resultCount').textContent=items.length+' ชิ้น';document.getElementById('emptyResults').hidden=items.length>0;grid.innerHTML=items.map(item=>'<article class="reward-card" data-tier="'+item.rarity+'" data-kind="'+item.kind+'"><span class="card-ordinal">'+String(C.items.indexOf(item)+1).padStart(2,'0')+' / '+C.items.length+'</span><img class="card-art" src="'+image(item)+'" loading="lazy" decoding="async" alt="'+esc(item.name)+'"><div class="card-info"><span class="tier">'+item.rarity+'</span><h3>'+esc(item.name)+'</h3><p>'+esc(C.biomes[item.biome].name)+'</p><div class="card-bottom"><small>'+esc(kinds[item.kind])+'</small><button data-reward="'+item.id+'" aria-label="ดู '+esc(item.name)+'">ดูรายละเอียด ↗</button></div></div></article>').join('');}
+ document.getElementById('kindFilters').innerHTML=Object.entries(kinds).map(([id,label])=>'<button data-kind="'+id+'" aria-pressed="'+(id==='all')+'">'+label+'</button>').join('');
+ document.getElementById('kindFilters').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(!b)return;kind=b.dataset.kind;document.querySelectorAll('#kindFilters button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));render();});
+ document.getElementById('rarity').addEventListener('change',e=>{rarity=e.target.value;render();});
+ grid.addEventListener('click',e=>{const b=e.target.closest('[data-reward]'),item=b&&C.find(b.dataset.reward);if(!item)return;dialog.dataset.tier=item.rarity;document.getElementById('detailVisual').innerHTML='<img src="'+image(item)+'" alt="'+esc(item.name)+'">';document.getElementById('detailTier').textContent=item.rarity;document.getElementById('detailBiome').textContent=C.biomes[item.biome].name;document.getElementById('detailTitle').textContent=item.name;document.getElementById('detailDescription').textContent=item.description;document.getElementById('detailFeatures').innerHTML=item.features.map(x=>'<span>'+esc(x)+'</span>').join('');document.getElementById('detailSource').textContent=source(item);dialog.showModal();});
+ document.getElementById('closeDetail').addEventListener('click',()=>dialog.close());render();
+})();

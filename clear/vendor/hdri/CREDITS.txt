@@ -1,0 +1,13 @@
+Background photos (equirectangular HDRIs, tonemapped to JPG and resized to 2048x1024)
+
+Source: Poly Haven — https://polyhaven.com/hdris
+License: CC0 1.0 Universal (public domain) — https://polyhaven.com/license
+
+  school_hall          https://polyhaven.com/a/school_hall          (hoop)
+  stadium_01           https://polyhaven.com/a/stadium_01           (goal, bat)
+  limpopo_golf_course  https://polyhaven.com/a/limpopo_golf_course  (golf, day)
+  sunset_fairway       https://polyhaven.com/a/sunset_fairway       (golf, sunset)
+  moonlit_golf         https://polyhaven.com/a/moonlit_golf         (golf + bomb, night)
+  meadow               https://polyhaven.com/a/meadow               (bomb, day)
+  sunset_meadow_path   https://polyhaven.com/a/sunset_meadow_path   (bomb, sunset)
+  small_empty_room_1   https://polyhaven.com/a/small_empty_room_1   (crumple)

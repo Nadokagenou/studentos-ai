@@ -1,0 +1,220 @@
+/* 25 ต.ค. 69 · เจ้าของ: "ให้ธีม Moon & Candle และ Halloween มีปุ่มทั้งหมดคล้ายธีมหลัก เปลี่ยนสีกับพื้นหลัง พวก UI ทำให้เหมือนให้หมด"
+   ไฟล์นี้เคยแต่งทุกคอมโพเนนต์ใหม่หมด (มุมเบี้ยว 17px/5px · ไล่สีเฉพาะ · ขอบเฉพาะ · ปุ่ม/การ์ด/แถบ/แผ่น/ช่องกรอก ~240 กฎ)
+   ตอนนี้เหลือแค่ ① โทเคนสีของธีม (:root[data-theme=…]) ② ฉากพื้นหลัง (.hw-scene · ท้องฟ้า · สุสาน · เทียน · ผี · ค้างคาว)
+   ③ ปุ่มเสียง/การเคลื่อนไหว (.hw-controls) · เอฟเฟกต์คลิก · กล่องตั้งค่าธีม ④ กฎคุมการเคลื่อนไหวของฉาก (โหมดประหยัด/ลดการเคลื่อนไหว)
+   ปุ่ม การ์ด แถบล่าง ช่องกรอก ใช้กฎเดียวกับธีมหลักทั้งหมด จึงต่างแค่สีกับฉาก
+   กฎที่ถอดออกดูได้ใน git (คอมมิตก่อนหน้านี้) · แยกด้วยสคริปต์ที่จัดกลุ่มตามตัวเลือก ไม่ได้ลบมือทีละกฎ */
+/* Midnight Academy: component design, illustration and motion; only Halloween. */
+.hw-scene,.hw-controls,.hw-burst{display:none}
+:root[data-theme="halloween"] .hw-scene{display:block;position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0;contain:paint}
+:root[data-theme="halloween"] .phone{isolation:isolate;background:var(--scr);border-color:#795d78}
+:root[data-theme="halloween"] .screens{position:relative;z-index:1;background:transparent}
+:root[data-theme="halloween"] .screen{background:transparent}
+:root[data-theme="halloween"] .fx,:root[data-theme="halloween"] .starfield{display:none!important}
+.hw-night{position:absolute;inset:0;background:url('theme-assets/night-academy.svg') center/cover no-repeat;opacity:.87}
+.hw-haze{position:absolute;inset:-12%;background:radial-gradient(ellipse at 15% 80%,#5fba9a23,transparent 40%),radial-gradient(ellipse at 82% 28%,#9e5fd92c,transparent 45%);animation:hw-haze 22s ease-in-out infinite alternate}
+.hw-mist{position:absolute;inset:50% -50% -25%;background:radial-gradient(ellipse at center,#9cbbad1c 0,transparent 60%);animation:hw-mist 30s ease-in-out infinite alternate}
+.hw-mist.second{inset:25% -80% 0;animation-duration:37s;animation-direction:alternate-reverse;opacity:.55}
+.hw-spark{position:absolute;width:3px;height:3px;background:#b4f9ce;border-radius:50%;box-shadow:0 0 9px #89e3bd;left:calc(var(--i)*7%);top:calc(21% + var(--i)*5%);opacity:.5;animation:hw-spark calc(6s + var(--i)*.7s) ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.8s)}
+.hw-ghost{position:absolute;width:54px;height:74px;left:7%;top:23%;opacity:.25;animation:hw-ghost 13s ease-in-out infinite alternate;filter:drop-shadow(0 0 12px #c3b5f955)}
+.hw-ghost.second{left:auto;right:8%;top:57%;width:35px;opacity:.17;animation-delay:-5s;animation-duration:17s}
+.hw-bats{position:absolute;right:9%;top:10%;width:110px;opacity:.7;animation:hw-bats 18s ease-in-out infinite alternate}
+.hw-candle{position:absolute;width:9px;height:42px;bottom:94px;left:13px;border-radius:3px;background:linear-gradient(90deg,#5c4035,#c9a79a,#654738);opacity:.75}
+.hw-candle.right{left:auto;right:13px;height:28px}
+.hw-candle:before{content:"";position:absolute;bottom:calc(100% - 2px);left:-1px;width:11px;height:22px;border-radius:85% 10% 75% 50%;transform:rotate(-18deg);background:radial-gradient(ellipse at 50% 75%,#fff2cf,#e79351 55%,#bb573a00 75%);box-shadow:0 0 25px 8px #e994502a;animation:hw-flame 2s ease-in-out infinite alternate}
+.hw-candle.right:before{animation-delay:-1s}
+.hw-graveyard{position:absolute;left:0;right:0;bottom:0;height:245px;background:url('theme-assets/graveyard.svg') center bottom/auto 100% no-repeat;opacity:.8}
+.hw-wanderer{position:absolute;left:0;bottom:70px;width:45px;height:60px;opacity:.37;animation:hw-wander 38s linear infinite;filter:drop-shadow(0 0 14px #a7c5be55)}
+.hw-wanderer svg{width:100%;height:100%;animation:hw-walk-bob 2.8s ease-in-out infinite alternate}
+.hw-wanderer.distant{width:29px;height:39px;bottom:105px;opacity:.2;animation-duration:53s;animation-delay:-19s;animation-direction:reverse}
+.hw-ground-fog{position:absolute;left:-30%;right:-30%;bottom:-40px;height:190px;background:radial-gradient(ellipse at 35% 80%,#a8bcb533,transparent 54%),radial-gradient(ellipse at 75% 70%,#9c8daf2e,transparent 48%);animation:hw-ground-fog 24s ease-in-out infinite alternate}
+@keyframes hw-wander{0%{transform:translate3d(-65px,0,0)}100%{transform:translate3d(calc(100vw + 65px),0,0)}}
+@keyframes hw-walk-bob{from{transform:translateY(4px) rotate(-5deg)}to{transform:translateY(-6px) rotate(5deg)}}
+@keyframes hw-ground-fog{from{transform:translate3d(-4%,0,0);opacity:.5}to{transform:translate3d(6%,-12px,0);opacity:1}}
+@keyframes hw-night-drift{from{transform:scale(1.035) translate3d(-.7%,0,0)}to{transform:scale(1.07) translate3d(.7%,-.5%,0)}}
+@media(max-width:599px){
+ :root[data-theme="halloween"] .hw-night{animation:hw-night-drift 24s ease-in-out infinite alternate}
+ :root[data-theme="halloween"] .hw-wanderer{animation-duration:24s;opacity:.47}
+ :root[data-theme="halloween"] .hw-wanderer.distant{animation-duration:36s;opacity:.26}
+}
+.hw-preferences{margin:14px 0;padding:17px;border:1px solid var(--line);border-radius:16px;background:var(--card2);display:grid;gap:12px}
+.hw-preferences>div{display:flex;gap:12px;justify-content:space-between;align-items:center}.hw-preferences small{color:var(--muted);display:block;font-size:11px}.hw-preferences label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.hw-preferences button{font:inherit;padding:9px 14px;border:1px solid var(--line);border-radius:12px;color:var(--ink);background:var(--card);cursor:pointer}
+.hw-preferences input[type=range]{width:120px;accent-color:#c190b7}
+:root[data-theme="halloween"] .hw-controls{position:fixed;z-index:97;bottom:88px;right:12px;display:flex;gap:5px;align-items:center;opacity:.9}
+.hw-controls button{width:33px;height:33px;display:grid;place-items:center;background:#23192dee;color:#e8c6dc;border:1px solid #92738c88;border-radius:11px;font:14px/1 sans-serif;cursor:pointer;box-shadow:0 4px 14px #03010770}
+.hw-controls button svg{width:17px;height:17px}
+html[data-hw-framed="true"] .hw-open-lab{display:none}
+.hw-burst{position:fixed;z-index:10000;pointer-events:none;display:block;width:8px;height:8px;background:#b9efcc;border-radius:50%;box-shadow:0 0 13px #90dbb3;animation:hw-burst 850ms ease-out forwards;left:var(--x);top:var(--y)}
+.hw-burst:nth-of-type(2n){background:#dfb4e7;box-shadow:0 0 13px #d99de2}
+.hw-ring{position:fixed;z-index:9998;pointer-events:none;border:1px solid #a9ddbd;border-radius:50%;width:60px;height:60px;margin:-30px;left:var(--x);top:var(--y);animation:hw-ring .8s ease-out forwards;box-shadow:0 0 25px #b6d9b433}
+@keyframes hw-haze{from{transform:translate3d(-2%,1%,0);opacity:.6}to{transform:translate3d(2%,-1%,0);opacity:1}}
+@keyframes hw-mist{from{transform:translate3d(-9%,0,0)}to{transform:translate3d(9%,-6%,0)}}
+@keyframes hw-spark{from{transform:translate3d(0,12px,0);opacity:.12}to{transform:translate3d(8px,-25px,0);opacity:.7}}
+@keyframes hw-ghost{from{transform:translate3d(0,14px,0) rotate(-6deg)}to{transform:translate3d(35px,-22px,0) rotate(5deg)}}
+@keyframes hw-bats{from{transform:translate3d(0,0,0) rotate(-5deg)}to{transform:translate3d(-90px,22px,0) rotate(5deg)}}
+@keyframes hw-flame{from{transform:rotate(-12deg) scale(.9);opacity:.7}to{transform:rotate(-22deg) scale(1.1);opacity:1}}
+@keyframes hw-button-shine{0%,65%{transform:translateX(-110%)}90%,100%{transform:translateX(110%)}}
+@keyframes hw-burst{from{transform:translate(0,0) scale(1);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(.1);opacity:0}}
+@keyframes hw-ring{from{transform:scale(.3);opacity:1}to{transform:scale(2.5);opacity:0}}
+html[data-quality="low"] .hw-scene,html[data-lite="true"] .hw-ghost{display:none!important}
+html[data-quality="medium"] .hw-scene *,html[data-hw-motion="still"] .hw-scene *,html[data-hw-motion="still"][data-theme="halloween"] button:after{animation:none!important}
+html[data-quality="low"] :is(.hw-burst,.hw-ring),html[data-hw-motion="still"] :is(.hw-burst,.hw-ring){display:none!important}
+@media(prefers-reduced-motion:reduce){html:not([data-hw-motion="full"]) .hw-scene *,html[data-theme="halloween"]:not([data-hw-motion="full"]) button:after,html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){animation:none!important}html:not([data-hw-motion="full"]) :is(.hw-burst,.hw-ring){display:none!important}}
+@media(min-width:1024px) and (hover:hover) and (pointer:fine){
+ :root[data-theme="halloween"] .hw-night{background-position:center 38%;opacity:.8}
+ :root[data-theme="halloween"] .hw-controls{bottom:16px;right:18px}
+ .hw-controls button{width:37px;height:37px}
+ :root[data-theme="halloween"] .hw-ghost{left:38%;top:13%;width:70px}
+ :root[data-theme="halloween"] .hw-candle{left:calc(var(--desktop-rail,248px) + 10px);bottom:30px}
+}
+
+.hw-preferences[hidden],.hw-preferences>div[hidden]{display:none}
+html[data-hw-framed="true"] .hw-controls{display:none}
+:root[data-theme="halloween"] .hw-controls{right:144px}
+@media(max-width:599px){
+ :root[data-theme="halloween"] .hw-controls{bottom:75px;right:8px}
+ :root[data-theme="halloween"] .hw-night{background-position:65% center}
+}
+@keyframes hw-card-smoke{from{transform:translate3d(-5%,4%,0);opacity:.4}to{transform:translate3d(6%,-4%,0);opacity:.75}}
+@keyframes hw-card-ghost{from{transform:translateY(3px) rotate(8deg)}to{transform:translateY(-5px) rotate(-5deg)}}
+html[data-lite="1"] .hw-scene *{animation:none!important}
+:root[data-theme="halloween"] .hw-controls{right:144px!important}
+
+/* Limited preview · Midnight Academy · theme registration */
+:root[data-theme="halloween"] {
+ color-scheme:dark;
+ --scr:#100D1B;--card:#261C2C;--card2:#302238;--surface:#302238;
+ --ink:#F4E8DA;--muted:#C2AFC6;--faint:#B69FB8;--line:rgba(183,139,153,.26);
+ --blue:#D7B6EB;--blue-soft:#3B2949;--blue-deep:#C5A3D8;--neon:#9DDDC0;
+ --fill:#D2B0E0;--fill-on:#201128;--on-accent:#201128;
+ --on-fill:#201128;--alert-soft:#FF9BA722;--warn-soft:#F4C28222;--good-soft:#A2DDB722;--fire:#FF9BA7;
+ --grad-brand:linear-gradient(125deg,#8B5B99,#9B5342);--grad-hero:linear-gradient(140deg,#3A253B,#1B1626);
+ --shadow-lg:0 20px 55px #04010888;--shadow-brand:0 8px 30px #a65b7b33;
+ --glass-line:#ad809044;--skel:#ffffff0c;--skel-hi:#ffffff18;
+ --pg-ink:#F4E8DA;--pg-muted:#C2AFC6;--frame:#100D1B;
+ --tint:#3B2949;--tint2:#392631;--shadow:0 12px 35px #06020b55;
+ --glass:#251b2de8;--pg:#100D1B;--alert:#FF9BA7;--warn:#F4C282;--good:#A2DDB7;
+ --soft-card:#261c2ced;--soft-shadow:0 3px 7px #04010844,0 16px 34px -12px #04010899;--soft-shadow-lg:0 8px 18px #04010855,0 30px 60px -18px #040108aa;
+}
+
+/* Owner direction: 60% midnight background, 30% card surfaces, 10% accents.
+   These are composition targets, not fixed screen-area measurements. */
+:root[data-theme="halloween"]{--hw-background:#100d1b;--hw-panel:#292331;--hw-panel-raised:#342c3e;--hw-accent:#dfb783;--scr:var(--hw-background);--card:var(--hw-panel);--card2:var(--hw-panel-raised);--surface:var(--hw-panel-raised);--fill:var(--hw-accent);--glass:#292331ed;--soft-card:#292331ed}
+:root[data-theme="halloween"] .hw-night{opacity:.64}
+/* 23 Oct 2026, owner: "too much on the buttons". Removed: the shine that swept across every primary button
+   and the large star glyph behind the task card heading. The floating motion/sound buttons hide below the
+   desktop layout, where they sat on top of the shortcut tiles; the same switches live in Settings > theme. */
+@media(max-width:1023px){:root:is([data-theme="halloween"],[data-theme="moonlight"]) .hw-controls{display:none!important}}
+
+/* ของแต่งบนการ์ดจากรุ่นก่อน (ควัน/เลือด/ผี) — theme-main.js เลิกใส่แล้ว · ซ่อนเผื่อหน้าที่เปิดค้างไว้ */
+:root:is([data-theme="halloween"],[data-theme="moonlight"]) .hw-ornament{display:none!important}
+
+/* สีลำดับความสำคัญกับสีทองแบบธีมมืด — ชุดเดียวกับธีมหลักมืด (alt.css: magic/galaxy/…) และ hw-*
+   เดิมธีมนี้ไม่ได้ตั้ง จึงได้ค่าธีมสว่างจาก style.css (ตัวหนังสือน้ำตาลเข้ม/แดงเข้ม) บนการ์ดมืด → "โทเคน" 2.2 · ป้ายแดง 1.9 */
+:root[data-theme="halloween"]{--pri-red-soft:rgba(255,107,124,.28);--pri-red-text:#FF9AA6;--pri-yellow-soft:rgba(240,185,10,.28);--pri-yellow-text:#F3C64B;--pri-green-soft:rgba(52,211,153,.28);--pri-green-text:#5BDC93;--gold-soft:rgba(240,193,74,.26);--gold-text:#F0C14A}
+
+/* 25 ต.ค. 69 · เจ้าของ: "ทำให้มันดูเป็นฮาลาวีนมากกว่านี้ · ปรับพวกสี UI ให้เข้ากว่านี้ แต่อย่าให้รกตา"
+   สีหลักเดิมเป็นทองหม่น (#dfb783) ปุ่มทั้งแอปออกน้ำตาลอ่อน ไม่บอกว่าฮาโลวีน → ส้มฟักทอง คู่กับม่วงแม่มดที่มีอยู่แล้ว (--blue)
+   ส้ม+ม่วงบนกลางคืนคือคู่สีประจำเทศกาล · ตัวบนปุ่มยังเข้มบนส้มสว่าง (คอนทราสต์ > 7) */
+:root[data-theme="halloween"]{--hw-accent:#F59A45;--fill:#F59A45;--on-fill:#24110A;--fill-on:#24110A;--on-accent:#24110A;--grad-brand:linear-gradient(125deg,#8B4FB0,#C4561F)}
+
+/* 26 ต.ค. 69 · เจ้าของ (หลังแบ่ง Moon & Candle เป็นฟ้า+ส้ม): "ธีม halloween ด้วย"
+   ส้มฟักทองเป็นสีหลักอยู่แล้ว (--fill) แต่สีรอง --blue เป็นม่วงจางเกือบขาว (#D7B6EB) จึงแทบไม่เห็นสองสี
+   → ม่วงแม่มดสดขึ้นเป็นสีรองทั้งแอป (ลิงก์ · ชิป · ตัวเลือกที่เลือกอยู่ · แถบความคืบหน้า) · พื้นของที่เลือกเป็นม่วงเข้มทึบ
+   ตัวหนังสือบนพื้นม่วง (--on-accent) เป็นน้ำตาลเข้มเดิม: บนม่วงสด #C58BFF ได้ > 7 */
+:root[data-theme="halloween"]{--blue:#C58BFF;--blue-soft:#3F2560;--blue-deep:#DDB8FF}
+
+/* ---------- แถบระดับเสียง (บรรยากาศ Halloween) — 26 ต.ค. 69 · เจ้าของ: "แก้ปุ่มนี้หน่อย ทำอนิเมชันสักหน่อย" ----------
+   เดิมเป็นแถบเลื่อนพื้นฐานของเบราว์เซอร์ (แค่ accent-color) แล้วโดนสไตล์ช่องกรอกของแอปห่อ (พื้น · padding · มุมโค้ง)
+   จึงเห็นเป็นแถบเล็ก ๆ ติดอยู่ในกล่อง · ตอนนี้: รางมนเติมสีธีมตามระดับ (--hw-v จาก theme-main.js) · ปุ่มกลมเรืองแสง
+   ชี้ = ปุ่มขยายนิด · กด/ลาก = ขยายเด้ง + วงแสงสีธีมรอบปุ่ม (แบบวงเรืองของ Halo · Cult UI ที่แอปใช้กับช่องกรอก) · สีเติมไหลนุ่มตามนิ้ว
+   ขยับด้วย transform/box-shadow ของปุ่มเล็ก ๆ ชิ้นเดียว · ลดการเคลื่อนไหว = ไม่มีทรานซิชัน */
+@property --hw-v { syntax: '<percentage>'; inherits: true; initial-value: 35%; }
+.hw-preferences input.hw-vol {
+  -webkit-appearance: none; appearance: none; width: 148px; height: 30px; margin: 0; padding: 0;
+  border: 0; border-radius: 999px; background: transparent; box-shadow: none; outline: none; cursor: pointer;
+  transition: --hw-v .16s ease-out;
+}
+.hw-preferences input.hw-vol::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--fill) 70%, #fff) 0%, var(--fill) var(--hw-v), color-mix(in srgb, var(--ink) 16%, transparent) var(--hw-v) 100%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .35), 0 0 12px -5px var(--fill);
+}
+.hw-preferences input.hw-vol::-moz-range-track { height: 8px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 16%, transparent); }
+.hw-preferences input.hw-vol::-moz-range-progress { height: 8px; border-radius: 999px; background: linear-gradient(90deg, color-mix(in srgb, var(--fill) 70%, #fff), var(--fill)); }
+.hw-preferences input.hw-vol::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 20px; height: 20px; margin-top: -6px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, color-mix(in srgb, var(--fill) 45%, #fff) 45%, var(--fill));
+  border: 2px solid var(--card);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--fill) 30%, transparent), 0 3px 8px rgba(0, 0, 0, .45), 0 0 10px -2px var(--fill);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .22s ease;
+}
+.hw-preferences input.hw-vol::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--card);
+  background: radial-gradient(circle at 35% 30%, #fff 0 18%, color-mix(in srgb, var(--fill) 45%, #fff) 45%, var(--fill));
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .45), 0 0 10px -2px var(--fill);
+  transition: transform .2s cubic-bezier(.3, 1.6, .5, 1), box-shadow .22s ease;
+}
+.hw-preferences input.hw-vol:hover::-webkit-slider-thumb { transform: scale(1.12); }
+.hw-preferences input.hw-vol:hover::-moz-range-thumb { transform: scale(1.12); }
+.hw-preferences input.hw-vol:active::-webkit-slider-thumb {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--fill) 26%, transparent), 0 3px 10px rgba(0, 0, 0, .5), 0 0 16px 0 var(--fill);
+}
+.hw-preferences input.hw-vol:active::-moz-range-thumb {
+  transform: scale(1.3);
+  box-shadow: 0 0 0 7px color-mix(in srgb, var(--fill) 26%, transparent), 0 3px 10px rgba(0, 0, 0, .5), 0 0 16px 0 var(--fill);
+}
+.hw-preferences input.hw-vol:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--fill); }
+.hw-preferences input.hw-vol:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--fill); }
+@media (prefers-reduced-motion: reduce) {
+  .hw-preferences input.hw-vol { transition: none; }
+  .hw-preferences input.hw-vol::-webkit-slider-thumb, .hw-preferences input.hw-vol::-moz-range-thumb { transition: none; }
+}
+
+/* ---------- สวิตช์ในกล่องตัวเลือก Halloween — 26 ต.ค. 69 · เจ้าของ: "ปรับหน่อย" (ปุ่ม เปิดเสียง/เปิดไว้/หยุดภาพ/กลางคืน)
+   เดิมเป็นกล่องข้อความทึบ 4 ปุ่มหน้าตาเหมือนกัน และบางปุ่มบอก "สถานะ" (เปิดไว้) บางปุ่มบอก "สิ่งที่จะเกิดถ้ากด" (เปิดเสียง)
+   อ่านแล้วต้องเดาว่าตอนนี้เปิดหรือปิด · ตอนนี้: เปิด/ปิด = สวิตช์ (รางสีธีมเมื่อเปิด · ปุ่มกลมเลื่อนไปขวา)
+   โทนสี = ตัวเลือกสองช่องมีเม็ดสีธีมเลื่อนไปอยู่ใต้ตัวที่เลือก · สถานะอ่านจาก aria-checked / data-on ที่ theme-main.js ตั้ง
+   ขยับด้วย transform ของชิ้นเล็กชิ้นเดียว · ลดการเคลื่อนไหว = สลับทันที */
+.hw-preferences button.hw-sw {
+  position: relative; flex: none; width: 50px; height: 30px; padding: 0; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  background: color-mix(in srgb, var(--ink) 22%, transparent);
+  transition: background-color .22s ease, border-color .22s ease, box-shadow .22s ease;
+}
+.hw-preferences button.hw-sw i {
+  position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35);
+  transition: transform .32s cubic-bezier(.3,1.5,.5,1);
+}
+.hw-preferences button.hw-sw[aria-checked="true"] {
+  background: var(--fill); border-color: var(--fill);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--fill) 45%, transparent);
+}
+.hw-preferences button.hw-sw[aria-checked="true"] i { transform: translateX(20px); }
+.hw-preferences button.hw-sw:active i { transform: scale(.88); }
+.hw-preferences button.hw-sw[aria-checked="true"]:active i { transform: translateX(20px) scale(.88); }
+.hw-preferences button.hw-sw:focus-visible { outline: 2px solid var(--fill); outline-offset: 3px; }
+
+.hw-preferences .hw-seg {
+  position: relative; flex: none; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+  background: color-mix(in srgb, var(--ink) 10%, transparent);
+}
+.hw-preferences .hw-seg::before {
+  content: ""; position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 999px;
+  background: var(--fill); box-shadow: 0 0 12px color-mix(in srgb, var(--fill) 40%, transparent);
+  transition: transform .34s cubic-bezier(.3,1.3,.5,1);
+}
+.hw-preferences .hw-seg[data-on="light"]::before { transform: translateX(100%); }
+.hw-preferences .hw-seg button {
+  position: relative; z-index: 1; padding: 7px 12px; border: 0; border-radius: 999px; background: none;
+  font-size: 13px; font-weight: 700; color: var(--muted); transition: color .22s ease;
+}
+.hw-preferences .hw-seg button[aria-checked="true"] { color: var(--on-fill); }
+.hw-preferences .hw-seg button:focus-visible { outline: 2px solid var(--fill); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .hw-preferences button.hw-sw, .hw-preferences button.hw-sw i, .hw-preferences .hw-seg::before, .hw-preferences .hw-seg button { transition: none; }
+}

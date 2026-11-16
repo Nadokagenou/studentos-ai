@@ -347,7 +347,7 @@ self.addEventListener('notificationclick', e => {
       for (const c of list) {
         const next = new URL(target, self.registration.scope);
         const scope = new URL(self.registration.scope);
-        if (c.url.startsWith(scope.href) && !c.url.startsWith(scope.href+'alt/') && 'focus' in c) {
+        if (c.url.startsWith(scope.href) && !c.url.startsWith(scope.href+'alt/') && !c.url.startsWith(scope.href+'clear/') && 'focus' in c) {
           // แจ้งเตือนจากแอปที่มีงานติดมา (เตือนให้ทำตอน · 31 ต.ค. 69) + แอปเปิดอยู่ = บอกแอปให้เริ่มงานนั้นเลย ไม่โหลดหน้าใหม่
           if (taskId && 'postMessage' in c) { c.postMessage({ type: 'start-task', id: taskId }); return c.focus(); }
           if (next.origin === scope.origin && next.href.startsWith(scope.href)) return c.navigate(next.href).then(() => c.focus());
@@ -368,7 +368,8 @@ self.addEventListener('fetch', e => {
   const requestUrl = new URL(e.request.url);
   if (requestUrl.origin !== location.origin) return;
   const appPath = new URL(self.registration.scope).pathname;
-  if (requestUrl.pathname.startsWith(appPath + 'alt/') || requestUrl.pathname.startsWith(appPath + 'android-shortcuts/')) return;
+  // /clear/ = เวอร์ชันแยก (16 พ.ย. 69) มี service worker และแคชของตัวเอง — ตัวหลักห้ามดัก
+  if (requestUrl.pathname.startsWith(appPath + 'alt/') || requestUrl.pathname.startsWith(appPath + 'clear/') || requestUrl.pathname.startsWith(appPath + 'android-shortcuts/')) return;
   if (requestUrl.pathname.startsWith(appPath + 'halloween/event/assets/') && /\/[a-z0-9-]+-fast-v\d+\.webp$/.test(requestUrl.pathname)) {
     e.respondWith(eventArt(e.request, requestUrl.origin + requestUrl.pathname));
     return;

@@ -1,0 +1,301 @@
+// ============================================================
+// linelink — ฝั่งแอปของการเชื่อม LINE  ·  *** ALT ***
+// ------------------------------------------------------------
+// แบ่งหน้าที่ชัดเจนกับฝั่งเซิร์ฟเวอร์:
+//   Edge Function   หย่อนข้อความ "ดิบ" ลงตาราง inbox_items เฉย ๆ
+//   ไฟล์นี้          ดึงของดิบมา แล้วส่งเข้า inboxAdd() ตัวเดิม
+//
+// ทำแบบนี้เพราะตรรกะการแกะ/จับซ้ำ/ให้คะแนนความมั่นใจ ควรมีที่เดียว
+// ถ้าไปแกะฝั่งเซิร์ฟเวอร์ด้วย จะกลายเป็นสองชุดที่ต้องคอยดูแลให้ตรงกันตลอด
+// ============================================================
+
+// 9 ต.ค. 69 · typeof ก่อน — สลับแอปไปมาระหว่างหน้ากำลังโหลด visibilitychange ยิงก่อนที่ app.js จะประกาศ sb
+// (ไฟล์นี้โหลดก่อน app.js) แล้วได้ ReferenceError ทุกครั้ง · เครื่องช้าโหลดนานจึงเจอบ่อยกว่า
+function lineReady() { return typeof sb !== 'undefined' && !!(sb && currentUser); }
+
+// ---------- ขอรหัสเชื่อม ----------
+// รหัสสั้น อ่านออกเสียงได้ ไม่มีตัวที่สับสน (0/O, 1/I) เพราะต้องพิมพ์ในกลุ่มด้วยมือ
+function makeLineCode() {
+  const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = '';
+  for (let i = 0; i < 4; i++) s += abc[Math.floor(Math.random() * abc.length)];
+  return 'SOS-' + s;
+}
+
+let linkCode = null, linkTimer = null;
+
+async function requestLineCode() {
+  if (!lineReady()) {
+    showToast({ title: 'ต้องล็อกอินก่อน', body: '' });
+    return;
+  }
+  const code = makeLineCode();
+  const { error } = await sb.from('line_codes').insert({ code, user_id: currentUser.id });
+  if (error) {
+    showToast({ title: 'ขอรหัสไม่สำเร็จ', body: error.message });
+    return;
+  }
+  linkCode = { code, at: Date.now() };
+  renderAll();
+
+  // เฝ้าดูว่ารหัสถูกใช้ไปหรือยัง — ถูกใช้แล้ว = เชื่อมสำเร็จ
+  clearInterval(linkTimer);
+  linkTimer = setInterval(checkLineLinked, 4000);
+  setTimeout(() => { clearInterval(linkTimer); }, 60 * 60000); // ตรงกับอายุรหัสในฐานข้อมูล (1 ชม.)
+}
+
+async function checkLineLinked() {
+  if (!lineReady() || !linkCode) return;
+  const { data } = await sb.from('line_codes').select('code').eq('code', linkCode.code).maybeSingle();
+  if (data) return;                       // ยังไม่มีใครใช้
+  clearInterval(linkTimer);
+  linkCode = null;
+
+  // รหัสหายไปมีได้สองสาเหตุ — บอทใช้ไปแล้ว หรือหมดอายุแล้วถูกเก็บกวาดทิ้ง
+  // ต้องดูว่ามีกลุ่มเพิ่มขึ้นจริงไหมก่อนถึงจะบอกว่าสำเร็จ
+  // ไม่งั้นรหัสหมดอายุเฉย ๆ จะขึ้นว่า "เชื่อมสำเร็จ" ทั้งที่ไม่มีอะไรเชื่อมเลย
+  const before = lineLinks.length;
+  await loadLineLinks();
+  renderAll();
+
+  if (lineLinks.length > before) {
+    // ขั้นที่ลึกที่สุดของกรวย — คนที่มาถึงตรงนี้คือคนที่แอปทำงานให้ได้จริงโดยเขาไม่ต้องพิมพ์
+    if (typeof funnelMark === 'function') { funnelMark('lineLinkedAt'); save(); }
+    showToast({ title: 'เชื่อมกลุ่ม LINE สำเร็จ 🎉',
+      body: '' });
+    pullInbox();
+  } else {
+    showToast({ title: 'รหัสหมดอายุแล้ว',
+      body: 'ยังไม่มีกลุ่มไหนใช้รหัสนี้' });
+  }
+}
+
+// ---------- กลุ่มที่เชื่อมไว้แล้ว ----------
+let lineLinks = [];
+async function loadLineLinks() {
+  if (!lineReady()) { lineLinks = []; return; }
+  const { data } = await sb.from('line_links').select('room_id, created_at').order('created_at');
+  lineLinks = data || [];
+
+  // รหัสที่ขอไว้แล้วยังไม่ได้ใช้ — เอากลับมาโชว์ ไม่ต้องให้จำเอง
+  // (ปิดแอปไปแล้วเปิดใหม่ หรือสลับหน้าจอ ก็ยังเห็นรหัสเดิม)
+  const { data: codes } = await sb.from('line_codes')
+    .select('code, created_at').order('created_at', { ascending: false }).limit(1);
+  const c = codes && codes[0];
+  if (c) {
+    linkCode = { code: c.code, at: new Date(c.created_at).getTime() };
+    clearInterval(linkTimer);
+    linkTimer = setInterval(checkLineLinked, 4000);
+  } else {
+    linkCode = null;
+  }
+}
+
+// ทิ้งรหัสเดิมแล้วขอใหม่ — เผื่อพิมพ์ผิดจนสับสน อยากเริ่มใหม่ให้สะอาด
+async function resetLineCode() {
+  if (!lineReady()) return;
+  if (linkCode) await sb.from('line_codes').delete().eq('code', linkCode.code);
+  linkCode = null;
+  await requestLineCode();
+}
+
+async function unlinkLineRoom(roomId) {
+  if (!lineReady()) return;
+  await sb.from('line_links').delete().eq('room_id', roomId);
+  await loadLineLinks();
+  renderAll();
+  showToast({ title: 'เลิกเชื่อมกลุ่มนี้แล้ว', body: '' });
+}
+
+// ---------- ดึงของดิบเข้ากล่องเข้า ----------
+// เรียกตอนเปิดแอปและทุกครั้งที่ซิงก์ — ของที่อ่านแล้วมาร์ค consumed กันดึงซ้ำ
+//
+// ท่อนี้ไม่ได้เป็นของ LINE อย่างเดียวแล้ว: ตัวซิงก์ฝั่งเซิร์ฟเวอร์ (sync-integrations)
+// หย่อนงานจาก Classroom และปฏิทินของโรงเรียนลงตารางเดียวกันนี้ · แถวที่มีธง
+// meta.structured คือของที่มีโครงมาจาก API แล้ว ต้องไม่เอาไปให้ตัวแกะข้อความเดาใหม่
+// 16 ต.ค. 69 · กลับเข้าแอปทีเดียวเคยยิงสองทางพร้อมกัน (ตัวฟังข้างล่าง + syncFromCloud)
+// สองรอบอ่านแถวชุดเดียวกันก่อนอีกรอบจะมาร์ค consumed → ข้อความ LINE เดียวเข้ากล่องสองครั้ง
+// รอบที่สองที่มาระหว่างรอบแรกยังไม่จบ รอผลรอบแรกแทน
+let inboxPullBusy = null;
+// 16 ต.ค. 69 · มีคนขอดึงระหว่างที่รอบหนึ่งกำลังดึงอยู่ (งานเข้ามาทาง realtime ตอนนั้นพอดี)
+// รอบที่กำลังดึงอาจอ่านแถวไปก่อนแถวใหม่จะเข้า — จดไว้แล้วดึงต่ออีกรอบเดียวหลังรอบนี้จบ ไม่ทิ้งให้รอ 45 วิ
+let inboxPullAgain = false;
+function pullInbox() {
+  inboxLiveEnsure();
+  if (inboxPullBusy) { inboxPullAgain = true; return inboxPullBusy; }
+  inboxPullBusy = pullInboxOnce().finally(() => {
+    inboxPullBusy = null;
+    if (inboxPullAgain) { inboxPullAgain = false; pullInbox(); }
+  });
+  return inboxPullBusy;
+}
+
+// ---------- รับงานทันทีที่เข้ากล่องเข้า (Supabase Realtime) ----------
+// 16 ต.ค. 69 · เจ้าของ: "ขอส่งแล้วเข้าเลย" — เดิมแอปที่เปิดอยู่รู้ว่ามีงานจาก Classroom/LINE เข้ามาก็ต่อเมื่อถึงรอบ 45 วิ
+// ตอนนี้ฟังการ INSERT ของ inbox_items แล้วดึงทันที (รอบ 45 วิยังอยู่ เป็นทางสำรองตอนช่องหลุด)
+// ช่องกรองด้วย user_id ของบัญชีนี้ และ realtime ใช้ RLS ของตารางอีกชั้น — ไม่มีทางได้ยินแถวของคนอื่น
+// ช่องผูกกับบัญชี: สลับบัญชี = ปิดช่องเดิมเปิดช่องใหม่ · ออกจากระบบ = ปิด · สัญญาณค้างจากช่องเก่าไม่ทำให้ดึง
+// เรียกซ้ำได้ทุกครั้ง (pullInbox เรียกทุกรอบ) — ไม่เปิดช่องซ้ำ เพราะโควตา realtime นับจำนวนช่องที่เปิดพร้อมกัน
+let inboxLive = null, inboxLiveUid = null;
+function inboxLiveEnsure() {
+  const uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.id) || null;
+  if (inboxLive && inboxLiveUid === uid) return;
+  inboxLiveStop();
+  if (!uid || typeof sb === 'undefined' || !sb || typeof sb.channel !== 'function') return;
+  inboxLiveUid = uid;
+  inboxLive = sb.channel('inbox:' + uid)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'inbox_items', filter: 'user_id=eq.' + uid },
+      () => { if (currentUser && currentUser.id === uid) pullInbox(); })
+    .subscribe();
+}
+function inboxLiveStop() {
+  if (inboxLive) { try { sb.removeChannel(inboxLive); } catch (_) {} }
+  inboxLive = null; inboxLiveUid = null;
+}
+
+// ตัวเชื่อมที่ผู้ใช้ปิดไว้ — คืนเป็นรายการสำหรับ PostgREST `in.(…)` (id เป็นคำล้วน ๆ ทุกตัว)
+function inboxOffSources() {
+  const off = (typeof state !== 'undefined' && state.settings && state.settings.srcOff) || {};
+  return Object.keys(off).filter(k => off[k] && /^[\w-]+$/.test(k));
+}
+
+async function pullInboxOnce() {
+  if (!lineReady()) return 0;
+  // 16 ต.ค. 69 · กรองตัวเชื่อมที่ปิดไว้ตั้งแต่ใน query — เดิมดึง 50 แถวเก่าสุดแล้วค่อยข้ามข้างล่าง
+  // แถวที่ข้ามไม่เคยถูกมาร์ค consumed (ตั้งใจ ดูหมายเหตุในลูป) จึงค้างเป็น 50 แถวเก่าสุดตลอดไป
+  // ปิด Classroom ไว้แล้วมีงานค้างครบ 50 ใบเมื่อไหร่ ข้อความ LINE ใหม่ทุกข้อความหลังจากนั้นไม่เคยถูกอ่านอีกเลย
+  // (source เป็น not null ในตาราง — not in ไม่ต้องกันกรณีค่าว่าง)
+  const off = inboxOffSources();
+  let q = sb.from('inbox_items')
+    .select('id, source, raw, meta, created_at')
+    .eq('consumed', false);
+  if (off.length) q = q.not('source', 'in', `(${off.join(',')})`);
+  const { data, error } = await q
+    .order('created_at', { ascending: true })
+    .limit(50);
+  if (error || !data || !data.length) return 0;
+
+  const tally = { added: 0, updated: 0, cancelled: 0, turnedIn: 0 };
+  const done = [];
+  for (const row of data) {
+    const src = row.source || 'line';
+    // ปิดตัวเชื่อมไว้ = ไม่แตะแถวนั้นเลย ไม่ใช่ดึงมาแล้วทิ้ง
+    // ทิ้งแล้วมาร์คว่าใช้แล้ว = ของช่วงที่ปิดไว้หายถาวร ต่อให้เปิดกลับมาทีหลังก็ไม่ได้คืน
+    // (เดิมเช็คแค่ 'line' ตัวเดียวตายตัว ซึ่งจะบล็อกตัวเชื่อมอื่นทั้งหมดไปด้วย)
+    // query ข้างบนกรองไปแล้ว — บรรทัดนี้กันกรณีปิดตัวเชื่อมระหว่างที่คำขอยังวิ่งอยู่
+    if (typeof srcEnabled === 'function' && !srcEnabled(src)) continue;
+
+    const meta = row.meta || {};
+    const r = (meta.structured && typeof inboxAddSynced === 'function')
+      ? inboxAddSynced({ ...meta, raw: row.raw }, src)
+      : inboxAdd(row.raw, src, meta);
+
+    if (r.status === 'accepted' || r.status === 'pending') tally.added++;
+    else if (r.status === 'updated') tally.updated++;
+    else if (r.status === 'cancelled') tally.cancelled++;
+    else if (r.status === 'turnedIn') tally.turnedIn++;
+    done.push(row.id);
+  }
+  if (done.length) await sb.from('inbox_items').update({ consumed: true }).in('id', done);
+
+  const total = tally.added + tally.updated + tally.cancelled + tally.turnedIn;
+  if (total) {
+    renderAll();
+    showToast(inboxPullToast(tally));
+  }
+  return tally.added;
+}
+
+// ข้อความสรุปหนึ่งก้อนต่อการดึงหนึ่งรอบ — ไม่ใช่หนึ่งก้อนต่องานหนึ่งใบ
+// ครูสั่งงานทั้งสัปดาห์ทีเดียวแล้วได้แจ้งเตือนสิบเอ็ดดอกรวด คือเหตุผลที่คนปิดแจ้งเตือน
+function inboxPullToast(t) {
+  const wait = typeof inboxPending === 'function' ? inboxPending().length : 0;
+  // งานที่ถูกยกเลิกสำคัญกว่าของใหม่เสมอ — มันคือของที่เขาอาจกำลังนั่งทำอยู่ตอนนี้
+  if (t.cancelled) {
+    return {
+      title: `ครูยกเลิกงาน ${t.cancelled} ใบ`,
+      body: t.turnedIn ? `ย้ายไปถังขยะแล้ว · ส่งงานแล้วอีก ${t.turnedIn} ใบ` : 'ย้ายไปถังขยะแล้ว',
+    };
+  }
+  // 16 ต.ค. 69 · นักเรียนกดส่งงานใน Classroom แล้ว — เดิมรวมอยู่กับ "ครูยกเลิกงาน" ซึ่งผิดความหมายตรงข้าม
+  if (t.turnedIn && !t.added && !t.updated) {
+    return { title: `ส่งงานใน Classroom แล้ว ${t.turnedIn} ใบ`, body: 'ติ๊กเสร็จให้แล้ว' };
+  }
+  if (t.updated && !t.added && !t.turnedIn) {
+    return { title: `งานถูกแก้ ${t.updated} ใบ`, body: 'อัปเดตกำหนดส่งแล้ว' };
+  }
+  const bits = [];
+  if (t.added) bits.push(`ของใหม่ ${t.added} รายการ`);
+  if (t.updated) bits.push(`แก้ไข ${t.updated} รายการ`);
+  if (t.turnedIn) bits.push(`ส่งแล้ว ${t.turnedIn} ใบ`);
+  return {
+    title: (t.added ? 'มีงานเข้ามาใหม่ · ' : 'อัปเดตงาน · ') + bits.join(' · '),
+    body: wait ? `รอตรวจ ${wait} รายการ`
+               : 'เข้าแผนแล้ว',
+  };
+}
+
+// ---------- คอยดึงของใหม่ระหว่างที่แอปเปิดค้างอยู่ ----------
+// เดิมดึงแค่ตอนเปิดแอป/ล็อกอินเท่านั้น — ครูสั่งงานตอนที่นักเรียนเปิดแอปค้างไว้อยู่แล้ว
+// จะไม่มีอะไรเกิดขึ้นเลยจนกว่าจะปิดแล้วเปิดใหม่ ซึ่งพังทั้งแนวคิด "ไม่ต้องทำอะไรเลย"
+// ถ้าต้องคอยรีเฟรชเอง ก็ไม่ต่างอะไรกับแอปที่ต้องกรอกเอง
+const INBOX_POLL_MS = 45000;
+let inboxPoll = null;
+
+function startInboxPolling() {
+  clearInterval(inboxPoll);
+  // ถามเฉพาะตอนที่หน้าจอเปิดอยู่จริง — อยู่ในกระเป๋าแล้วยังยิงทุก 45 วิ คือกินแบตฟรี ๆ
+  inboxPoll = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    pullInbox();
+    // 1C40 · รอบเดียวกันถามข้อความจากเพื่อนด้วย — ป้ายเด้งเมื่อมีคนทักมา (notifKick ใน inbox.js)
+    if (typeof notifKick === 'function') notifKick();
+  }, INBOX_POLL_MS);
+}
+
+// สลับจากแชทกลับมาที่แอป = จังหวะที่มีของใหม่รออยู่มากที่สุด
+// ดึงทันทีเลย ไม่ต้องให้รอจนครบรอบถัดไป
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  pullInbox();
+  if (typeof notifKick === 'function') notifKick(true);
+});
+
+startInboxPolling();
+
+// ---------- ส่วนที่แสดงในจอ "ตัวเชื่อม" ----------
+function lineLinkPanel() {
+  if (!cloudConfigured()) {
+    return `<div class="src-need">${icon('lock')}ยังไม่ได้ตั้งค่า Supabase — เชื่อม LINE ไม่ได้</div>`;
+  }
+  if (!currentUser) {
+    return `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน</div>
+      <button class="ib-go" style="margin-top:10px" onclick="go('scr-profile')">ไปล็อกอิน</button>`;
+  }
+
+  if (linkCode) {
+    // รหัสมีอายุ 1 ชม. ตามที่ตั้งไว้ในฐานข้อมูล — บอกเวลาที่เหลือจริง ไม่ใช่เดา
+    const leftMin = Math.max(0, 60 - Math.round((Date.now() - linkCode.at) / 60000));
+    return `<div class="lk-code">
+      <div class="lk-lb">พิมพ์รหัสนี้ในกลุ่มห้องเรียนที่มีบอทอยู่</div>
+      <div class="lk-val">${esc(linkCode.code)}</div>
+      <div class="lk-hint">${icon('clock')}${leftMin
+        ? `รอบอทตอบกลับในกลุ่ม… รหัสใช้ได้อีก ${leftMin} นาที`
+        : 'รหัสหมดอายุแล้ว กดขอใหม่ได้เลย'}</div>
+      <button class="lk-new" onclick="resetLineCode()">${icon('pencil')}ขอรหัสใหม่</button>
+    </div>`;
+  }
+
+  const rooms = lineLinks.length
+    ? lineLinks.map((l, i) => `<div class="lk-room">
+        <span class="lk-room-ic">${icon('chat')}</span>
+        <span class="lk-room-bd"><span class="t">กลุ่มที่ ${i + 1}</span>
+          <span class="s">${esc(String(l.room_id).slice(0, 10))}…</span></span>
+        <button onclick="unlinkLineRoom('${esc(l.room_id)}')">เลิกเชื่อม</button>
+      </div>`).join('')
+    : '';
+
+  return rooms + `<button class="ib-go" style="margin-top:10px" onclick="requestLineCode()">
+      ${icon('chat')}${lineLinks.length ? 'เชื่อมกลุ่มเพิ่ม' : 'ขอรหัสเชื่อมกลุ่ม'}</button>`;
+}

@@ -1,0 +1,209 @@
+/* ---------- 24 ต.ค. 69 · จออีเวนต์ (scr-events · events.js) ----------
+   คอลัมน์เดียวสำหรับมือถือแนวตั้ง (รอบแรกเป็นรางซ้ายแบบเกมแนวนอน — กินที่และเหลือช่องว่าง ดู renderEvents)
+   แถบกิจกรรมแนวนอน → แบนเนอร์สไลด์เต็มความกว้าง (ปุ่มเข้าเล่น + Candy ในตัว) → แถวรางวัล → ชิปทางลัดส่วนย่อย
+   ใช้โทเคนของธีม (--card · --ink · --muted · --line) ทุกที่ ยกเว้นแบนเนอร์ที่มีภาพของอีเวนต์เองเป็นพื้น */
+/* หัวจอใช้ .sticky-head.sh-inline ร่วมกับจออื่น (โปร่ง ไม่มีแถบกระจก) · จอ flush ต้องกัน notch เองที่ตัวเนื้อ แบบ .pf-body */
+.ev-body { padding: calc(6px + env(safe-area-inset-top)) 16px 120px; }
+
+/* แถบกิจกรรม — ปัดข้างได้เมื่อกิจกรรมเยอะ · ไม่มีแถบเลื่อนให้เห็น */
+.ev-tabs { display: flex; gap: 8px; margin: 0 -16px; padding: 2px 16px 12px; overflow-x: auto; scrollbar-width: none;
+  scroll-snap-type: x proximity; }
+.ev-tabs::-webkit-scrollbar { display: none; }
+.ev-tab { flex: none; display: flex; align-items: center; gap: 8px; height: 50px; padding: 5px 14px 5px 5px; scroll-snap-align: start;
+  border: 1px solid var(--line, rgba(127, 127, 127, .25)); border-radius: 16px; background: var(--card); color: var(--ink);
+  font: inherit; text-align: left; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ev-tab-art { flex: none; display: grid; place-items: center; width: 52px; height: 38px; border-radius: 11px;
+  background: var(--ev-art, none) 50% 30% / cover no-repeat, color-mix(in srgb, var(--muted) 18%, transparent); color: var(--muted); }
+.ev-tab-art svg { width: 18px; height: 18px; }
+.ev-tab-tx { display: flex; flex-direction: column; line-height: 1.2; }
+.ev-tab-tx b { font-size: 13.5px; font-weight: 800; }
+.ev-tab-tx small { font-size: 11px; font-weight: 700; color: var(--muted); }
+.ev-tab.on { border-color: #f0a03a; box-shadow: 0 0 0 2px color-mix(in srgb, #f0a03a 40%, transparent); }
+.ev-tab:active { transform: scale(.97); }
+/* 24 ต.ค. 69 · เจ้าของ (ภาพชิปมืดไอคอนจาง): "มีข้อความมองไม่เห็น" — เดิม opacity .55 ทั้งชิป ซ้อนกับไอคอนสี --muted
+   ธีมมืดเลยจางสองชั้นจนหาย · ยังบอกว่า "ยังไม่เปิด" ด้วยขอบประ ไม่มีพื้น และตัวหนาสีรอง แทนการทำให้ทั้งก้อนโปร่ง */
+.ev-tab.soon { cursor: default; border-style: dashed; background: transparent; }
+.ev-tab.soon .ev-tab-tx b { color: var(--muted); }
+
+.ev-main { display: flex; flex-direction: column; gap: 10px; }
+
+/* แบนเนอร์ — หน้าตาเดียวกับการ์ดอีเวนต์บนหน้าแรก (today.css .td-hero) คนกดมาจะรู้ว่ามาถูกที่
+   ข้างในเป็นรางสไลด์ (ปก + ฉากในกิจกรรม) · ป้ายมุมบนกับปุ่มเข้าเล่น/Candy ลอยอยู่กับที่ ไม่เลื่อนตามสไลด์ */
+.ev-banner { position: relative; isolation: isolate; overflow: hidden; height: 300px; border-radius: 24px; color: #f6efff;
+  background: #120c2a; border: 1px solid #9d7cf0; box-shadow: 0 18px 40px -24px rgba(122, 79, 224, 1); }
+.ev-track { position: absolute; inset: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  overscroll-behavior-x: contain; }
+.ev-track::-webkit-scrollbar { display: none; }
+.ev-slide { position: relative; isolation: isolate; flex: 0 0 100%; scroll-snap-align: start; scroll-snap-stop: always;
+  display: flex; flex-direction: column; gap: 2px; padding: 44px 16px 0; overflow: hidden; }
+.ev-slide-bg { position: absolute; inset: 0; z-index: -2; background: var(--ev-art, none) 50% 22% / cover no-repeat; }
+.ev-slide-bg::after, .ev-slide.scene::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(14, 9, 34, .85) 0%, rgba(14, 9, 34, .3) 40%, rgba(14, 9, 34, .2) 62%, rgba(14, 9, 34, .9) 100%); }
+.ev-slide.scene::after { background: linear-gradient(180deg, rgba(14, 9, 34, .55) 0%, rgba(14, 9, 34, 0) 30%, rgba(14, 9, 34, .1) 55%, rgba(14, 9, 34, .92) 100%); }
+.ev-slide.scene img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.ev-cap { position: absolute; left: 16px; right: 16px; bottom: 76px; display: flex; flex-direction: column; gap: 1px; text-shadow: 0 1px 4px #000; }
+.ev-cap b { font-size: 20px; font-weight: 900; line-height: 1.15; color: #fff3dc; }
+.ev-cap span { font-size: 12.5px; font-weight: 700; color: #e6dcff; }
+.ev-tags { position: absolute; z-index: 2; left: 16px; top: 14px; display: flex; gap: 6px; flex-wrap: wrap; pointer-events: none; }
+.ev-tags i { font-style: normal; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; line-height: 1.2; }
+.ev-left { background: #ffc94d; color: #2a1600; font-variant-numeric: tabular-nums; }
+.ev-try { background: rgba(0, 0, 0, .4); color: #cbbcf5; }
+.ev-slide h2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 0;
+  font-size: 30px; font-weight: 900; line-height: 1.05; color: #fff3dc; text-shadow: 0 0 16px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
+.ev-slide h2 span { font-size: 14px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
+.ev-blurb { margin: 2px 0 0; max-width: 92%; font-size: 12.5px; font-weight: 600; line-height: 1.4; color: #e6dcff; text-shadow: 0 1px 3px #000; }
+.ev-cast { position: absolute; z-index: -1; left: 0; right: 0; bottom: 68px; display: flex; justify-content: center; align-items: flex-end; pointer-events: none; }
+.ev-cast figure { margin: 0 -5px; display: flex; flex-direction: column; align-items: center; }
+.ev-cast img { display: block; height: 92px; width: auto; filter: drop-shadow(0 4px 3px rgba(0, 0, 0, .6)); }
+.ev-cast figcaption { margin-top: -2px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; color: #fff;
+  background: rgba(10, 6, 26, .75); border: 1px solid rgba(255, 255, 255, .18); white-space: nowrap; }
+.ev-foot { position: absolute; z-index: 2; left: 16px; right: 16px; bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; pointer-events: none; }
+.ev-foot > * { pointer-events: auto; }
+.ev-play { display: inline-flex; align-items: center; justify-content: center; gap: 4px; flex: 1; max-width: 64%; height: 48px; border: 0; border-radius: 16px;
+  font: inherit; font-size: 17px; font-weight: 900; color: #2a1100; cursor: pointer;
+  background: linear-gradient(180deg, #ffbe5c, #f07f16); box-shadow: 0 4px 0 #8a3b00; }
+.ev-play svg { width: 18px; height: 18px; }
+.ev-play:active { transform: translateY(2px); box-shadow: 0 2px 0 #8a3b00; }
+.ev-candy { display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 12px; border-radius: 999px;
+  background: rgba(10, 6, 26, .7); color: #ffd0e4; font-size: 13px; font-weight: 700; }
+.ev-candy svg { width: 18px; height: 18px; color: #ff6fae; }
+.ev-candy b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+
+/* จุดบอกสไลด์ — ใบที่อยู่ยืดเป็นแท่งสีส้ม แบบจุดของการ์ดหน้าแรก */
+.ev-dots { display: flex; justify-content: center; gap: 2px; margin: -4px 0 -6px; }
+.ev-dot { display: grid; place-items: center; width: 18px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
+.ev-dot i { width: 7px; height: 7px; border-radius: 9px; background: color-mix(in srgb, var(--muted) 45%, transparent); transition: width .25s, background .25s; }
+.ev-dot.on { width: 30px; }
+.ev-dot.on i { width: 24px; background: #f0a03a; }
+
+/* แถวรางวัล — ของจริงจากแคตตาล็อก ปัดข้างได้ · ดูอย่างเดียว (รับของเกิดในเกม) */
+.ev-sub { margin: 4px 0 -2px; font-size: 14px; font-weight: 800; color: var(--ink); }
+.ev-shelf { margin: 0 -16px; padding: 0 16px 2px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; scroll-padding-inline: 16px; }
+.ev-shelf::-webkit-scrollbar { display: none; }
+/* รางในที่ไหลด้วย transform (events.js evFlow) · ตอนไหลปิด snap และไม่ให้ปัด scroll ซ้อนกับ transform */
+.ev-flow { display: flex; gap: 8px; width: max-content; }
+.ev-shelf.run { scroll-snap-type: none; }
+.ev-shelf.run .ev-flow { will-change: transform; }
+.ev-rw { flex: none; width: 92px; padding: 8px 6px 7px; border-radius: 16px; scroll-snap-align: start;
+  display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center;
+  background: var(--card); border: 1px solid var(--line, rgba(127, 127, 127, .25)); }
+.ev-rw-im { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 12px;
+  background: radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--c, #f0a03a) 45%, transparent), transparent 70%); }
+.ev-rw-im img { max-width: 62px; max-height: 62px; }
+.ev-rw b { font-size: 11px; font-weight: 800; color: var(--ink); line-height: 1.2; height: 2.4em; overflow: hidden; }
+.ev-rw i { font-style: normal; font-size: 9.5px; font-weight: 800; padding: 1px 7px; border-radius: 999px;
+  background: color-mix(in srgb, var(--c, #f0a03a) 28%, transparent); color: var(--c, #f0a03a); }
+.ev-rw.secret { border-style: dashed; }
+.ev-rw.secret .ev-rw-im { font-size: 30px; font-weight: 900; color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
+.ev-rw.secret i { color: var(--muted); background: color-mix(in srgb, var(--muted) 16%, transparent); }
+
+/* ทางลัดเข้าส่วนย่อย — ชิปบรรทัดเดียว ปัดข้างได้ */
+.ev-chips { display: flex; gap: 6px; margin: 0 -16px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; }
+.ev-chips::-webkit-scrollbar { display: none; }
+.ev-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; height: 36px; padding: 0 13px; border-radius: 999px;
+  border: 1px solid var(--line, rgba(127, 127, 127, .25)); background: var(--card); color: var(--ink);
+  font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+.ev-chip svg { width: 15px; height: 15px; color: #f0a03a; }
+.ev-chip:active { transform: scale(.97); }
+
+/* 25 ต.ค. 69 · เจ้าของ: "ตรงตอนนี้ยังไม่มีอีเวนต์ให้ใส่ขอบ ดูสวยกว่านี้" — เดิมเป็นกล่อง --card ทึบเปล่า ๆ ลอยทับฉาก
+   ขอบแบบ HaloField (Cult UI · MIT · ตัวเดียวกับช่องแก้โปรไฟล์ ใช้ @property --hf-a กับ hf-spin ใน alt.css)
+   ไล่สีวนช้า ๆ ในสีของธีม (--fill · --halo-2/3) · พื้นกระจกฝ้าให้ฉากธีมโผล่ · ไอคอนปฏิทินในวงแสงบอกว่า "รอกิจกรรมถัดไป" */
+.ev-empty { --hf-c1: color-mix(in srgb, var(--fill) 85%, transparent);
+  --hf-c2: color-mix(in srgb, var(--halo-2, var(--fill)) 30%, transparent);
+  --hf-c3: color-mix(in srgb, var(--halo-3, var(--fill)) 55%, transparent);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 24px 18px 26px; border-radius: 20px; text-align: center;
+  border: 1.5px solid transparent;
+  background:
+    radial-gradient(120% 90% at 50% -20%, color-mix(in srgb, var(--fill) 16%, transparent), transparent 62%) padding-box,
+    linear-gradient(color-mix(in srgb, var(--card) 80%, transparent), color-mix(in srgb, var(--card) 80%, transparent)) padding-box,
+    conic-gradient(from var(--hf-a), var(--hf-c1), var(--hf-c2), var(--hf-c3), var(--hf-c1)) border-box;
+  -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.1), 0 0 0 4px color-mix(in srgb, var(--fill) 8%, transparent),
+    0 16px 34px -18px color-mix(in srgb, var(--fill) 75%, transparent);
+  animation: hf-spin 12s steps(180) infinite;
+  color: var(--muted); font-size: 13px; }
+.ev-empty b { color: var(--ink); font-size: 15.5px; margin-top: 6px; }
+.ev-empty-ic { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 16px;
+  color: var(--fill);
+  background: radial-gradient(90% 90% at 25% 10%, rgba(255,255,255,.22), transparent 60%), color-mix(in srgb, var(--fill) 16%, var(--card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--fill) 45%, transparent), 0 0 22px -6px color-mix(in srgb, var(--fill) 80%, transparent); }
+.ev-empty-ic svg { width: 24px; height: 24px; }
+.ev-empty-ic .ev-empty-sp { position: absolute; top: -7px; right: -7px; width: 16px; height: 16px;
+  color: color-mix(in srgb, var(--fill) 60%, #fff); animation: ev-twinkle 2.4s ease-in-out infinite; }
+@keyframes ev-twinkle { 50% { opacity: .35; transform: scale(.8) rotate(20deg); } }
+:root[data-lite] .ev-empty, :root[data-lite] .ev-empty-sp { animation: none; }
+@media (prefers-reduced-motion: reduce) { .ev-empty, .ev-empty-sp { animation: none; } }
+
+/* ชิป "เร็ว ๆ นี้" — ขอบประกับไอคอนย้อมสีธีม (เดิมเทา --line / --muted จนจางหายบนฉากมืด) */
+.ev-tab.soon { border-color: color-mix(in srgb, var(--fill) 55%, transparent); background: color-mix(in srgb, var(--card) 45%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.ev-tab.soon .ev-tab-art { color: var(--fill); background: color-mix(in srgb, var(--fill) 16%, transparent); }
+
+/* ---------- 24 ต.ค. 69 · ภารกิจปลดล็อกธีม Halloween (events.js questDetail) ----------
+   แบนเนอร์เล็กกว่าของฮาโลวีน (ไม่มีสไลด์) พื้นเป็นฉากของธีมเอง · รายการภารกิจใช้โทเคนธีมเหมือนแถวรางวัล
+   ส้มคือสีปุ่มของจอนี้ (ปุ่มเข้าเล่น) · ทองเฉพาะภารกิจที่ทำครบแล้ว (กติกาสีทอง: ทองเฉพาะของที่สำเร็จจริง) */
+.hq-banner { position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
+  min-height: 128px; padding: 44px 16px 14px; border-radius: 24px; color: #f6efff;
+  background: linear-gradient(180deg, rgba(14, 9, 34, .55), rgba(14, 9, 34, .1) 35%, rgba(14, 9, 34, .9)), var(--ev-art, none) 50% 40% / cover no-repeat, #120c2a;
+  border: 1px solid #9d7cf0; box-shadow: 0 18px 40px -24px rgba(122, 79, 224, 1); }
+.hq-banner h2 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 28px; font-weight: 900; line-height: 1.05;
+  color: #fff3dc; text-shadow: 0 0 16px rgba(255, 150, 40, .6), 0 3px 0 #3b1d00; }
+.hq-banner h2 span { font-size: 13px; font-weight: 800; color: #d9c8ff; text-shadow: 0 1px 3px #000; }
+.hq-sw { position: absolute; right: 16px; top: 14px; width: 34px; height: 34px; border-radius: 50%; box-shadow: 0 0 0 3px rgba(10, 6, 26, .6); }
+.hq-own { background: var(--gold, #e8c25a); color: #2a1600; }
+
+/* บัตรเชิญ (รอบสอง · ระบบ QR ของเจ้าของใน halloween/invite-friend/) — พื้นตามธีมที่ใช้อยู่ ไม่ใช่โทนคืนตายตัวแบบแผ่น
+   QR วางบนกรอบสว่างของตัวเองเสมอ (สี .iv-qr-* ใน invite-friend.css) กล้องต้องอ่านออกในธีมสว่างและมืดเท่ากัน */
+.hq-ticket { display: grid; grid-template-columns: 112px 1fr; grid-template-areas: "qr code" "btns btns"; gap: 12px 14px; align-items: center;
+  padding: 14px; border-radius: 20px; background: var(--card); border: 1.5px dashed color-mix(in srgb, #f0a03a 45%, var(--line, transparent)); }
+.hq-ticket.off { display: flex; flex-direction: column; align-items: stretch; gap: 10px; text-align: center; }
+.hq-ticket.off p { margin: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.hq-qr { grid-area: qr; width: 112px; height: 112px; padding: 4px; border-radius: 14px; background: #fff8ec;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #f0a03a 55%, transparent); display: grid; place-items: center; }
+.hq-qr span { font-size: 11px; color: #6b5a80; text-align: center; }
+.hq-code-wrap { grid-area: code; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.hq-code-wrap small { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.hq-code { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; font-family: 'Space Mono', ui-monospace, monospace;
+  font-size: 19px; font-weight: 700; letter-spacing: .04em; line-height: 1.25; color: var(--ink); }
+.hq-code i { font-style: normal; color: #f0a03a; }
+.hq-btns { grid-area: btns; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.hq-btns .hq-btn { justify-content: center; }
+.hq-btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line, rgba(127, 127, 127, .3)); }
+.hq-more { align-self: center; min-height: 44px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700;
+  color: var(--muted); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.hq-fine { margin: 0; text-align: center; font-size: 12px; color: var(--muted); }
+
+.hq-list { display: flex; flex-direction: column; gap: 8px; }
+.hq-row { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 18px;
+  background: var(--card); border: 1px solid var(--line, rgba(127, 127, 127, .25)); }
+.hq-row.ok { border-color: color-mix(in srgb, var(--gold, #e8c25a) 60%, transparent); }
+.hq-tick { flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--muted) 50%, transparent); }
+.hq-tick.on { border-color: var(--gold, #e8c25a); background: var(--gold, #e8c25a); color: #2a1600; }
+.hq-tick svg { width: 15px; height: 15px; stroke-width: 3; }
+.hq-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.hq-tx b { font-size: 13.5px; font-weight: 800; line-height: 1.3; color: var(--ink); }
+.hq-tx small { font-size: 11.5px; font-weight: 600; line-height: 1.35; color: var(--muted); }
+.hq-prog { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.hq-prog em { font-style: normal; font-size: 12px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+.hq-bar { flex: 1; height: 6px; border-radius: 6px; overflow: hidden; background: color-mix(in srgb, var(--muted) 22%, transparent); }
+.hq-bar i { display: block; height: 100%; border-radius: inherit; background: #f0a03a; }
+.hq-row.ok .hq-bar i { background: var(--gold, #e8c25a); }
+.hq-btn { flex: none; display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0 14px; border: 0; border-radius: 14px;
+  font: inherit; font-size: 13px; font-weight: 800; color: #2a1100; cursor: pointer; background: linear-gradient(180deg, #ffbe5c, #f07f16); }
+.hq-btn svg { width: 15px; height: 15px; }
+.hq-btn:active { transform: scale(.97); }
+.hq-claim { display: flex; align-items: center; justify-content: center; gap: 6px; height: 52px; border: 0; border-radius: 16px;
+  font: inherit; font-size: 17px; font-weight: 900; color: #2a1100; cursor: pointer;
+  background: linear-gradient(180deg, #ffbe5c, #f07f16); box-shadow: 0 4px 0 #8a3b00; }
+.hq-claim svg { width: 18px; height: 18px; }
+.hq-claim:active { transform: translateY(2px); box-shadow: 0 2px 0 #8a3b00; }
+.hq-lock { display: flex; align-items: center; justify-content: center; gap: 6px; height: 48px; border-radius: 16px;
+  border: 1px dashed var(--line, rgba(127, 127, 127, .35)); color: var(--muted); font-size: 13px; font-weight: 700; }
+.hq-lock svg { width: 15px; height: 15px; }
+
+@media (max-width: 340px) { .ev-banner { height: 270px; } .ev-cast img { height: 76px; } .ev-blurb { display: none; } }
+
+/* ปุ่มบันทึกโปสเตอร์ QR (invite-friend.js inviteSaveImage) — แถวเต็มใต้สองปุ่มแรก */
+.hq-btns .hq-save { grid-column: 1 / -1; }

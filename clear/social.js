@@ -1,0 +1,2295 @@
+// ============================================================
+// เพื่อนร่วมห้อง — ตัวตน · จับคู่ · ช่องคุย
+// ------------------------------------------------------------
+// แนวคิดทั้งหมดอยู่ในหัวไฟล์ของ migration 20260829120000_social.sql
+// สรุปสั้น: คนหนึ่งคนเป็นทั้ง "คนขาย" และ "คนซื้อ" พร้อมกัน แยกตามวิชา
+// และแอปเป็นคนเดียวที่รู้ว่าใครจมวิชาไหน จึงเป็นคนแนะนำให้เจอกันได้
+//
+// เส้นที่ห้ามข้าม: งานจริงของผู้ใช้ไม่เคยออกจากเครื่องไปให้ใครอื่นอ่าน
+// สิ่งที่ส่งขึ้นไปคือ "สรุปว่ารอด/จมวิชาไหน" ซึ่งผู้ใช้เห็นและแก้ได้ก่อนกดเผยแพร่
+// ============================================================
+
+// ---------- ต้องมีงานกี่ชิ้นถึงจะตัดสินวิชาหนึ่งได้ ----------
+// สองชิ้นแล้วบอกว่า "เธอจมวิชานี้" คือการกล่าวหาจากตัวอย่างที่น้อยเกินไป
+// และคนที่ถูกกล่าวหาผิดจะไม่กลับมาแก้ให้ เขาจะปิดแอปไปเลย
+const SUBJ_MIN = 3;
+
+// ---------- อ่านว่ารอดหรือจมวิชาไหน ----------
+// ใช้ข้อมูลเดียวกับที่ renderStats ใช้ — ไม่ตั้งกติกาใหม่ซ้อนของเดิม
+// สัญญาณที่เชื่อได้จริงมีสามอย่าง: ส่งทันไหม · ค้างเลยกำหนดกี่ชิ้น · เลื่อนบ่อยแค่ไหน
+function subjectSignals() {
+  const now = new Date();
+  const rows = {};
+  for (const t of (typeof liveTasks === 'function' ? liveTasks() : (state.tasks || []))) {
+    const k = (t.subject || '').trim();
+    if (!k || k === 'อื่น ๆ') continue;          // ไม่ระบุวิชา = ตัดสินอะไรไม่ได้
+    const r = rows[k] || (rows[k] = { n: 0, rated: 0, onTime: 0, late: 0, snooze: 0 });
+    r.n++;
+    r.snooze += t.snoozeCount || 0;
+    if (t.done && t.doneAt && t.due) {
+      r.rated++;
+      if (new Date(t.doneAt) <= new Date(t.due)) r.onTime++;
+    } else if (!t.done && t.due && new Date(t.due) < now) {
+      r.late++;                                   // ยังไม่เสร็จ และเลยกำหนดมาแล้ว
+    }
+  }
+
+  const strong = [], weak = [];
+  for (const [name, r] of Object.entries(rows)) {
+    if (r.n < SUBJ_MIN) continue;
+    const pct = r.rated ? r.onTime / r.rated : null;
+    const snoozePer = r.n ? r.snooze / r.n : 0;
+    if (r.late >= 2 || (pct != null && pct < 0.5) || snoozePer >= 2) weak.push(name);
+    else if (pct != null && pct >= 0.8 && !r.late) strong.push(name);
+  }
+  return { strong, weak };
+}
+
+// ---------- สิ่งที่ผู้ใช้ยืนยันแล้ว ----------
+// ค่าที่แอปเดามาเป็นแค่ข้อเสนอ · ของจริงคือสิ่งที่เจ้าของกดยืนยัน
+// เพราะ "ยินดีช่วยวิชาไหน" เป็นเรื่องความสมัครใจ ไม่ใช่เรื่องที่สถิติตัดสินแทนได้
+function socialState() {
+  const s = (state && state.settings && state.settings.social) || {};
+  return {
+    strong: Array.isArray(s.strong) ? s.strong : null,   // null = ยังไม่เคยยืนยัน
+    weak:   Array.isArray(s.weak)   ? s.weak   : null,
+    bio:    typeof s.bio === 'string' ? s.bio : '',
+    open:   s.open !== false,
+    pubAt:  s.pubAt || null,
+    ageBand: s.ageBand || null,
+    agreedAt: s.agreedAt || null,
+  };
+}
+function saveSocial(s) {
+  if (!state.settings) state.settings = {};
+  state.settings.social = s;
+  save();
+}
+// ค่าที่จะเอาไปโชว์: ยืนยันแล้วใช้ของที่ยืนยัน · ยังไม่เคยยืนยันใช้ที่แอปเดา
+function socialChips() {
+  const s = socialState();
+  if (s.strong && s.weak) return { strong: s.strong, weak: s.weak, confirmed: true };
+  const g = subjectSignals();
+  return { strong: g.strong, weak: g.weak, confirmed: false };
+}
+
+// วิชาทั้งหมดที่ผู้ใช้เคยพิมพ์ไว้ — ใช้เป็นตัวเลือกตอนแก้เอง
+function knownSubjects() {
+  const set = new Set();
+  for (const t of (state.tasks || [])) {
+    const k = (t.subject || '').trim();
+    if (k && k !== 'อื่น ๆ') set.add(k);
+  }
+  return [...set].sort();
+}
+
+// ============================================================
+// คุยกับเซิร์ฟเวอร์
+// ============================================================
+let mates = null;          // ผลจับคู่ล่าสุด · null = ยังไม่เคยโหลด
+let matesErr = null;
+let matesBusy = false;
+
+// ============================================================
+// หน้าตาสาธารณะ — ชื่อกับรูปที่เพื่อนเห็น (1B69)
+// ------------------------------------------------------------
+// **บั๊กที่ผู้ใช้เจอเอง: "อยากให้รูปที่ขึ้นในโปรไฟล์เรา เป็นรูปที่เพื่อนเห็น"**
+//
+// รูปโปรไฟล์ของตัวเองเก็บใน localStorage คีย์ studentos.clear.avatar (ดู AV_KEY ใน app.js)
+// อ่านผ่าน userAvatar() · แต่ publishProfile อ่านจาก state.settings.avatar
+// ซึ่ง **ไม่มีโค้ดบรรทัดไหนในแอปเขียนค่าลงไปเลยสักที่** (ยืนยันด้วย grep: 0 แห่ง)
+// ผลคือทุกครั้งที่กดเผยแพร่ ระบบส่ง avatar: null ขึ้นไปทับของเดิม —
+// เพื่อนจึงไม่มีวันเห็นรูปเรา ไม่ว่าจะตั้งรูปไปแล้วกี่รอบ
+//
+// สองอย่างที่แก้พร้อมกัน ไม่ใช่อย่างเดียว:
+//   1) อ่านจากที่เดียวกับที่เขียน (userAvatar) — แก้แค่ข้อนี้ยังต้องรอผู้ใช้ไปกดเผยแพร่เอง
+//   2) เปลี่ยนรูปหรือชื่อเมื่อไหร่ ดันขึ้นทันที — เพราะไม่มีใครเดาได้ว่าต้องเดินไป
+//      หน้า "วิชาของฉัน" กดปุ่มเผยแพร่อีกรอบ ถึงจะให้เพื่อนเห็นรูปใหม่
+// ============================================================
+function myFace() {
+  return (typeof userAvatar === 'function' ? userAvatar() : '') || null;
+}
+function myName() {
+  return (state.settings.name || '').trim() || 'นักเรียน';
+}
+
+// ดันชื่อกับรูปขึ้นไปเงียบ ๆ · เรียกได้บ่อยโดยไม่เปลืองเน็ต เพราะกันซ้ำด้วยลายเซ็น
+// ไม่ upsert ทั้งแถวโดยตั้งใจ — update เฉพาะสองช่องนี้ เพื่อไม่ให้ไปทับ strong/weak/bio
+// ที่ผู้ใช้ตั้งไว้ตอนเผยแพร่ (upsert ทั้งแถวคือวิธีที่ทำให้ของหายโดยไม่มีใครรู้)
+//
+// **กับดักที่ต้องระวังที่สุดของฟังก์ชันนี้ (เจอจริงภายในชั่วโมงเดียวหลังปล่อย 1B69):**
+// รูปเก็บใน localStorage = **เก็บแยกรายเครื่อง** ตั้งรูปในมือถือแล้วเปิดแอปในคอม
+// คอมจะเห็นว่าตัวเองไม่มีรูป แล้วส่ง avatar: null ขึ้นไป **ลบรูปที่มือถือเพิ่งส่งขึ้นไปทิ้ง**
+// ผู้ใช้จะเห็นรูปหายเองโดยไม่ได้ทำอะไรผิดเลย และหาสาเหตุไม่เจอแน่นอน
+//
+// กติกาจึงเป็น: **ส่งรูปขึ้นไปเฉพาะตอนที่เครื่องนี้มีรูปจริง**
+// การลบรูปเกิดได้ทางเดียวคือผู้ใช้กดปุ่มเอาออกเอง (clearAvatar ส่ง opts.clearFace มา)
+let lastFaceSig = '';
+async function syncPublicFace(force, opts) {
+  if (!sb || !currentUser) return;
+  const clearFace = !!(opts && opts.clearFace);
+  const av = myFace();
+  const nm = myName();
+  const sig = nm + '|' + (av ? av.length + ':' + av.slice(-24) : 'none') + (clearFace ? '|clear' : '');
+  if (!force && sig === lastFaceSig) return;
+  lastFaceSig = sig;
+
+  const patch = { display_name: nm, updated_at: new Date().toISOString() };
+  if (av) patch.avatar = av;              // มีรูปในเครื่องนี้ → ส่งขึ้น
+  else if (clearFace) patch.avatar = null; // ผู้ใช้กดเอาออกเอง → ลบจริง
+  // ไม่มีรูปและไม่ได้กดเอาออก → **ไม่แตะช่องรูปเลย** ปล่อยของเดิมบนเซิร์ฟเวอร์ไว้
+
+  const { error } = await sb.from('profiles')
+    .update(patch)
+    .eq('id', currentUser.id);
+  // ยังไม่มีแถวโปรไฟล์ (ยังไม่เคยกดเผยแพร่) — update จะไม่แตะอะไรเลยและไม่ error
+  // สร้างแถวขั้นต่ำให้ เพื่อให้เพื่อนที่ค้นเจอเห็นชื่อกับรูปได้ทันที
+  if (error) { lastFaceSig = ''; return; }
+  const { data } = await sb.from('profiles').select('id').eq('id', currentUser.id).maybeSingle();
+  if (!data) {
+    await sb.from('profiles').insert({ id: currentUser.id, display_name: nm, avatar: av || null });
+  }
+}
+
+async function publishProfile() {
+  if (!sb || !currentUser) return { error: 'ยังไม่ได้ล็อกอิน' };
+  const c = socialChips();
+  const s = socialState();
+  const row = {
+    id: currentUser.id,
+    display_name: myName(),
+    bio: s.bio || null,
+    strong: c.strong,
+    weak: c.weak,
+    open_to_help: s.open,
+    updated_at: new Date().toISOString(),
+  };
+  // ใส่รูปเฉพาะตอนที่เครื่องนี้มีจริง — กับดักเดียวกับ syncPublicFace
+  // ถ้าใส่ตลอด การกดเผยแพร่จากเครื่องที่ไม่มีรูปจะลบรูปที่ตั้งไว้จากอีกเครื่องทิ้ง
+  const face = myFace();
+  if (face) row.avatar = face;
+  const { error } = await sb.from('profiles').upsert(row);
+  if (error) return { error: error.message };
+  saveSocial(Object.assign(s, { strong: c.strong, weak: c.weak, pubAt: Date.now() }));
+  return {};
+}
+
+async function loadMates() {
+  if (!sb || !currentUser) { matesErr = 'ยังไม่ได้ล็อกอิน'; return; }
+  matesBusy = true; renderMates();
+  const { data, error } = await sb.rpc('study_matches', { p_limit: 30 });
+  matesBusy = false;
+  if (error) { matesErr = error.message; mates = null; }
+  else { matesErr = null; mates = data || []; }
+  renderMates();
+}
+
+// ============================================================
+// จอ "เพื่อนร่วมห้อง"
+// ============================================================
+// ============================================================
+// หลังบ้านยังไม่ได้ apply migration หรือยัง
+// ------------------------------------------------------------
+// หน้าเว็บกับฐานข้อมูลปล่อยคนละรอบเสมอ — โค้ดขึ้น GitHub Pages ทันทีที่ push
+// แต่ migration ต้องมีคนรัน `supabase db push` เอง ช่วงกลางระหว่างสองอย่างนี้
+// อาจยาวเป็นวัน และมีคนใช้แอปอยู่จริงตลอดช่วงนั้น
+//
+// PostgREST ตอบ PGRST202 เมื่อเรียกฟังก์ชันที่ยังไม่มี · จับตรงนี้แล้ว
+// **ซ่อนฟีเจอร์ที่ยังไม่พร้อม** แทนที่จะปล่อยให้ผู้ใช้กดแล้วเจอ error
+// ปุ่มที่กดแล้วขึ้น error อ่านเหมือนแอปพัง ส่วนปุ่มที่ยังไม่โผล่ไม่มีใครคิดถึง
+// และมันโผล่เองทันทีที่ apply migration เสร็จ ไม่ต้องปล่อยเว็บใหม่
+function rpcMissing(err) {
+  if (!err) return false;
+  const c = String(err.code || '');
+  const m = String(err.message || '');
+  return c === 'PGRST202' || c === '42883'
+    || /could not find the function|does not exist/i.test(m);
+}
+
+// ============================================================
+// ช่วงชั้น — กุญแจของสโคป "ทั่วประเทศ"
+// ------------------------------------------------------------
+// สามปุ่มเท่านั้น (ม.ต้น / ม.ปลาย / มหาลัย) ตามที่ผู้ใช้เคาะเมื่อ 8 ก.ย. 2569
+// ไม่แยกเป็น ม.1 ถึง ม.6 ด้วยเหตุผลที่เขียนไว้ยาว ๆ ใน migration 20260908090000:
+// ผู้ชมต้องกว้างพอที่จะมีคนว่างตอบเสมอ · ม.4 อย่างเดียวคือหนึ่งในสามของ ม.ปลาย
+//
+// ช่องนี้ทำงานสองอย่างพร้อมกัน — เป็นตัวจับคู่ของฟีดทั่วประเทศ
+// และเป็นตัวบอกช่วงอายุแบบหยาบ ๆ สำหรับค่าเริ่มต้นด้านความปลอดภัย โดยไม่ต้องถามวันเกิด
+// ============================================================
+const GRADE_BANDS = ['ม.ต้น', 'ม.ปลาย', 'มหาลัย'];
+let cohort = { country: 'TH', grade: null };
+let cohortLoaded = false;
+// false จนกว่าจะพิสูจน์ได้ว่าหลังบ้านมีของแล้ว — ไม่ใช่ true แล้วค่อยพัง
+let cohortReady = false;
+
+async function loadCohort() {
+  if (!sb || !currentUser || cohortLoaded) return;
+  cohortLoaded = true;
+  const { data, error } = await sb.rpc('my_cohort');
+  if (rpcMissing(error)) { cohortReady = false; renderMates(); return; }
+  cohortReady = true;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row) cohort = { country: row.country || 'TH', grade: row.grade || null };
+  renderMates();
+  if (typeof renderFeed === 'function') renderFeed();
+}
+
+function cohortBlock() {
+  if (!currentUser || !cohortReady) return '';
+  return `<p class="ch-lb">ตอนนี้เรียนอยู่ช่วงไหน</p>
+    <div class="ch-row">
+      ${GRADE_BANDS.map(g => `<button class="ch-chip${cohort.grade === g ? ' on' : ''}"
+        onclick="setCohort('${g}')">${g}</button>`).join('')}
+    </div>
+`;
+}
+
+async function setCohort(g) {
+  if (!sb || !currentUser) return loginFromMates();
+  const was = cohort.grade;
+  cohort.grade = (was === g) ? null : g;    // กดซ้ำ = ยกเลิก
+  renderMates();
+  const { error } = await sb.rpc('set_cohort', { p_grade: cohort.grade, p_track: null });
+  if (error) {
+    cohort.grade = was;
+    renderMates();
+    showToast({ title: 'บันทึกไม่สำเร็จ', body: error.message });
+    return;
+  }
+  if (typeof haptic === 'function') haptic('arm');
+}
+
+function renderMates() {
+  const box = document.getElementById('matesBody');
+  if (!box) return;
+  if (currentUser && !cohortLoaded) loadCohort();
+  const c = socialChips();
+  const s = socialState();
+  const known = knownSubjects();
+
+  // ---- ยังไม่ได้ยืนยันวิชา: ต้องทำอันนี้ก่อนถึงจะจับคู่ได้ ----
+  //
+  // จอนี้เคยเป็นกำแพงล็อกอินทึบ ๆ ที่ไม่มีอะไรให้ดูเลยนอกจากปุ่มเข้าสู่ระบบ
+  // ซึ่งผิดสองชั้น: คนตัดสินใจไม่ได้ว่าจะล็อกอินไปทำไม เพราะไม่เคยเห็นว่าข้างในคืออะไร
+  // และครึ่งบนของจอนี้ (เลือกวิชา) ทำงานได้ครบโดยไม่ต้องต่อเน็ตสักนิดอยู่แล้ว
+  // ตอนนี้จึงเห็นและกดได้ทั้งหมด · ล็อกอินไปขอตอนที่มันจำเป็นจริง ๆ เท่านั้น
+  // คือตอนจะเผยแพร่ให้คนอื่นเห็น กับตอนจะเปิดรายชื่อคนในห้อง
+  const chip = (name, kind, on) => `<button class="so-chip ${kind}${on ? ' on' : ''}"
+    onclick="toggleSubj('${kind}','${esc(name).replace(/'/g, "\\'")}')">${esc(name)}</button>`;
+
+  // ============================================================
+  // หน้าแก้ไขโปรไฟล์ — ทรงเดียวกับ Edit profile ของ Instagram (1B72)
+  // ------------------------------------------------------------
+  // ผู้ใช้บอกตรง ๆ ว่า "หน้าแก้ไขโปรไฟล์ผมอยากให้มันดีกว่านี้ มันยังดูกากมากๆ
+  // ปรับ ux/ui เลย ลองดูของ ig เป็นตัวอย่าง" แล้วส่งหน้า Edit profile ของ IG มาให้ดู
+  //
+  // ของเดิมผิดตั้งแต่ชื่อ — การ์ดชื่อ "วิชาของฉัน" ที่มีช่องแนะนำตัวกับช่วงชั้นแอบอยู่ข้างใน
+  // คนที่กด "แก้ไขโปรไฟล์" มาแล้วเจอหัวข้อว่า "วิชาของฉัน" จะไม่รู้ว่ามาถูกที่หรือเปล่า
+  // และไม่มีทางเดาได้เลยว่าชื่อกับรูปแก้ที่ไหน (คำตอบคือคนละจอ ซึ่งไม่มีอะไรบอก)
+  //
+  // สิ่งที่ IG ทำแล้วเราไม่ได้ทำ สามข้อ:
+  //   1) รูปกับชื่ออยู่บนสุด พร้อมปุ่มเปลี่ยนรูปที่เห็นชัด — ไม่ต้องเดาว่าแก้ที่ไหน
+  //   2) ทุกช่องมีป้ายกำกับของตัวเอง เรียงลงมาเป็นฟอร์มเดียว ไม่ใช่การ์ดซ้อนการ์ด
+  //   3) ปุ่มบันทึกอันเดียวอยู่ล่างสุด ไม่ใช่ปุ่มที่เขียนว่า "เผยแพร่" ซึ่งฟังดูเหมือน
+  //      ทำอย่างอื่นที่ไม่ใช่การบันทึก
+  // ============================================================
+  const handle = (typeof frHandle !== 'undefined' && frHandle) ? frHandle : '';
+  const myName2 = (state.settings.name || '').trim();
+  const myPic = typeof userAvatar === 'function' ? userAvatar() : '';
+
+  const setup = `<div class="ep">
+      <!-- ---------- แถวรูป ---------- -->
+      <div class="ep-face">
+        ${myPic ? `<img class="ep-av" src="${esc(myPic)}" alt="รูปโปรไฟล์">`
+                : `<div class="ep-av" style="${typeof avOf === 'function' ? avOf(myName2 || handle || 'N') : ''}">${
+                    esc((myName2 || handle || 'N').slice(0, 1))}</div>`}
+        <div class="ep-face-tx">
+          <b>${esc(myName2 || handle || 'ยังไม่ได้ตั้งชื่อ')}</b>
+          <i>${handle ? '@' + esc(handle) : 'ยังไม่มีชื่อผู้ใช้'}</i>
+        </div>
+        <input type="file" id="epFile" accept="image/*" hidden onchange="pickAvatar(this.files[0])">
+        <button class="ep-face-go" onclick="document.getElementById('epFile').click()">
+          ${myPic ? 'เปลี่ยนรูป' : 'เลือกรูป'}
+        </button>
+      </div>
+
+      <!-- ---------- ชื่อที่แสดง ---------- -->
+      <div class="ep-f">
+        <label for="epName">ชื่อ</label>
+        <!-- 8 ต.ค. 69 · ไอคอนนำหน้าในกรอบเดียวกับช่อง แบบ HaloInput leadingSlot (เจ้าของส่งเดโม HaloField มา) -->
+        <div class="ep-at hf-lead">
+          ${icon('user')}
+          <input id="epName" type="text" maxlength="40" value="${esc(myName2)}"
+                 placeholder="ชื่อที่เพื่อนเรียกคุณ" oninput="epDirty()">
+        </div>
+        <p class="hf-desc">เพื่อนเห็นชื่อนี้บนโปรไฟล์และในแชท</p>
+      </div>
+
+      <!-- ---------- ชื่อผู้ใช้ ---------- -->
+      <div class="ep-f">
+        <label for="epHandle">ชื่อผู้ใช้</label>
+        <div class="ep-at">
+          <span>@</span>
+          <input id="epHandle" type="text" maxlength="20" value="${esc(handle)}"
+                 autocapitalize="off" spellcheck="false" aria-describedby="epHandleErr"
+                 placeholder="beam4_16" oninput="epDirty(); epHandleCheck()" onblur="epHandleCheck(true)">
+        </div>
+        <p class="hf-desc">เพื่อนพิมพ์ชื่อนี้เพื่อค้นหาคุณ · 3–15 ตัว</p>
+        <p class="hf-err" id="epHandleErr" role="alert" hidden></p>
+      </div>
+
+      <!-- ---------- แนะนำตัว ---------- -->
+      <div class="ep-f">
+        <label for="epBio">แนะนำตัว</label>
+        <textarea id="epBio" rows="2" maxlength="80"
+                  placeholder="เช่น ติวเลขให้ได้ แลกกับโน้ตอังกฤษ"
+                  oninput="epDirty(); epCount()">${esc(s.bio)}</textarea>
+        <span class="ep-count" id="epCount">${(s.bio || '').length} / 80</span>
+        <p class="hf-desc">ไม่ใส่ก็ได้ · โชว์บนโปรไฟล์</p>
+      </div>
+
+      <!-- ---------- ช่วงชั้น + วิชา ----------
+           เจ้าของ: "ลบตรงที่วงกลมสีฟ้าออก แล้วปรับให้ดูง่ายและไม่รกตา"
+           สามช่องนี้เคยโผล่ทุกครั้งแม้ใช้ไม่ได้ แล้วเต็มไปด้วยประโยคอธิบายว่าทำไมใช้ไม่ได้
+           ("เข้าบัญชีก่อน…" · "ยังไม่มีวิชาให้เลือก…") — ตอนนี้โผล่เฉพาะตอนมีอะไรให้เลือกจริง
+           คำใบ้ใต้ชื่อกับชื่อผู้ใช้ก็ถอดออก · ช่องนั้นอธิบายตัวเองด้วยป้ายกับตัวอย่างในช่องแล้ว -->
+      ${currentUser && cohortReady ? `<div class="ep-f">
+        <label>ตอนนี้เรียนอยู่ช่วงไหน</label>
+        <div class="ep-chips">
+          ${GRADE_BANDS.map(g => `<button class="ep-chip${cohort.grade === g ? ' on' : ''}"
+            onclick="setCohort('${g}')">${g}</button>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- id="epSubj" คือจุดหมายของแถว "วิชาของฉัน" ในแท็บ "ฉัน" (1B95)
+           ไม่มีวิชาให้เลือก = ไม่มีบล็อกนี้ · openMySubjects() บอกเหตุผลเป็น toast แทน -->
+      ${known.length ? `<div class="ep-f" id="epSubj">
+        <label>วิชาที่ช่วยเพื่อนได้</label>
+        <div class="so-chips row">${known.map(n => chip(n, 'good', c.strong.includes(n))).join('')}</div>
+      </div>
+      <div class="ep-f">
+        <label>วิชาที่อยากให้ใครมาช่วย</label>
+        ${c.confirmed ? '' : '<span class="ep-count">แอปเดาให้</span>'}
+        <div class="so-chips row">${known.map(n => chip(n, 'need', c.weak.includes(n))).join('')}</div>
+      </div>` : ''}
+
+      <p class="ep-fine">${icon('lock')}เพื่อนเห็นแค่ชื่อ รูป แนะนำตัว และวิชา</p>
+
+      <!-- ปุ่มเดียว เขียนว่า "บันทึก" ตรง ๆ · ของเดิมเขียนว่า "เผยแพร่"
+           ซึ่งฟังดูเหมือนทำอย่างอื่นที่ไม่ใช่การบันทึกสิ่งที่เพิ่งพิมพ์ไป -->
+      <button class="ep-save" id="epSave" onclick="saveProfileEdit()">บันทึก</button>
+    </div>`;
+
+  // ---- รายชื่อ ----
+  let list = '';
+  if (!currentUser) {
+    // ตัวอย่างสองใบ ติดป้ายชัดว่าเป็นตัวอย่าง — คนต้องเห็นว่า "ข้างในหน้าตาแบบนี้"
+    // ก่อนจะตัดสินใจว่าจะล็อกอินไหม · ชื่อในตัวอย่างเป็นชื่อสมมติ ไม่ใช่คนจริงในระบบ
+    const eg = [
+      { id: '', display_name: 'เพื่อนในห้องเธอ', avatar: null, bio: '',
+        strong: c.weak.length ? [c.weak[0]] : ['เลข'], weak: [],
+        match: c.weak.length ? [c.weak[0]] : ['เลข'], give: [] },
+      { id: '', display_name: 'อีกคนในห้องเธอ', avatar: null, bio: '',
+        strong: [], weak: c.strong.length ? [c.strong[0]] : ['เคมี'],
+        match: [], give: c.strong.length ? [c.strong[0]] : ['เคมี'] },
+    ];
+    list = `<div class="sec-label">หน้าตาเวลามีเพื่อนแล้ว</div>
+      <div class="so-demo">
+        ${eg.map(m => mateCard(m, true)).join('')}
+      </div>
+      <div class="so-empty">
+        <p class="so-empty-h">ล็อกอินเพื่อเจอคนจริง</p>
+        <button class="btn google" onclick="loginFromMates()"><span class="g-badge">G</span>
+          เข้าสู่ระบบด้วย Google</button>
+      </div>`;
+  } else if (!s.pubAt) {
+    list = `<p class="so-hint">เผยแพร่โปรไฟล์ก่อน</p>`;
+  } else if (matesBusy) {
+    list = `<p class="so-hint">กำลังดูว่าใครอยู่ห้องเดียวกับคุณ…</p>`;
+  } else if (matesErr) {
+    list = `<p class="so-hint err">เปิดรายชื่อไม่ได้ ${esc(matesErr)}
+      <button class="so-retry" onclick="loadMates()">ลองใหม่</button></p>`;
+  } else if (mates && !mates.length) {
+    list = `<div class="so-empty">
+        <p class="so-empty-h">ยังไม่มีใครในห้องเลย</p>
+        <p class="so-empty-p">รายชื่อนี้มาจากกลุ่ม LINE ที่บอทอยู่ ถ้าเพื่อนยังไม่ได้กดลิงก์เข้าร่วม
+          พวกเขาจะยังไม่โผล่ตรงนี้</p>
+        <button class="so-retry" onclick="go('scr-sources')">ไปหน้าตัวเชื่อม</button>
+      </div>`;
+  } else if (mates) {
+    list = mates.map(m => mateCard(m)).join('');
+  }
+
+  // คำขอเป็นเพื่อนขึ้นก่อนทุกอย่าง — ของที่รอคนตอบต้องไม่อยู่ใต้ของที่ตั้งครั้งเดียวจบ
+  // คำขอเพื่อนย้ายไปอยู่แท็บ "เพื่อนฉัน" ของจอฟีดแล้ว (1B18) — เดิมมันโผล่สองที่
+  // ด้วยโค้ดคนละชุด ซึ่งแปลว่ากดรับที่หนึ่งแล้วอีกที่ยังค้างอยู่จนกว่าจะโหลดใหม่
+  const inbox = '';
+  box.innerHTML = matesHead() + inbox + setup
+    + (s.pubAt ? '<div class="sec-label">คนในห้องของคุณ</div>' : '') + list;
+}
+
+// 13 ต.ค. 69 · จอนี้มีสามทางเข้า: ปุ่ม "แก้ไขโปรไฟล์" · แถว "วิชาของฉัน" · ไอคอนคนบนหัวจอเพื่อน
+// สองทางแรกคือมาแก้โปรไฟล์ แต่หัวจอเขียน "เพื่อนร่วมห้อง" ตายตัว (เจ้าของ: จอที่ดูแปลก) — หัวจอตามทางที่เข้ามา
+let matesTitle = 'เพื่อนร่วมห้อง';
+function openPeople(mode) {
+  matesTitle = mode === 'edit' ? 'แก้ไขโปรไฟล์' : 'เพื่อนร่วมห้อง';
+  go('scr-people');
+  renderMates();
+}
+function matesHead() {
+  return `<div class="page-head">
+    <div class="eyebrow mono">${esc(fmtThaiDate(new Date()))}</div>
+    <h1 class="page-title">${esc(matesTitle)}</h1>
+  </div>`;
+}
+
+// การ์ดคนหนึ่งคน — เหตุผลต้องอยู่บนการ์ด ไม่ใช่ซ่อนอยู่ข้างใน
+// เพราะสิ่งที่ทำให้กล้ากดทักคือ "รู้ว่าจะทักไปว่าอะไร" ไม่ใช่ "รู้ว่าเขาชื่ออะไร"
+// ---------- ไอคอนประจำวิชา (ใบตัวอย่างในจอเพื่อน) ----------
+// 8 ต.ค. 69 · เจ้าของ: "ปรับตรงนี้ให้เป็นโลโก้ที่ตรงตามหัวข้อ" — ใบตัวอย่างสองใบเคยเป็นวงกลมตัวอักษรแรกของชื่อสมมติ
+// ("เ" จาก "เพื่อนในห้องเธอ" · "อ" จาก "อีกคนในห้องเธอ") ซึ่งไม่ได้บอกอะไร · หัวข้อของใบคือวิชา จึงใช้รูปของวิชานั้น
+// จับคำในชื่อวิชา (เลข/คณิต · เคมี · ฟิสิกส์ · ชีว · อังกฤษ · ไทย · สังคม/ประวัติ · คอม · ศิลป · ดนตรี · พละ) ไม่เจอ = หนังสือ
+// สีประจำหมวดตายตัว ไม่ใช้ subjColor() เพราะวิชาในใบตัวอย่าง ("เลข" "เคมี") อาจไม่อยู่ในรายการวิชาของผู้ใช้ — จะได้สีเทา
+// เส้นแบบ lucide (ISC) ให้เข้าชุดกับไอคอนอื่นในแอป · ใบของคนจริงยังเป็นรูป/ตัวอักษรของคนนั้นเหมือนเดิม
+const SUBJ_GLYPHS = [
+  [/เลข|คณิต|math/i, '#3B82F6', '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><path d="M8.5 6.5h7"/><path d="M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h.01M15.5 18h.01"/>'],
+  [/เคมี|chem/i, '#10B981', '<path d="M9.5 2.5v6.2L4.4 18a2 2 0 0 0 1.8 3h11.6a2 2 0 0 0 1.8-3l-5.1-9.3V2.5"/><path d="M8 2.5h8"/><path d="M6.8 15h10.4"/>'],
+  [/ฟิสิกส์|phys/i, '#8B5CF6', '<circle cx="12" cy="12" r="1.5"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9.5" ry="3.8" transform="rotate(120 12 12)"/>'],
+  [/ชีว|bio/i, '#22C55E', '<path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z"/><path d="M2 21c0-3 1.9-5.4 5.2-6.1 2.4-.5 4.8-2 6.3-3.9"/>'],
+  [/อังกฤษ|eng|ภาษาต่าง|จีน|ญี่ปุ่น/i, '#EF4444', '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'],
+  [/ไทย/i, '#F97316', '<path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>'],
+  [/สังคม|ประวัติ|ภูมิ|social|hist/i, '#F59E0B', '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19"/><path d="M12 2.5a14.5 14.5 0 0 1 0 19 14.5 14.5 0 0 1 0-19"/>'],
+  [/คอม|วิทยาการ|โปรแกรม|com/i, '#0EA5E9', '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/><path d="m9 8-2 2 2 2M15 8l2 2-2 2"/>'],
+  [/ศิลป|art/i, '#EC4899', '<path d="M12 22a10 10 0 1 1 10-10c0 2.5-2 3.5-3.5 3.5H16a2 2 0 0 0-1.5 3.3A2 2 0 0 1 12 22Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7" r="1"/><circle cx="15.5" cy="7.5" r="1"/>'],
+  [/ดนตรี|music/i, '#A855F7', '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>'],
+  [/พละ|สุขศึกษา|กีฬา|pe\b/i, '#14B8A6', '<circle cx="12" cy="12" r="9.5"/><path d="M12 2.5v19M2.5 12h19"/><path d="M5.3 5.3c3.6 3.6 3.6 9.8 0 13.4M18.7 5.3c-3.6 3.6-3.6 9.8 0 13.4"/>'],
+];
+function subjGlyph(name) {
+  const hit = SUBJ_GLYPHS.find(([re]) => re.test(String(name || '')));
+  const [, color, paths] = hit || [null, 'var(--fill)', '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>'];
+  return `<div class="so-av so-glyph" style="--sg:${color}" title="${esc(name || '')}"><svg viewBox="0 0 24 24" aria-hidden="true"
+    fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${paths}</svg></div>`;
+}
+
+function mateCard(m, demo) {
+  const match = m.match || [];
+  const give = m.give || [];
+  // ใบตัวอย่าง = รูปของวิชาที่ใบนั้นพูดถึง (ดู subjGlyph) · ใบของคนจริง = รูปหรือตัวอักษรแรกของคนนั้น
+  const av = demo ? subjGlyph((m.match || [])[0] || (m.give || [])[0] || '')
+    : m.avatar
+    ? `<img class="so-av" src="${esc(m.avatar)}" alt="">`
+    : `<div class="so-av">${esc((m.display_name || '?').slice(0, 1))}</div>`;
+
+  let why = '';
+  if (match.length) {
+    why = `<p class="so-why good">เก่ง<b>${esc(match.join(' · '))}</b> ซึ่งเป็นวิชาที่คุณกำลังจม</p>`;
+  } else if (give.length) {
+    why = `<p class="so-why give">กำลังจม<b>${esc(give.join(' · '))}</b> ซึ่งคุณช่วยได้</p>`;
+  } else {
+    why = `<p class="so-why">อยู่ห้องเดียวกัน</p>`;
+  }
+
+  const topic = match[0] || give[0] || '';
+  // ใบตัวอย่างกดทักไม่ได้ — ปุ่มที่กดแล้วไม่เกิดอะไรคือปุ่มที่ทำให้คนคิดว่าแอปพัง
+  if (demo) {
+    return `<div class="so-mate demo">
+      ${av}
+      <div class="so-bd">
+        <div class="so-nm">${esc(m.display_name)}<span class="so-egtag">ตัวอย่าง</span></div>
+        ${why}
+      </div>
+      <span class="so-poke off" aria-hidden="true">${icon('chat')}</span>
+    </div>`;
+  }
+  return `<div class="so-mate">
+    ${av}
+    <div class="so-bd">
+      <div class="so-nm">${esc(m.display_name || 'นักเรียน')}</div>
+      ${why}
+      ${m.bio ? `<p class="so-bio">${esc(m.bio)}</p>` : ''}
+      ${m.strong && m.strong.length
+        ? `<div class="so-tags">${m.strong.slice(0, 4).map(x =>
+            `<span class="so-tag">${esc(x)}</span>`).join('')}</div>` : ''}
+    </div>
+    <button class="so-poke" onclick="pokeMate('${esc(m.id)}','${esc(topic).replace(/'/g, "\\'")}')"
+      aria-label="ทัก ${esc(m.display_name || '')}">${icon('chat')}</button>
+  </div>`;
+}
+
+function toggleSubj(kind, name) {
+  const c = socialChips();
+  const s = socialState();
+  const key = kind === 'good' ? 'strong' : 'weak';
+  const other = kind === 'good' ? 'weak' : 'strong';
+  const cur = { strong: c.strong.slice(), weak: c.weak.slice() };
+  const i = cur[key].indexOf(name);
+  if (i >= 0) cur[key].splice(i, 1);
+  else {
+    cur[key].push(name);
+    // วิชาเดียวอยู่สองแถวพร้อมกันไม่ได้ — "ช่วยได้" กับ "อยากให้ช่วย" ขัดกันเอง
+    const j = cur[other].indexOf(name);
+    if (j >= 0) cur[other].splice(j, 1);
+  }
+  saveSocial(Object.assign(s, cur));
+  haptic('arm');
+  renderMates();
+}
+
+function socialSetBio(v) {
+  const s = socialState();
+  s.bio = String(v || '').slice(0, 80).trim();
+  saveSocial(s);
+}
+
+
+// ============================================================
+// บันทึกหน้าแก้ไขโปรไฟล์ (1B72)
+// ------------------------------------------------------------
+// ของเดิมกระจายอยู่สามที่: ชื่อแก้ในแท็บ "ฉัน" · ชื่อผู้ใช้แก้ในแท็บเพื่อน ·
+// แนะนำตัวกับวิชาแก้ในการ์ด "วิชาของฉัน" — ไม่มีทางรู้เลยว่าอันไหนอยู่ตรงไหน
+// ตอนนี้รวมมาที่เดียว แล้วปุ่มเดียวบันทึกทั้งหมด
+function epDirty() {
+  const b = document.getElementById('epSave');
+  if (b) { b.disabled = false; b.textContent = 'บันทึก'; }
+}
+// ชื่อผู้ใช้: เช็กกติกาเดียวกับ set_handle ฝั่งเซิร์ฟเวอร์ (handle_ok · 3–15 ตัว · ก-๙ a-z 0-9 _) ระหว่างพิมพ์
+// แบบ HaloFieldError ในเดโม — ขอบแดง + บรรทัดบอกว่าผิดตรงไหน · สั้นไปเตือนตอนออกจากช่องเท่านั้น (ระหว่างพิมพ์ทุกชื่อสั้นไปก่อน)
+// ชื่อที่ซ้ำกับคนอื่นรู้ได้จากเซิร์ฟเวอร์เท่านั้น — ยังเตือนเป็น toast ตอนกดบันทึกเหมือนเดิม
+function epHandleCheck(leaving) {
+  const inp = document.getElementById('epHandle');
+  const err = document.getElementById('epHandleErr');
+  if (!inp || !err) return true;
+  const v = inp.value.trim().replace(/^@/, '').toLowerCase();
+  let msg = '';
+  if (v && /[^ก-๙a-z0-9_]/.test(v)) msg = /\s/.test(v) ? 'ห้ามเว้นวรรค ใช้ _ แทนได้' : 'ใช้ได้แค่ ก-๙ a-z 0-9 และ _';
+  else if (v.length > 15) msg = 'ยาวไป ไม่เกิน 15 ตัว (ตอนนี้ ' + v.length + ')';
+  else if (leaving && v && v.length < 3) msg = 'สั้นไป ต้อง 3 ตัวขึ้นไป';
+  err.hidden = !msg;
+  err.textContent = msg;
+  inp.closest('.ep-at').classList.toggle('invalid', !!msg);
+  inp.setAttribute('aria-invalid', String(!!msg));
+  return !msg;
+}
+
+function epCount() {
+  const t = document.getElementById('epBio');
+  const c = document.getElementById('epCount');
+  if (t && c) c.textContent = t.value.length + ' / 80';
+}
+
+async function saveProfileEdit() {
+  const btn = document.getElementById('epSave');
+  const nm = (document.getElementById('epName') || {}).value || '';
+  const hd = ((document.getElementById('epHandle') || {}).value || '').trim().replace(/^@/, '');
+  const bio = (document.getElementById('epBio') || {}).value || '';
+
+  if (btn) { btn.disabled = true; btn.textContent = 'กำลังบันทึก…'; }
+
+  // ชื่อกับแนะนำตัวเก็บในเครื่องก่อน แล้วค่อยดันขึ้น — ทำงานได้แม้ยังไม่ล็อกอิน
+  state.settings.name = nm.trim();
+  save();
+  socialSetBio(bio);
+
+  if (!currentUser) {
+    if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+    if (typeof renderAll === 'function') renderAll();
+    showToast({ title: 'บันทึกในเครื่องแล้ว', body: '' });
+    return;
+  }
+
+  // ชื่อผู้ใช้เปลี่ยนก็ต่อเมื่อพิมพ์มาไม่ตรงของเดิม — set_handle มีกติกาของมันเอง
+  // และคืน error เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ (ซ้ำกับคนอื่น · ตัวอักษรไม่ผ่าน)
+  if (hd && hd !== (frHandle || '')) {
+    const { data, error } = await sb.rpc('set_handle', { p_handle: hd });
+    if (error) {
+      if (btn) { btn.disabled = false; btn.textContent = 'บันทึก'; }
+      showToast({ title: 'ตั้งชื่อผู้ใช้ไม่สำเร็จ', body: error.message });
+      return;
+    }
+    frHandle = data;
+  }
+
+  const r = await publishProfile();
+  if (btn) { btn.disabled = false; }
+  if (r.error) {
+    if (btn) btn.textContent = 'บันทึก';
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'บันทึกไม่สำเร็จ', body: r.error });
+    return;
+  }
+  if (typeof haptic === 'function') haptic('done');
+  if (btn) btn.textContent = 'บันทึกแล้ว';
+  if (typeof myCard !== 'undefined') { myCard = null; }
+  if (typeof loadMyCard === 'function') loadMyCard(true);
+  if (typeof renderAll === 'function') renderAll();
+  showToast({ title: 'บันทึกแล้ว', body: 'เพื่อนเห็นของใหม่ทันที' });
+}
+
+async function doPublish() {
+  // ยังไม่ล็อกอินก็กดปุ่มนี้ได้ — มันคือจุดที่บัญชีเริ่มจำเป็นจริง ๆ
+  // พาไปล็อกอินเลยดีกว่าขึ้น error บอกว่า "ยังไม่ได้ล็อกอิน" ซึ่งไม่ได้ช่วยอะไร
+  if (!currentUser) return loginFromMates();
+  const r = await publishProfile();
+  if (r.error) {
+    haptic('snooze');
+    showToast({ title: 'เผยแพร่ไม่สำเร็จ', body: r.error });
+    return;
+  }
+  haptic('done');
+  showToast({ title: 'เผยแพร่แล้ว', body: '' });
+  renderMates();
+  loadMates();
+}
+
+// ============================================================
+// ช่องคุย
+// ============================================================
+let chatThread = null;     // { id, name, subject }
+let chatMsgs = [];
+let chatSub = null;        // ช่องรับข้อความสด — ต้องปิดทุกครั้งที่ออกจากจอ
+// 12 ต.ค. 69 · ห้องแชทแบบ IG (ดูหัวข้อ "ห้องแชทแบบ IG แต่เป็นของเราเอง" ท้ายส่วนนี้) — ของที่ต้องจำข้ามการวาดแต่ละรอบ
+let chatSeen = new Set();  // id ที่วาดไปแล้ว — ฟองที่ไม่อยู่ในนี้คือของใหม่ ได้ท่าเข้า
+let chatPrimed = false;    // ยังโหลดประวัติไม่เสร็จ = ฟองชุดแรกไม่มีท่าเข้า (ไม่งั้นทั้งห้องเด้งพร้อมกันตอนเปิด)
+let chatFly = new Set();   // ฟองที่เราเพิ่งกดส่ง — ลอยออกจากช่องพิมพ์ด้วย JS (chatFlyIn) แทนท่าเข้าปกติ
+let chatTypingUntil = 0;   // อีกฝ่ายกำลังพิมพ์อยู่จนถึงเวลานี้ (ms)
+let chatTypingSent = 0;    // เราส่งสัญญาณ "กำลังพิมพ์" ไปครั้งล่าสุดเมื่อไหร่
+// 12 ต.ค. 69 · เมนูข้อความแบบ IG (ตอบกลับ · แก้ไข · ส่งต่อ · แปล · ปักหมุด · ปฏิกิริยา) — ดู chatHoldOpen
+let chatV2 = false;          // ฐานข้อมูลรัน migration dm_actions แล้ว (มี reply_to/edited_at/pinned_at + dm_reactions)
+let chatReacts = new Map();  // id ข้อความ → Map(uid → อิโมจิ)
+let chatReply = null;        // ข้อความที่กำลังตอบกลับ
+let chatEdit = null;         // ข้อความที่กำลังแก้
+let chatEditDraft = '';      // ที่พิมพ์ค้างไว้ก่อนกดแก้ — ยกเลิกแก้แล้วคืนให้
+const chatTr = new Map();    // id ข้อความ → { text, show } คำแปลที่ขอไว้ (อยู่ในหน่วยความจำ ไม่ได้เก็บลงเครื่อง)
+
+async function pokeMate(id, topic, name) {
+  if (!sb || !currentUser) return;
+  const m = (mates || []).find(x => x.id === id);
+  const { data, error } = await sb.rpc('open_dm', { p_other: id, p_subject: topic || null });
+  if (error) {
+    haptic('snooze');
+    // ข้อความจาก dm_gate เป็นภาษาไทยที่เอาไปโชว์ได้ตรง ๆ อยู่แล้ว (โควตาเต็ม · ช่วงอายุ · ตั้งค่าปิด)
+    // จึงไม่ต้องแปลงอะไร — และห้ามเขียนทับด้วยข้อความกลาง ๆ เพราะเหตุผลคือสิ่งเดียวที่ช่วยเขาได้
+    showToast({ title: 'ทักไม่ได้', body: error.message });
+    return;
+  }
+  chatThread = {
+    id: data, name: (m && m.display_name) || name || 'นักเรียน',
+    avatar: (m && m.avatar) || null,
+    subject: topic || '', other: id,
+  };
+  chatMsgs = [];
+  // ทักจากหน้าโปรไฟล์ · ฟีด · หัวข้อ — กลับไปที่เดิมถ้ากลับได้ ไม่งั้นลงที่กล่องข้อความ
+  // ซึ่งเป็นจอแม่ของห้องคุยทุกห้องอยู่แล้ว (ไม่ใช่ฟีด ซึ่งเป็นคนละระบบ)
+  chatReturn = pickReturn('scr-dm');
+  go('scr-chat');
+  openChat();
+}
+
+async function openChat() {
+  if (!chatThread) return;
+  chatSeen = new Set(); chatPrimed = false; chatFly.clear(); chatTypingUntil = 0;
+  chatReply = null; chatEdit = null; chatEditDraft = ''; chatTr.clear(); chatReacts = new Map();
+  chatHoldClose();
+  renderChat({ full: true });
+  // 1C40 · เปิดห้องแล้ว = เห็นข้อความแล้ว · จุดแดงในจอการแจ้งเตือนต้องดับตาม
+  if (typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
+
+  // ---------- สถานะของห้อง ----------
+  // ต้องรู้ก่อนวาด ว่านี่คือห้องที่เปิดแล้ว หรือคำขอที่ยังไม่มีใครตอบรับ
+  // ไม่งั้นคนขอจะพิมพ์ข้อความที่สองแล้วเจอ error โดยไม่รู้ว่าทำไม
+  const { data: t } = await sb.from('dm_threads')
+    .select('state, opener').eq('id', chatThread.id).maybeSingle();
+  if (t) {
+    chatThread.state = t.state || 'open';
+    chatThread.mineReq = t.opener === currentUser.id;
+  }
+  renderChat();
+
+  // ---------- ชื่อจริงกับรูปของอีกฝ่าย ----------
+  // ของเดิมพึ่งชื่อที่ผู้เรียกส่งมาอย่างเดียว ทางเข้าไหนที่ไม่ได้ส่งมาก็ตกไปเป็น "นักเรียน"
+  // ซึ่งผู้ใช้เจอจริง — หัวจอขึ้นคำว่า "นักเรียน" ทั้งที่คุยกับคนที่มีชื่อ
+  // ถามผ่าน user_card เพราะเป็นประตูเดียวกับหน้าโปรไฟล์ กติกาการมองเห็นจึงตรงกันเสมอ
+  if (chatThread.other) {
+    const { data: c } = await sb.rpc('user_card', { p_user: chatThread.other });
+    const u = Array.isArray(c) ? c[0] : c;
+    if (u) {
+      // personName อยู่ใน feed.js — ถ้ายังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้แทนคำว่า "นักเรียน"
+      chatThread.name = (typeof personName === 'function' ? personName(u) : u.display_name)
+        || chatThread.name;
+      chatThread.avatar = u.avatar || null;
+      chatThread.handle = u.handle || chatThread.handle || '';
+      renderChat();
+    }
+  }
+
+  // 12 ต.ค. 69 · สองเรื่อง:
+  // • เดิมเรียงเก่า→ใหม่แล้วตัด 200 = ได้ 200 ข้อความ "แรกสุด" ของห้อง · ห้องที่คุยเกิน 200 จึงไม่เห็นข้อความล่าสุดเลย
+  //   ตอนนี้ขอใหม่→เก่า 200 ข้อความ แล้วกลับลำดับเอง
+  // • ลองอ่านคอลัมน์ของ migration dm_actions ก่อน — ยังไม่ได้รัน = อ่านไม่ผ่าน → ถอยไปชุดเดิม
+  //   แล้วซ่อน ตอบกลับ / แก้ไข / ปักหมุด / ปฏิกิริยา (chatV2 = false) แชทเดิมทำงานต่อได้ครบ
+  const page = cols => sb.from('dm_messages').select(cols)
+    .eq('thread', chatThread.id)
+    .order('created_at', { ascending: false })
+    .limit(200);
+  let q = await page('id, sender, body, image, created_at, reply_to, edited_at, pinned_at');
+  chatV2 = !q.error;
+  if (q.error) q = await page('id, sender, body, image, created_at');
+  if (!q.error) chatMsgs = (q.data || []).reverse();
+  if (chatV2) {
+    const r = await sb.from('dm_reactions').select('msg, uid, emoji').eq('thread', chatThread.id);
+    if (r.error) chatV2 = false;
+    else (r.data || []).forEach(chatReactSet);
+  }
+  renderChat({ bottom: true });
+  chatPrimed = true;   // ประวัติวาดครบแล้ว — ฟองที่มาหลังจากนี้คือของใหม่จริง ได้ท่าเข้า
+  chatHoldTip();
+
+  // ข้อความใหม่เด้งเข้าเอง — ไม่ต้องปัดลงรีเฟรช
+  closeChat();
+  const flt = 'thread=eq.' + chatThread.id;
+  let ch = sb.channel('dm:' + chatThread.id)
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: flt },
+      p => chatIncoming(p.new))
+    // 12 ต.ค. 69 · แก้ไข/ปักหมุดของอีกฝั่ง (และ reply_to ที่กลายเป็น null ตอนต้นทางถูกลบ) มาเป็น UPDATE
+    .on('postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'dm_messages', filter: flt },
+      p => chatUpdated(p.new))
+    // 12 ต.ค. 69 · "กำลังพิมพ์…" — สัญญาณลอยผ่านช่องเดียวกัน ไม่ได้เขียนลงฐานข้อมูล (ดู chatTyping)
+    .on('broadcast', { event: 'typing' }, p => chatTheyType(p && p.payload));
+  // ฟังตารางปฏิกิริยาเฉพาะตอนมีตารางแล้ว — ขอฟังตารางที่ไม่มีอยู่ อาจทำให้ทั้งช่องเข้าร่วมไม่สำเร็จ (ข้อความใหม่ไม่เด้งด้วย)
+  if (chatV2) {
+    ['INSERT', 'UPDATE'].forEach(ev => {
+      ch = ch.on('postgres_changes', { event: ev, schema: 'public', table: 'dm_reactions', filter: flt },
+        p => { chatReactSet(p.new); renderChat(); });
+    });
+  }
+  chatSub = ch.subscribe();
+}
+
+// ต้องเรียกทุกครั้งที่ออกจากจอแชท — ช่องที่เปิดค้างไว้กินเน็ตและกินโควตา
+// realtime ของ Supabase นับจำนวนช่องที่เปิดพร้อมกัน ไม่ใช่จำนวนข้อความ
+function closeChat() {
+  chatHoldClose();
+  chatForwardClose();
+  chatTypingUntil = 0;
+  if (chatSub) { try { sb.removeChannel(chatSub); } catch (_) {} chatSub = null; }
+  // ข้อความที่เข้ามาระหว่างนั่งอยู่ในห้องก็เห็นแล้วเหมือนกัน
+  if (chatThread && typeof notifSeenDm === 'function') notifSeenDm(chatThread.id);
+}
+
+// ============================================================
+// จอแชท — ทรงเดียวกับ Instagram (1B67)
+// ------------------------------------------------------------
+// ผู้ใช้ส่งหน้า DM ของ IG มาให้ดูแล้วบอกว่า "ขอเหมือน ig เลย" (10 ก.ย. 2569)
+//
+// สามอย่างที่ทำให้ IG อ่านเป็นห้องแชท ไม่ใช่รายการข้อความ:
+//   1) หัวจอมีรูปคนคุยอยู่ด้วย และแตะแล้วไปโปรไฟล์ได้ — ของเดิมมีแต่ชื่อเป็นตัวหนังสือ
+//      ทำให้จอนี้ตัดขาดจากตัวตนของอีกฝ่ายโดยสิ้นเชิง
+//   2) ข้อความที่ส่งติด ๆ กันถูกจับเป็นก้อนเดียว รูปโผล่แค่ฟองสุดท้ายของก้อน
+//      ถ้าให้รูปโผล่ทุกฟอง สิบข้อความติดกันจะกลายเป็นสิบหน้าเรียงลงมา
+//   3) ช่องพิมพ์เป็นแคปซูลใบเดียว ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น
+//      ปุ่มส่งที่ค้างอยู่ตลอดเวลาทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
+//
+// ที่ไม่ได้ทำตาม IG: ปุ่มโทร ปุ่มวิดีโอคอล และปุ่มกล้อง — สองอันแรกไม่มีในแอปนี้
+// และจะไม่มี (เส้นความปลอดภัยที่ขีดไว้ในเอกสารบันไดสโคป) ส่วนกล้องยังส่งรูปในแชทไม่ได้
+// ปุ่มที่กดแล้วไม่เกิดอะไรแย่กว่าปุ่มที่ยังไม่มี
+// ============================================================
+
+// หัวข้อความคั่นวัน — IG มี และมันจำเป็นจริงเมื่อห้องเริ่มมีข้อความข้ามวัน
+function chatDayLabel(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const today = new Date();
+  const same = (a, b) => a.toDateString() === b.toDateString();
+  if (same(d, today)) return 'วันนี้';
+  const y = new Date(today); y.setDate(y.getDate() - 1);
+  if (same(d, y)) return 'เมื่อวาน';
+  return typeof fmtThaiDate === 'function' ? fmtThaiDate(d) : d.toLocaleDateString();
+}
+function chatTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function chatAvatar() {
+  return chatThread.avatar
+    ? `<img class="ch-face" src="${esc(chatThread.avatar)}" alt="">`
+    : `<span class="ch-face" style="${typeof faceTint === 'function' ? faceTint(chatThread) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(chatThread)
+                                             : (chatThread.name || '?').slice(0, 1))}</span>`;
+}
+
+function renderChat(opt) {
+  opt = opt || {};
+  const box = document.getElementById('chatBody');
+  if (!box || !chatThread) return;
+  const me = currentUser && currentUser.id;
+
+  // ---------- คำขอทัก ----------
+  // ฝั่งคนขอ: บอกตรง ๆ ว่าส่งได้ข้อความเดียวจนกว่าจะมีคนตอบ · ถ้าไม่บอก เขาจะพิมพ์ต่อ
+  // แล้วเจอ error ที่อ่านเหมือนแอปพัง ทั้งที่มันคือกติกาที่ตั้งใจให้เป็นแบบนั้น
+  // ฝั่งคนรับ: ปุ่มรับ/ปฏิเสธอยู่บนสุด และ **ตอบกลับก็คือการรับ** ไม่ต้องกดปุ่มก่อนก็ได้
+  const pending = chatThread.state === 'pending';
+  const asked = pending && chatThread.mineReq;
+  const gotAsked = pending && !chatThread.mineReq;
+  const usedUp = asked && chatMsgs.some(m => m.sender === me);
+
+  // 12 ต.ค. 69 · วาดใหม่เฉพาะหัวจอกับรายการ — แถบพิมพ์อยู่กับที่
+  // เดิมวาดทั้งจอใหม่ทุกครั้งที่มีข้อความเข้า รวมช่องพิมพ์ด้วย: ตัวหนังสือที่พิมพ์ค้างหายกลางประโยค
+  // และคีย์บอร์ดมือถือหุบลงเพราะช่องที่โฟกัสอยู่ถูกลบทิ้ง · วาดทั้งจอเฉพาะตอนเปลี่ยนห้อง หรือแถบพิมพ์ต้องโผล่/หาย
+  const old = document.getElementById('chatList');
+  const barKey = usedUp ? '0' : '1';
+  const same = !opt.full && !!old && box.dataset.thread === String(chatThread.id) && box.dataset.bar === barKey;
+  // เลื่อนขึ้นไปอ่านของเก่าอยู่ = ไม่ดึงลงก้นจอตอนมีของเข้า (มีป้าย "ข้อความใหม่" ให้กดแทน)
+  // อยู่ก้นจออยู่แล้ว · เพิ่งส่งเอง · เพิ่งเปิดห้อง = ตามลงไปก้นจอ
+  const stick = opt.bottom || !same || chatNearBottom(old);
+  const keepTop = old ? old.scrollTop : 0;
+  let freshThem = false;
+
+  // ---------- จับข้อความติด ๆ กันเป็นก้อน ----------
+  // เกณฑ์: คนเดียวกัน และห่างกันไม่เกิน 5 นาที · เกินนั้นถือว่าเป็นคนละจังหวะการคุย
+  let lastDay = '';
+  const rows = chatMsgs.map((m, i) => {
+    const prev = chatMsgs[i - 1];
+    const next = chatMsgs[i + 1];
+    const mine = m.sender === me;
+    const gap = (x, y) => !x || !y
+      || Math.abs(new Date(y.created_at) - new Date(x.created_at)) > 5 * 60 * 1000;
+    const startsRun = !prev || prev.sender !== m.sender || gap(prev, m);
+    const endsRun = !next || next.sender !== m.sender || gap(m, next);
+
+    const day = chatDayLabel(m.created_at);
+    const dayHead = day && day !== lastDay ? `<div class="ch-day"><span>${esc(day)}</span></div>` : '';
+    lastDay = day || lastDay;
+
+    // ท่าเข้าเฉพาะฟองที่ยังไม่เคยวาด — วาดซ้ำ (รูปเพิ่งได้ลิงก์ · มีคนพิมพ์ตอบ) ฟองเดิมต้องนิ่ง
+    const id = String(m.id);
+    const fresh = chatPrimed && !chatSeen.has(id);
+    if (fresh && !mine) freshThem = true;
+    const anim = !fresh ? '' : chatFly.has(id) ? ' fly' : mine ? ' in-me' : ' in-them';
+    const text = String(m.body || '').trim();
+    // อิโมจิล้วนไม่เกินสามตัว = ตัวใหญ่ไม่มีฟอง (แบบ IG) · "💯💯" ในฟองเล็ก ๆ อ่านเป็นตัวหนังสือ ไม่ใช่ความรู้สึก
+    const big = !m.image && chatBigEmoji(text);
+    const tr = chatTr.get(id);
+    const shown = tr && tr.show ? tr.text : m.body;
+
+    // เวลาโผล่ใต้ฟองสุดท้ายของก้อน ไม่ใช่ทุกฟอง (ผู้ใช้ขอ "ให้บอกเวลาพิมพ์ด้วย")
+    // ทุกฟองมีเวลา = ตัวเลขเรียงลงมาสิบบรรทัดที่บอกเรื่องเดียวกัน
+    // ก้อนหนึ่งคือหนึ่งจังหวะการพิมพ์อยู่แล้ว เวลาเดียวต่อก้อนจึงพอ
+    // 12 ต.ค. 69 · ปุ่ม "ลบ" ข้างเวลาย้ายไปอยู่ในเมนูกดค้าง (chatHoldOpen) — แบบ IG และไม่ต้องมีขีดเส้นใต้ทุกก้อน
+    return dayHead + `<div class="ch-msg${mine ? ' me' : ''}${endsRun ? ' last' : ''}${m.pending ? ' sending' : ''}${anim}" data-id="${esc(id)}">
+      ${mine ? '' : (endsRun ? chatAvatar() : '<span class="ch-face ghost"></span>')}
+      <span class="ch-col">
+        ${m.reply_to ? chatQuoteHtml(m, mine) : ''}
+        ${m.edited_at ? '<span class="ch-edited">แก้ไขแล้ว</span>' : ''}
+        ${m.image ? (() => {
+          const u = dmImageUrl(m.image);
+          return u ? `<img class="ch-img" loading="lazy" alt="รูปที่ส่งมา" src="${esc(u)}"
+                        onclick="openFace('${esc(u)}','')">`
+                   : '<span class="ch-img wait"></span>';
+        })() : ''}
+        ${text
+          ? `<span class="ch-bub${big ? ' ch-emoji' : ''}${startsRun ? ' first' : ''}${endsRun ? ' tail' : ''}" tabindex="0">${esc(shown)}</span>`
+          : ''}
+        ${tr ? `<button type="button" class="ch-trsw" onclick="chatTrToggle('${esc(id)}')">${tr.show ? 'แปลแล้ว · ดูต้นฉบับ' : 'ดูคำแปล'}</button>` : ''}
+        ${chatRxHtml(id)}
+        ${endsRun ? `<span class="ch-when">${m.pending ? 'กำลังส่ง…' : esc(chatTime(m.created_at))}</span>` : ''}
+      </span>
+    </div>`;
+  }).join('');
+  chatMsgs.forEach(m => chatSeen.add(String(m.id)));
+
+  const listHtml = chatMsgs.length
+    ? rows + (Date.now() < chatTypingUntil ? chatTypingHtml(false) : '')
+    : `<div class="ch-blank">
+          ${chatAvatar()}
+          <b>${esc(chatThread.name)}</b>
+          <p>ยังไม่มีข้อความ</p>
+        </div>`;
+
+  // IG มีชื่อผู้ใช้ใต้ชื่อเล่นบนหัวจอ — ตอบคำถาม "คนนี้คนเดียวกับที่ฉันรู้จักไหม" (ชื่อเล่นซ้ำกันได้ ชื่อผู้ใช้ซ้ำไม่ได้)
+  const hd = String(chatThread.handle || '').trim();
+  const sub = chatThread.subject ? `<i>เรื่อง${esc(chatThread.subject)}</i>`
+    : hd && hd !== chatThread.name ? `<i>@${esc(hd)}</i>` : '';
+  const topHtml = `
+    <div class="ch-top">
+      <button class="ch-back" onclick="chatBack()" aria-label="กลับ">${icon('chevron')}</button>
+      <!-- รูป+ชื่อแตะแล้วไปโปรไฟล์ เหมือน IG · จอแชทที่ไม่มีทางไปหาตัวตนของอีกฝ่าย
+           คือจอที่คุยกับคนที่ตรวจสอบไม่ได้ ซึ่งเป็นสิ่งที่ต้องไม่เกิดหลังเปิดให้ทักทั้งแอป -->
+      <button class="ch-who${chatThread.other ? ' tap' : ''}"
+        ${chatThread.other ? `onclick="openUser('${esc(chatThread.other)}')"` : ''}>
+        ${chatAvatar()}
+        <span class="ch-who-tx">
+          <b>${esc(chatThread.name)}${chatThread.other ? icon('chevron') : ''}</b>
+          ${sub}
+        </span>
+      </button>
+      ${chatThread.other ? `<button class="ch-more" aria-label="รายงานหรือบล็อก"
+        onclick="openReport('user','${esc(chatThread.other)}')">${icon('flag')}</button>` : ''}
+    </div>`;
+
+  // ข้อความที่ปักหมุดล่าสุด = แถบบนสุดของห้อง แตะแล้วเลื่อนไปหา (แบบ IG)
+  const pin = chatV2 ? chatMsgs.filter(m => m.pinned_at)
+    .sort((a, b) => new Date(b.pinned_at) - new Date(a.pinned_at))[0] : null;
+  const pinHtml = pin ? `<button type="button" class="ch-pinbar" onclick="chatGoto('${esc(String(pin.id))}')">
+      ${CH_IC.pin}<span><b>ข้อความที่ปักหมุด</b><i>${esc(chatSnip(pin))}</i></span></button>` : '';
+  const reqHtml = pinHtml + `${gotAsked ? `<div class="ch-req">
+      <p>ขอทักคุณ</p>
+      <div class="ch-req-row">
+        <button class="ch-req-no" onclick="declineDm('${esc(chatThread.id)}', false)">ไม่รับ</button>
+        <button class="ch-req-block" onclick="declineDm('${esc(chatThread.id)}', true)">บล็อก</button>
+        <button class="ch-req-ok" onclick="acceptDm('${esc(chatThread.id)}')">รับ</button>
+      </div>
+    </div>` : ''}
+    ${asked ? `<p class="ch-wait">${usedUp
+        ? 'ส่งคำขอแล้ว'
+        : 'ยังไม่ใช่เพื่อน'}</p>` : ''}`;
+
+  if (same) {
+    const t = box.querySelector('.ch-top');
+    if (t) t.outerHTML = topHtml;
+    const r = box.querySelector('.ch-reqs');
+    if (r) r.innerHTML = reqHtml;
+    old.innerHTML = listHtml;
+  } else {
+    chHold = null;   // เมนูกดค้าง (ถ้ามี) อยู่ใน #chatBody — ถูกล้างไปกับการวาดทั้งจอ
+    box.innerHTML = topHtml + `<div class="ch-reqs">${reqHtml}</div>
+    <div class="ch-list" id="chatList">${listHtml}</div>
+
+    ${usedUp ? '' : `
+      <div class="ch-emo" id="chEmo" hidden>
+        ${CHAT_EMOJI.map(e => `<button onclick="addEmoji('${e}')" aria-label="ใส่ ${e}">${e}</button>`).join('')}
+      </div>
+      <div class="ch-ctx" id="chCtx" hidden></div>
+      <div class="ch-bar">
+        <input type="file" id="chFile" accept="image/*" hidden onchange="pickChatImage(this)">
+        <button class="ch-plus" onclick="document.getElementById('chFile').click()"
+          aria-label="ส่งรูป">${icon('image')}</button>
+        <div class="ch-field">
+          <input id="chatIn" type="text" maxlength="2000" placeholder="ข้อความ…"
+                 autocomplete="off"
+                 value="${chatMsgs.length || !chatThread.subject ? ''
+                         : esc(chatThread.subject + 'ขอถามหน่อยได้ป่ะ')}"
+                 oninput="chatTyping(true)"
+                 onkeydown="if(event.key==='Enter')sendChat();else if(event.key==='Escape'&&(chatReply||chatEdit))chatCtxClose()">
+          <!-- 8 ต.ค. 69 · เจ้าของ: "ลบดาวออก" — ดาวคือปุ่มเปิดแถบอิโมจิ จึงเปลี่ยนเป็นรูปหน้ายิ้ม (ปุ่มยังทำงานเดิม) -->
+          <button class="ch-emo-btn" onclick="toggleEmoji()" aria-label="อิโมจิ"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button>
+          <button class="ch-send" id="chSend" onclick="sendChat()" aria-label="ส่ง"><svg viewBox="0 0 24 24" aria-hidden="true"
+            fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+        </div>
+      </div>`}`;
+    box.dataset.thread = String(chatThread.id);
+    box.dataset.bar = barKey;
+    chatTyping();
+    chatCtxRender();
+  }
+
+  const list = document.getElementById('chatList');
+  if (list) {
+    list.scrollTop = stick ? list.scrollHeight : keepTop;
+    list.__atBottom = stick || chatNearBottom(list);
+    if (freshThem && !stick) chatJump(true);
+  }
+  chatWire(box, list);
+  chatPaint();
+}
+
+
+// ============================================================
+// รูปกับอิโมจิในแชท (1B72)
+// ------------------------------------------------------------
+// ผู้ใช้ขอเอง: "สามารถส่งไฟล์ รูป หรืออิโมจิได้"
+//
+// อิโมจิไม่ต้องแก้อะไรฝั่งเซิร์ฟเวอร์เลย มันคือตัวอักษรธรรมดา —
+// ที่ต้องมีคือ **ทางเข้าที่ไม่ต้องพึ่งคีย์บอร์ดของเครื่อง** เพราะบนเว็บในมือถือบางรุ่น
+// ปุ่มอิโมจิของคีย์บอร์ดหาไม่เจอ และบนเดสก์ท็อปไม่มีเลย
+// ชุดนี้เลือกจากที่นักเรียนใช้จริงตอนถามการบ้าน ไม่ใช่ชุดยอดนิยมทั่วไป
+const CHAT_EMOJI = ['👍','🙏','😂','😭','🔥','✅','❓','💡','😅','🥲','👀','💯'];
+
+function toggleEmoji() {
+  const el = document.getElementById('chEmo');
+  if (el) el.hidden = !el.hidden;
+}
+function addEmoji(e) {
+  const el = document.getElementById('chatIn');
+  if (!el) return;
+  el.value += e;
+  el.focus();
+  chatTyping();
+}
+
+// รูปย่อในเครื่องก่อนเสมอ — รูปจากกล้องมือถือใบละ 3-5 MB
+// อัปโหลดดิบ ๆ บนเน็ตโรงเรียนคือรอเป็นนาที แล้วคนก็เลิกส่งไปเลย
+// (กติกาเดียวกับ shrinkImage ที่หน้าเขียนโพสต์ ใช้ตัวเดียวกันเลย)
+async function pickChatImage(input) {
+  const file = input.files && input.files[0];
+  input.value = '';
+  if (!file || !chatThread) return;
+  const btn = document.querySelector('.ch-plus');
+  if (btn) btn.disabled = true;
+  try {
+    const blob = await shrinkImage(file, 1280, 0.72);
+
+    // ตรวจก่อนอัปโหลดเสมอ (ผู้ใช้เคาะเอง: รูปกันก่อนส่ง)
+    //
+    // **ตัวกรองหาย ≠ ผ่าน** — ของเดิมเขียน `: { ok: true }` ไว้ ซึ่งแปลว่าถ้า feed.js
+    // โหลดไม่ทันหรือ parse ไม่ผ่าน (ไฟล์นั้นใหญ่และโหลดทีหลัง social.js ด้วยซ้ำ)
+    // รูปในแชทจะขึ้นไปโดยไม่มีใครตรวจแบบเงียบสนิท ไม่มีอะไรบนจอบอกสักอย่าง
+    // กติกาของรูปคือล้มแบบปิด จึงต้องปิดตรงนี้ด้วย ไม่ใช่ปิดเฉพาะตอนที่ตัวกรองตอบมา
+    const g = typeof guardImage === 'function'
+      ? await guardImage(blob)
+      : { ok: false, message: 'ตัวกรองรูปยังไม่พร้อม ลองรีเฟรชหน้าแล้วส่งใหม่' };
+    if (!g.ok) {
+      if (typeof haptic === 'function') haptic('snooze');
+      showToast({ title: 'ส่งรูปนี้ไม่ได้', body: g.message });
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    // bucket 'dm' ปิดอยู่ (public = false) ต่างจาก 'posts' ที่เปิดสาธารณะ
+    // รูปในแชทตัวต่อตัวเป็นของสองคน มันไม่ควรเปิดได้ด้วย URL เปล่า ๆ โดยไม่ต้องล็อกอิน
+    //
+    // path ต้องขึ้นต้นด้วย uid ตรง ๆ ไม่ใช่ 'dm/<uid>/' แบบเดิม
+    // เพราะ policy ดูโฟลเดอร์แรกว่าเป็น uid ของคนอัปโหลดหรือเปล่า
+    // ของเดิมโฟลเดอร์แรกเป็นคำว่า 'dm' จึงโดนปฏิเสธทุกครั้งตั้งแต่ 1B72
+    const path = currentUser.id + '/' + Date.now() + '.jpg';
+    const up = await sb.storage.from('dm').upload(path, blob, { contentType: 'image/jpeg' });
+    if (up.error) throw new Error(up.error.message);
+    await sendChat(path);
+  } catch (e) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ส่งรูปไม่สำเร็จ', body: e.message || 'ลองรูปอื่นดู' });
+  }
+  if (btn) btn.disabled = false;
+}
+
+// ============================================================
+// รูปใน bucket ปิด ต้องขอ URL ชั่วคราวก่อนถึงจะแสดงได้ (1B76)
+// ------------------------------------------------------------
+// getPublicUrl ใช้กับ bucket ที่ปิดอยู่ไม่ได้ ต้องใช้ createSignedUrl ซึ่งเป็น async
+// แต่ตัววาดหน้าจอเป็น sync จึงต้องมีที่พักไว้ตรงกลาง:
+//   ยังไม่มีในที่พัก -> วาดฟองว่างไว้ก่อน แล้วไปขอมา พอได้แล้วค่อยวาดใหม่รอบเดียว
+// ลิงก์มีอายุหนึ่งชั่วโมง ซึ่งนานกว่าที่คนเปิดแชทค้างไว้รอบหนึ่ง
+const dmPic = {};        // path -> url
+const dmPicWait = {};    // path -> true ระหว่างที่กำลังขอ
+
+function dmImageUrl(path) {
+  if (!path) return '';
+  if (/^https?:/.test(path)) return path;
+  if (dmPic[path]) return dmPic[path];
+  if (!dmPicWait[path] && sb) {
+    dmPicWait[path] = true;
+    sb.storage.from('dm').createSignedUrl(path, 3600).then(({ data }) => {
+      dmPicWait[path] = false;
+      if (data && data.signedUrl) { dmPic[path] = data.signedUrl; renderChat(); }
+    }).catch(() => { dmPicWait[path] = false; });
+  }
+  return '';
+}
+
+// ปุ่มส่งโผล่ตอนมีตัวอักษรเท่านั้น (เหมือน IG)
+// ปุ่มที่ค้างอยู่ตลอดทั้งที่กดไปก็ไม่เกิดอะไร คือปุ่มที่สอนให้คนเลิกเชื่อปุ่ม
+function chatTyping(user) {
+  const el = document.getElementById('chatIn');
+  const btn = document.getElementById('chSend');
+  if (!el || !btn) return;
+  const has = !!el.value.trim();
+  btn.classList.toggle('on', has);
+  // 12 ต.ค. 69 · บอกอีกฝ่ายว่ากำลังพิมพ์ (ฟองจุดสามจุดฝั่งเขา · chatTheyType)
+  // ส่งเฉพาะตอนพิมพ์จริง (user = มาจาก oninput ไม่ใช่ตอนวาดจอ) · ห้องที่ยังเป็นคำขอไม่ส่ง
+  // ไม่เกินสองวินาทีครึ่งครั้ง · เป็นสัญญาณลอยผ่าน realtime ไม่ได้เขียนลงฐานข้อมูล และไม่มีตัวหนังสือที่พิมพ์ติดไปด้วย
+  if (user && has && chatSub && chatThread && chatThread.state !== 'pending'
+      && Date.now() - chatTypingSent > 2500) {
+    chatTypingSent = Date.now();
+    try {
+      const r = chatSub.send({ type: 'broadcast', event: 'typing', payload: { u: currentUser && currentUser.id } });
+      if (r && typeof r.catch === 'function') r.catch(() => {});
+    } catch (_) {}
+  }
+}
+
+// ส่งผ่าน dm_say เสมอ ไม่ insert ตรงอีกแล้ว
+// policy ของ dm_messages ถูกบีบให้รับเฉพาะห้องที่เปิดแล้ว (migration 19) —
+// ห้องที่ยังเป็นคำขอจึงเข้าได้ทางฟังก์ชันนี้ทางเดียว ซึ่งเป็นที่ที่บังคับกติกา
+// "คนขอส่งได้ข้อความเดียว" กับ "ปลายทางตอบ = ห้องเปิด" ไว้ที่เดียว
+
+// ---------- ลบข้อความที่ส่งไปแล้ว ----------
+// IG เรียก unsend และลบให้ทั้งสองฝั่ง ไม่ใช่ลบแค่ฝั่งตัวเอง
+// ลบแค่ฝั่งตัวเองคือคำสัญญาที่ผิด: คนกดเพราะอยากให้อีกฝ่ายไม่เห็น ไม่ใช่เพราะรกตา
+async function unsendChat(id) {
+  if (!sb || !currentUser) return;
+  if (!(await appConfirm({ title: 'ลบข้อความนี้?', body: 'อีกฝ่ายจะไม่เห็นด้วย', ok: 'ลบข้อความ', danger: true }))) return;
+  const { data, error } = await sb.rpc('dm_unsend', { p_msg: Number(id) });
+  if (error) {
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'ลบไม่สำเร็จ',
+      body: rpcMissing(error) ? 'ยังไม่ได้อัปเดตฐานข้อมูล' : error.message });
+    return;
+  }
+  if (data) { try { await sb.storage.from('dm').remove([data]); } catch (_) {} }
+  chatMsgs = chatMsgs.filter(m => String(m.id) !== String(id));
+  if (typeof haptic === 'function') haptic('done');
+  renderChat();
+  refreshDmRows();
+}
+
+// รีเฟรชกล่องข้อความเงียบ ๆ โดยไม่พาคนออกจากห้องแชท
+// openDmInbox() ใช้ไม่ได้ตรงนี้เพราะมันเรียก go('scr-dm') เป็นอย่างแรก
+// ซึ่งจะเด้งออกจากห้องที่เพิ่งลบข้อความไป ทั้งที่คนยังอ่านค้างอยู่
+// ถ้าไม่รีเฟรช บรรทัดสรุปในกล่องจะยังโชว์ข้อความที่ถูกลบไปแล้วจนกว่าจะเปิดใหม่
+async function refreshDmRows() {
+  if (!sb || !currentUser) return;
+  const { data, error } = await sb.rpc('dm_inbox');
+  if (!error) { dmRows = data || []; if (curScreen === 'scr-dm') renderDmInbox(); }
+}
+
+async function sendChat(imagePath) {
+  const el = document.getElementById('chatIn');
+  if (!chatThread || !sb || !currentUser) return;
+  const body = el ? el.value.trim() : '';
+  if (!body && !imagePath) return;
+  if (chatEdit && !imagePath) return chatEditSend();
+  // ตอบกลับต้องมีที่เก็บฝั่งเซิร์ฟเวอร์ (chatV2) · ฟองต้นทางที่ยังส่งไม่ถึงยังไม่มี id จริง ตอบไม่ได้
+  const reply = chatV2 && chatReply && !chatReply.pending ? chatReply : null;
+  chatReply = null;
+  chatCtxRender();
+  // 12 ต.ค. 69 · ฟองขึ้นทันทีที่กดส่ง (แบบ IG) ไม่รอเซิร์ฟเวอร์ — เดิมกดแล้วจอนิ่งจนเน็ตตอบ คนเลยกดซ้ำ
+  // ฟองลอยออกจากช่องพิมพ์ขึ้นไปเข้าที่ (chatFlyIn) · ระหว่างรอ ใต้ฟองเขียนว่า "กำลังส่ง…"
+  // ส่งไม่ผ่าน = ฟองหาย ข้อความกลับเข้าช่องพิมพ์เหมือนเดิม (ไม่กลืนหายไปเฉย ๆ)
+  const field = document.querySelector('#chatBody .ch-field');
+  const from = field ? field.getBoundingClientRect() : null;
+  if (el) el.value = '';
+  chatTyping();
+  const emo = document.getElementById('chEmo');
+  if (emo) emo.hidden = true;
+  const tmp = { id: 'tmp' + Date.now(), sender: currentUser.id, body, image: imagePath || null,
+                reply_to: reply ? reply.id : null,
+                created_at: new Date().toISOString(), pending: true };
+  chatMsgs.push(tmp);
+  chatFly.add(tmp.id);
+  renderChat({ bottom: true });
+  chatFlyIn(tmp.id, from);
+
+  const args = { p_thread: chatThread.id, p_body: body, p_image: imagePath || null };
+  if (reply) args.p_reply = Number(reply.id);
+  let { data, error } = await sb.rpc('dm_say', args);
+  // ยังไม่ได้ apply migration 25 (dm_say ยังรับสองพารามิเตอร์) — ลองแบบเดิมอีกรอบ
+  // ส่งรูปจะไม่ได้ แต่ข้อความยังส่งได้ตามปกติ ซึ่งสำคัญกว่า
+  if (error && /p_image|function public\.dm_say/i.test(error.message || '')) {
+    ({ data, error } = await sb.rpc('dm_say', { p_thread: chatThread.id, p_body: body }));
+    if (!error && imagePath) {
+      showToast({ title: 'ส่งข้อความแล้ว', body: 'รูปยังส่งไม่ได้จนกว่าจะอัปเดตฐานข้อมูล' });
+    }
+  }
+  // ยังไม่ได้ apply migration 19 — ถอยไปเขียนตรงแบบเดิม
+  // ปลอดภัยเพราะถ้ายังไม่มี dm_say ก็แปลว่ายังไม่มีคอลัมน์ state ด้วย จึงไม่มีห้องคำขอ
+  // ให้ข้ามกติกาตั้งแต่แรก · ข้อสำคัญคือ **แชทเดิมต้องไม่พังระหว่างรอ migration**
+  if (rpcMissing(error)) {
+    const r = await sb.from('dm_messages')
+      .insert({ thread: chatThread.id, sender: currentUser.id, body,
+                image: imagePath || null })
+      .select('id, sender, body, image, created_at').single();
+    data = r.data ? [r.data] : null;
+    error = r.error;
+  }
+  if (error) {
+    chatMsgs = chatMsgs.filter(m => m !== tmp);
+    renderChat();
+    const back = document.getElementById('chatIn');
+    if (back && !back.value) { back.value = body; chatTyping(); }   // คืนข้อความให้ ไม่ใช่กลืนหายไปเฉย ๆ
+    if (reply && !chatReply && !chatEdit) { chatReply = reply; chatCtxRender(); }
+    haptic('snooze');
+    showToast({ title: 'ส่งไม่สำเร็จ', body: error.message });
+    return;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  // ช่องสดอาจส่งแถวจริงมาถึงก่อนคำตอบนี้ — chatIncoming จับคู่กับฟองนี้ไปแล้ว (pending = false)
+  if (tmp.pending) {
+    const id = (row && row.id) || tmp.id;
+    if (chatMsgs.some(m => m !== tmp && String(m.id) === String(id))) chatMsgs = chatMsgs.filter(m => m !== tmp);
+    else Object.assign(tmp, { id, created_at: (row && row.created_at) || tmp.created_at, pending: false });
+    chatSeen.add(String(id));
+  }
+  // ข้อความขึ้นไปแล้ว สแกนตามหลังโดยไม่รอผล (กติกาที่ผู้ใช้เคาะไว้)
+  if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, body);
+  // ปลายทางพิมพ์ตอบ = ห้องเปิดแล้วฝั่งเซิร์ฟเวอร์ · ฝั่งนี้ต้องตามให้ทัน
+  // ไม่งั้นแบนเนอร์ "คำขอ" ยังค้างอยู่ทั้งที่คุยกันได้แล้ว
+  if (chatThread.state === 'pending' && !chatThread.mineReq) chatThread.state = 'open';
+  renderChat();
+}
+
+// ============================================================
+// ห้องแชทแบบ IG แต่เป็นของเราเอง (12 ต.ค. 69)
+// ------------------------------------------------------------
+// เจ้าของ (ส่งภาพห้องแชทในธีมดำ): "แก้ไขในหน้านี้หน่อยให้ดูแบบแชทคล้ายไอจี มีอนิเมชันคล้าย ๆ กันแต่อย่าเหมือนกัน"
+//
+// ของที่ยืม "ท่า" มาจาก IG แต่ทำเป็นแบบของเรา:
+//   • ฟองของเราไล่สีตามตำแหน่งบนจอ (IG: ม่วง→น้ำเงินตายตัว · ของเรา: สีเน้นของธีม → หมุนเฉดไป 48° ด้านบน) — chatPaint
+//   • กดส่ง = ฟองลอยออกจากช่องพิมพ์ไปเข้าที่แบบสปริง (IG: เด้งขึ้นที่เดิม) — chatFlyIn
+//   • กดค้างที่ฟอง = จอหรี่ ฟองยกตัว เมนูเด้งออกจากฟอง (IG: แถบอิโมจิ · ของเรา: เวลาที่ส่ง + คัดลอก/ลบ/รายงาน) — chatHoldOpen
+//     ท่ากดค้างตามสูตรใน React Bits (ระยะเผื่อนิ้วสั่น · pointercancel = ยกเลิก · กลืนคลิกที่ตามมาหลังกดค้าง)
+//     จอหรี่ + ของที่เลือกยกขึ้นมาเหนือชั้นหรี่ = ท่า focus ของ Expandable Card (Aceternity) ทำใหม่ด้วย CSS ล้วน
+//   • อีกฝ่ายกำลังพิมพ์ = ฟองจุดสามจุดเป็นคลื่น สีเน้นของธีม (ท่าจุดสามจุดของ Uiverse) — chatTheyType
+//   • อ่านของเก่าอยู่แล้วมีข้อความเข้า = ป้าย "ข้อความใหม่" ลอยเหนือช่องพิมพ์ ไม่ดึงจอลงเอง — chatJump
+// ที่ไม่ทำ: ปฏิกิริยาหัวใจ กับ "เห็นแล้ว" — ต้องมีที่เก็บฝั่งเซิร์ฟเวอร์ซึ่งยังไม่มี ทำแค่ในเครื่องเดียว = อีกฝ่ายไม่เห็น = โกหก
+// ============================================================
+function chatNearBottom(list) {
+  return !list || list.scrollHeight - list.scrollTop - list.clientHeight < 90;
+}
+
+const chatSeg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+function chatBigEmoji(t) {
+  const x = String(t || '').replace(/\s+/g, '');
+  if (!x || x.length > 40) return false;
+  const g = chatSeg ? Array.from(chatSeg.segment(x), p => p.segment) : Array.from(x);
+  return g.length <= 3 && g.every(c => /\p{Extended_Pictographic}/u.test(c));
+}
+
+// ข้อความเข้าทางช่องสด
+function chatIncoming(n) {
+  if (!n || chatMsgs.some(m => String(m.id) === String(n.id))) return;
+  const me = currentUser && currentUser.id;
+  if (n.sender === me) {
+    // แถวจริงของฟองที่เรากดส่งมาถึงก่อนคำตอบของ dm_say = จับคู่กับฟองนั้น ไม่ใช่ฟองซ้ำอีกใบ
+    const t = chatMsgs.find(m => m.pending && (m.body || '') === (n.body || '') && (m.image || null) === (n.image || null));
+    if (t) { chatSeen.add(String(n.id)); Object.assign(t, n, { pending: false }); renderChat(); return; }
+  } else {
+    chatTypingUntil = 0;   // เขาส่งแล้ว = เลิกพิมพ์แล้ว
+  }
+  chatMsgs.push(n);
+  renderChat();
+}
+
+// แก้ไข/ปักหมุดจากอีกฝั่ง (หรือจากเครื่องอื่นของเราเอง) · reply_to กลายเป็น null ตอนต้นทางถูกลบ
+function chatUpdated(n) {
+  if (!n) return;
+  const m = chatMsgs.find(x => String(x.id) === String(n.id));
+  if (!m) return;
+  if (m.body !== n.body) chatTr.delete(String(m.id));   // คำแปลเก่าไม่ตรงกับข้อความใหม่แล้ว
+  Object.assign(m, { body: n.body, edited_at: n.edited_at || null, pinned_at: n.pinned_at || null,
+                     reply_to: n.reply_to === undefined ? m.reply_to : n.reply_to });
+  renderChat();
+}
+
+// ---------- อีกฝ่ายกำลังพิมพ์ ----------
+function chatTheyType(p) {
+  if (!p || !chatThread || p.u === (currentUser && currentUser.id)) return;
+  chatTypingUntil = Date.now() + 4500;   // เงียบไปเกินนี้ = เลิกพิมพ์ (ฝั่งนั้นยิงทุกสองวินาทีครึ่งตอนยังพิมพ์อยู่)
+  chatTypingShow();
+}
+function chatTypingHtml(anim) {
+  return `<div class="ch-msg ch-typing last${anim ? ' in-them' : ''}" id="chTyping" role="status"
+    aria-label="${esc(chatThread.name)} กำลังพิมพ์">
+    ${chatAvatar()}<span class="ch-col"><span class="ch-bub first tail"><i></i><i></i><i></i></span></span>
+  </div>`;
+}
+function chatTypingShow() {
+  clearTimeout(chatTypingShow.t);
+  const list = document.getElementById('chatList');
+  if (!list || !chatMsgs.length) return;
+  const el = document.getElementById('chTyping');
+  if (Date.now() < chatTypingUntil) {
+    if (!el) {
+      const near = chatNearBottom(list);
+      list.insertAdjacentHTML('beforeend', chatTypingHtml(true));
+      if (near) list.scrollTop = list.scrollHeight;
+    }
+    chatTypingShow.t = setTimeout(chatTypingShow, chatTypingUntil - Date.now() + 40);
+  } else if (el) {
+    el.classList.add('out');
+    setTimeout(() => { if (el.isConnected) el.remove(); }, 220);
+  }
+}
+
+// ---------- ฟองลอยออกจากช่องพิมพ์ ----------
+// วัดกรอบช่องพิมพ์ก่อนวาด แล้วเริ่มฟองใหม่จากตรงนั้นขยับเข้าที่ (FLIP) · transform ล้วน การ์ดจอทำเอง
+// ฟองโผล่จากขอบล่างของรายการ (รายการตัดของที่ล้นออกไป) จึงเห็นเป็นฟองที่ลอยขึ้นมาจากช่องพิมพ์
+function chatFlyIn(id, from) {
+  const row = document.querySelector('#chatList .ch-msg[data-id="' + id + '"]');
+  const col = row && row.querySelector('.ch-col');
+  if (!col || typeof col.animate !== 'function') return;
+  const still = document.documentElement.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!from || still) { col.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' }); return; }
+  const to = col.getBoundingClientRect();
+  const dx = Math.round(from.right - 10 - to.right);
+  const dy = Math.round(from.top + from.height / 2 - (to.top + to.height / 2));
+  col.animate([
+    { transform: 'translate(' + dx + 'px, ' + dy + 'px) scale(.86)', opacity: .2 },
+    { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+  ], { duration: 480, easing: 'cubic-bezier(.2, 1.2, .32, 1)' });
+}
+
+// ---------- สีฟองของเราไล่ตามตำแหน่งบนจอ ----------
+// ฟองบนสุดของจอได้สีเฉดหมุน ฟองล่างสุดได้สีเน้นของธีม · เลื่อนจอแล้วสีของฟองเดิมเปลี่ยนตามที่มันอยู่
+// อ่านกรอบทุกฟองก่อน แล้วค่อยเขียนทีเดียว (ไม่สลับอ่าน-เขียน = เครื่องไม่ต้องคำนวณผังซ้ำทุกฟอง)
+// เขียนเฉพาะฟองที่อยู่บนจอ · โหมดลื่นไม่ทำ (ฟองได้สีกลาง ๆ คงที่จาก CSS)
+function chatPaint() {
+  const list = document.getElementById('chatList');
+  if (!list || document.documentElement.dataset.lite) return;
+  const lr = list.getBoundingClientRect();
+  if (!lr.height) return;
+  const bs = Array.from(list.querySelectorAll('.ch-msg.me .ch-bub:not(.ch-emoji)'));
+  const rs = bs.map(b => b.getBoundingClientRect());
+  const pct = y => (Math.min(1, Math.max(0, (y - lr.top) / lr.height)) * 100).toFixed(1) + '%';
+  bs.forEach((b, i) => {
+    const r = rs[i];
+    if (r.bottom < lr.top - 40 || r.top > lr.bottom + 40) return;
+    b.style.setProperty('--g0', pct(r.top));
+    b.style.setProperty('--g1', pct(r.bottom));
+  });
+}
+
+// ---------- ป้าย "ข้อความใหม่" ----------
+function chatJump(show) {
+  const list = document.getElementById('chatList');
+  const bar = document.querySelector('#chatBody .ch-bar');
+  if (!list || !bar) return;
+  const p = bar.querySelector('.ch-jump');
+  if (show === true) {
+    if (!p && !chatNearBottom(list)) {
+      bar.insertAdjacentHTML('afterbegin',
+        `<button class="ch-jump" type="button" onclick="chatToBottom()">ข้อความใหม่${icon('chevron')}</button>`);
+    }
+    return;
+  }
+  if (p && chatNearBottom(list)) p.remove();
+}
+function chatToBottom() {
+  const list = document.getElementById('chatList');
+  if (!list) return;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  list.scrollTo({ top: list.scrollHeight, behavior: still ? 'auto' : 'smooth' });
+}
+
+// ---------- กดค้างที่ฟอง = เมนู ----------
+let chHold = null;      // { b, ov, m } เมนูที่เปิดอยู่
+let chHoldAt = null;    // { x, y, b } นิ้วที่กดค้างอยู่ (ยังไม่ถึงเวลา)
+let chHoldTimer = 0;
+let chHoldSkip = false; // กลืนคลิกที่ตามมาหลังยกนิ้ว — ไม่งั้นกดค้างที่รูปแล้วปล่อย = เปิดรูปซ้อนเมนู
+
+function chatHit(t) {
+  const b = t && t.closest ? t.closest('#chatList .ch-bub, #chatList .ch-img') : null;
+  if (!b || b.closest('.ch-typing') || b.classList.contains('wait')) return null;
+  return b.closest('.ch-msg[data-id]') ? b : null;
+}
+function chatHoldCancel() {
+  clearTimeout(chHoldTimer);
+  if (chHoldAt) chHoldAt.b.classList.remove('pressing');
+  chHoldAt = null;
+}
+function chatWire(box, list) {
+  if (!box.__chWired) {
+    box.__chWired = true;
+    box.addEventListener('pointerdown', e => {
+      if (e.button > 0 || chHold) return;   // คลิกขวาไปทาง contextmenu
+      const b = chatHit(e.target);
+      if (!b) return;
+      chatHoldCancel();
+      chHoldAt = { x: e.clientX, y: e.clientY, b };
+      b.classList.add('pressing');
+      chHoldTimer = setTimeout(() => { chatHoldCancel(); chHoldSkip = true; chatHoldOpen(b); }, 420);
+    });
+    // นิ้วขยับเกิน 8px = กำลังเลื่อนจอ ไม่ใช่กดค้าง
+    box.addEventListener('pointermove', e => {
+      if (chHoldAt && Math.hypot(e.clientX - chHoldAt.x, e.clientY - chHoldAt.y) > 8) chatHoldCancel();
+    });
+    box.addEventListener('pointerup', () => {
+      // ยกนิ้วก่อนถึงเวลากดค้าง และนิ้วไม่ขยับ = แตะ · แตะสองทีติดกันที่ฟองตัวหนังสือ = ❤️ (แบบ IG)
+      const tapped = chHoldAt && chHoldAt.b;
+      chatHoldCancel();
+      if (chHoldSkip) setTimeout(() => { chHoldSkip = false; }, 80);
+      if (tapped && chatV2 && tapped.classList.contains('ch-bub')) chatDoubleTap(tapped);
+    });
+    // เมาส์ชี้ฟองไหน ปุ่ม หน้ายิ้ม · ตอบกลับ · ⋮ ไปโผล่ข้างฟองนั้น (มือถือไม่มี — ใช้กดค้างแทน)
+    box.addEventListener('pointerover', e => {
+      if (e.pointerType !== 'mouse' || chHold) return;
+      const row = e.target.closest && e.target.closest('#chatList .ch-msg[data-id]');
+      if (row && !row.classList.contains('ch-typing') && !row.classList.contains('sending')) chatToolsAt(row);
+    });
+    box.addEventListener('pointercancel', chatHoldCancel);
+    box.addEventListener('click', e => {
+      if (!chHoldSkip) return;
+      chHoldSkip = false;
+      e.stopPropagation(); e.preventDefault();
+    }, true);
+    // คลิกขวาบนคอม · กดค้างบน Android ก็ยิงอันนี้ด้วย — เปิดเมนูของเราแทนเมนูเครื่อง
+    box.addEventListener('contextmenu', e => {
+      const b = chatHit(e.target);
+      if (!b) return;
+      e.preventDefault();
+      chatHoldCancel();
+      if (!chHold) chatHoldOpen(b);
+    });
+    // คีย์บอร์ด: ฟองโฟกัสได้ (tabindex) · Enter/เว้นวรรค = เปิดเมนู · Esc = ปิด
+    box.addEventListener('keydown', e => {
+      if (chHold) { if (e.key === 'Escape') { e.preventDefault(); chatHoldClose(); } return; }
+      const b = chatHit(e.target);
+      if (b && (e.key === 'Enter' || e.key === ' ' || e.key === 'ContextMenu')) { e.preventDefault(); chatHoldOpen(b); }
+    });
+  }
+  if (list && !list.__chWired) {
+    list.__chWired = true;
+    let raf = 0;
+    list.addEventListener('scroll', () => {
+      if (chHoldAt) chatHoldCancel();
+      if (raf) return;
+      raf = requestAnimationFrame(() => { raf = 0; list.__atBottom = chatNearBottom(list); chatPaint(); chatJump(); });
+    }, { passive: true });
+    // รูปในห้องไม่มีความสูงจนกว่าจะโหลดเสร็จ — โหลดเสร็จแล้วรายการยาวขึ้น ข้อความล่าสุดถูกดันพ้นก้นจอ
+    // (เจอตอนเทสต์: เปิดห้องที่มีรูปแล้วไม่เห็นข้อความล่าสุด) · อยู่ก้นจออยู่ก่อนรูปโหลด = ตามลงไปก้นจอต่อ
+    list.addEventListener('load', e => {
+      if (e.target.tagName !== 'IMG' || !list.__atBottom) return;
+      list.scrollTop = list.scrollHeight;
+      chatPaint();
+    }, true);
+  }
+}
+
+function chatStamp(m) {
+  if (m.pending) return 'กำลังส่ง…';
+  const d = chatDayLabel(m.created_at), t = chatTime(m.created_at);
+  return (d ? d + ' · ' : '') + t;
+}
+
+// ไอคอนที่ชุด Lucide ใน index.html ไม่มี — วาดเส้นแบบเดียวกัน (Lucide · ISC) ฝังไว้ตรงนี้
+const CH_SVG = p => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+const CH_IC = {
+  reply: CH_SVG('<path d="M9 17 4 12l5-5"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>'),
+  fwd: CH_SVG('<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>'),
+  tr: CH_SVG('<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>'),
+  unsend: CH_SVG('<circle cx="12" cy="12" r="9.5"/><path d="m9.5 8.5-3 3 3 3"/><path d="M6.5 11.5h6.5a3 3 0 0 1 0 6H12"/>'),
+  smile: CH_SVG('<circle cx="12" cy="12" r="9.5"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/>'),
+  more: CH_SVG('<circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>'),
+  // หมุดปัก (ไม่ใช่หมุดแผนที่ #lu-pin ในชุดไอคอนของแอป ซึ่งอ่านว่า "สถานที่")
+  pin: CH_SVG('<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>'),
+};
+const CH_RX = ['❤️', '😂', '😮', '😢', '😡', '👍'];
+const CH_EDIT_MS = 15 * 60 * 1000;   // แก้ได้ภายใน 15 นาที — ต้องตรงกับ dm_edit ใน migration dm_actions
+
+// เมนูข้อความ — ลำดับตาม IG: เวลา · ตอบกลับ · แก้ไข · ส่งต่อ · คัดลอก · แปล · ปักหมุด · ยกเลิกการส่ง/รายงาน
+// เปิดได้สามทาง: กดค้าง (มือถือ) · ปุ่ม ⋮ ที่โผล่ข้างฟองตอนเอาเมาส์ไปชี้ (คอม) · คลิกขวา/Enter
+// opt.rxOnly = ปุ่มหน้ายิ้มข้างฟอง → แถบปฏิกิริยาอย่างเดียว ไม่มีเมนู
+function chatHoldOpen(b, opt) {
+  opt = opt || {};
+  const box = document.getElementById('chatBody');
+  const row = b && b.closest('.ch-msg[data-id]');
+  if (!box || !row || chHold) return;
+  const m = chatMsgs.find(x => String(x.id) === row.dataset.id);
+  if (!m) return;
+  const me = currentUser && currentUser.id;
+  const mine = row.classList.contains('me');
+  const text = String(m.body || '').trim();
+  const real = !m.pending && !String(m.id).startsWith('tmp');
+  const v2 = chatV2 && real;
+  const acts = [];
+  if (!opt.rxOnly) {
+    if (v2) acts.push(['reply', 'ตอบกลับ', CH_IC.reply]);
+    if (v2 && mine && text && !m.image && Date.now() - new Date(m.created_at) < CH_EDIT_MS) acts.push(['edit', 'แก้ไข', icon('pencil')]);
+    if (real && text && !m.image) acts.push(['fwd', 'ส่งต่อ', CH_IC.fwd]);
+    if (text && b.classList.contains('ch-bub')) acts.push(['copy', 'คัดลอก', icon('copy')]);
+    if (real && text) acts.push(['tr', chatTr.has(String(m.id)) && chatTr.get(String(m.id)).show ? 'ดูต้นฉบับ' : 'แปล', CH_IC.tr]);
+    if (v2) acts.push(['pin', m.pinned_at ? 'เลิกปักหมุด' : 'ปักหมุด', CH_IC.pin]);
+    if (mine && real) acts.push(['del', 'ยกเลิกการส่ง', CH_IC.unsend, true]);
+    if (!mine && chatThread && chatThread.other) acts.push(['report', 'รายงาน', icon('flag'), true]);
+  }
+  const rxOn = v2;
+  if (!acts.length && !rxOn) return;
+  const mineRx = (chatReacts.get(String(m.id)) || new Map()).get(me) || '';
+
+  const br = b.getBoundingClientRect(), xr = box.getBoundingClientRect();
+  const ov = document.createElement('div');
+  ov.className = 'ch-hold';
+  ov.innerHTML = `<div class="ch-hold-dim"></div>
+    <div class="ch-msg${mine ? ' me' : ''} ch-hold-row"><span class="ch-col"></span></div>
+    ${rxOn ? `<div class="ch-hold-rx" role="group" aria-label="ใส่ปฏิกิริยา">${CH_RX.map(e =>
+      `<button type="button" data-rx="${e}"${e === mineRx ? ' class="on" aria-pressed="true"' : ''} aria-label="${e}">${e}</button>`).join('')}</div>` : ''}
+    ${acts.length ? `<div class="ch-hold-menu" role="menu" aria-label="ตัวเลือกข้อความ">
+      <p class="ch-hold-when">${esc(chatStamp(m))}${m.edited_at ? ' · แก้ไขแล้ว' : ''}</p>
+      ${acts.map(([k, lb, ic, bad]) => `<button type="button" role="menuitem" data-act="${k}"${bad ? ' class="bad"' : ''}>
+        <span>${esc(lb)}</span>${ic}</button>`).join('')}
+    </div>` : ''}`;
+  // สำเนาของฟองยกขึ้นเหนือชั้นหรี่ ตรงตำแหน่งเดิมเป๊ะ · ห่อด้วย .ch-msg(.me) ให้สีและทรงตามกฎเดิมทุกอย่าง
+  const clone = b.cloneNode(true);
+  clone.removeAttribute('tabindex');
+  clone.removeAttribute('onclick');
+  clone.classList.remove('pressing');
+  const wrap = ov.querySelector('.ch-hold-row');
+  wrap.querySelector('.ch-col').appendChild(clone);
+  // กว้างเผื่อ 6px แล้วชิดฝั่งเดิมของฟอง — กว้างเท่าเป๊ะ ทศนิยมปัดลงนิดเดียวคำท้ายก็ตกบรรทัด (เจอตอนเทสต์)
+  wrap.style.left = (br.left - xr.left - (mine ? 6 : 0)) + 'px';
+  wrap.style.top = (br.top - xr.top) + 'px';
+  wrap.style.width = (br.width + 6) + 'px';
+  box.appendChild(ov);
+
+  // แถบปฏิกิริยาอยู่เหนือฟอง (ไม่มีที่ = ใต้ฟอง) · เมนูอยู่ใต้ฟอง/ใต้แถบ (ไม่มีที่ = ขึ้นไปอยู่บน)
+  // ชิดฝั่งเดียวกับฟองทั้งคู่ (ของเราขวา ของเขาซ้าย)
+  const side = (el, w) => {
+    const l = mine ? br.right - xr.left - w : br.left - xr.left;
+    return Math.max(12, Math.min(xr.width - w - 12, l));
+  };
+  const strip = ov.querySelector('.ch-hold-rx');
+  let below = br.bottom - xr.top + 8, stripUp = true;
+  if (strip) {
+    const sh = strip.offsetHeight, sw = strip.offsetWidth;
+    let st = br.top - xr.top - sh - 10;
+    if (st < 8) { st = br.bottom - xr.top + 10; stripUp = false; below = st + sh + 8; }
+    strip.style.top = st + 'px';
+    strip.style.left = side(strip, sw) + 'px';
+    strip.style.transformOrigin = (mine ? 'right ' : 'left ') + (stripUp ? 'bottom' : 'top');
+  }
+  const menu = ov.querySelector('.ch-hold-menu');
+  if (menu) {
+    const mh = menu.offsetHeight, mw = menu.offsetWidth;
+    let top = below, up = false;
+    if (top + mh > xr.height - 8) {
+      top = (strip && stripUp ? parseFloat(strip.style.top) : br.top - xr.top) - mh - 8;
+      up = true;
+    }
+    menu.style.top = Math.max(8, top) + 'px';
+    menu.style.left = side(menu, mw) + 'px';
+    menu.style.transformOrigin = (mine ? 'right ' : 'left ') + (up ? 'bottom' : 'top');
+    menu.addEventListener('click', e => {
+      const k = e.target.closest('[data-act]');
+      if (k) chatHoldAct(k.dataset.act);
+    });
+  }
+  if (strip) strip.addEventListener('click', e => {
+    const k = e.target.closest('[data-rx]');
+    if (!k) return;
+    const id = String(m.id);
+    chatHoldClose();
+    chatReact(id, k.dataset.rx, { burst: true });
+  });
+
+  b.style.visibility = 'hidden';
+  chHold = { b, ov, m };
+  ov.querySelector('.ch-hold-dim').addEventListener('click', chatHoldClose);
+  if (typeof haptic === 'function') haptic('tap');
+  requestAnimationFrame(() => ov.classList.add('on'));
+  const first = ov.querySelector('.ch-hold-menu button, .ch-hold-rx button');
+  if (first) first.focus({ preventScroll: true });
+}
+
+function chatHoldClose() {
+  const h = chHold;
+  if (!h) return;
+  chHold = null;
+  h.ov.classList.remove('on');
+  setTimeout(() => {
+    // คืนโฟกัสให้ฟองเฉพาะตอนโฟกัสยังอยู่ในเมนู (ปิดด้วย Esc/แตะพื้นหลัง) — ถ้าเมนูส่งโฟกัสไปช่องพิมพ์แล้ว
+    // (ตอบกลับ · แก้ไข) ห้ามดึงกลับ ไม่งั้นคีย์บอร์ดมือถือหุบทันทีที่เพิ่งเด้งขึ้น (เจอตอนเทสต์)
+    const a = document.activeElement;
+    const back = !a || a === document.body || h.ov.contains(a);
+    h.ov.remove();
+    if (h.b.isConnected) { h.b.style.visibility = ''; if (back) h.b.focus({ preventScroll: true }); }
+  }, 200);
+}
+
+function chatHoldAct(k) {
+  const h = chHold;
+  if (!h) return;
+  const m = h.m;
+  chatHoldClose();
+  if (k === 'reply') chatStartReply(m);
+  else if (k === 'edit') chatStartEdit(m);
+  else if (k === 'fwd') chatForwardOpen(m);
+  else if (k === 'copy') chatCopy(String(m.body || ''));
+  else if (k === 'tr') chatTranslate(m);
+  else if (k === 'pin') chatPin(m);
+  else if (k === 'del') unsendChat(String(m.id));
+  else if (k === 'report' && chatThread && chatThread.other) openReport('user', chatThread.other);
+}
+
+// ---------- ตอบกลับ / แก้ไข: แถบเหนือช่องพิมพ์ ----------
+function chatSnip(m) {
+  const t = String((m && m.body) || '').trim();
+  if (t) return t.length > 70 ? t.slice(0, 70) + '…' : t;
+  return m && m.image ? 'รูปภาพ' : '';
+}
+function chatCtxRender() {
+  const el = document.getElementById('chCtx');
+  if (!el) return;
+  const m = chatEdit || chatReply;
+  if (!m || !chatThread) { el.hidden = true; el.innerHTML = ''; return; }
+  const me = currentUser && currentUser.id;
+  const title = chatEdit ? 'กำลังแก้ไขข้อความ'
+    : 'ตอบกลับ' + (m.sender === me ? 'ตัวเอง' : ' ' + chatThread.name);
+  el.hidden = false;
+  el.innerHTML = `<span class="ch-ctx-ic">${chatEdit ? icon('pencil') : CH_IC.reply}</span>
+    <span class="ch-ctx-tx"><b>${esc(title)}</b><i>${esc(chatSnip(m))}</i></span>
+    <button type="button" class="ch-ctx-x" onclick="chatCtxClose()" aria-label="ยกเลิก">${icon('x')}</button>`;
+}
+function chatCtxClose() {
+  const wasEdit = !!chatEdit;
+  chatReply = null; chatEdit = null;
+  chatCtxRender();
+  if (wasEdit) {
+    const el = document.getElementById('chatIn');
+    if (el) { el.value = chatEditDraft; chatTyping(); }
+    chatEditDraft = '';
+  }
+}
+function chatStartReply(m) {
+  if (chatEdit) chatCtxClose();
+  chatReply = m;
+  chatCtxRender();
+  const el = document.getElementById('chatIn');
+  if (el) el.focus();
+}
+function chatStartEdit(m) {
+  const el = document.getElementById('chatIn');
+  if (!el) return;
+  if (!chatEdit) chatEditDraft = el.value;
+  chatReply = null;
+  chatEdit = m;
+  chatCtxRender();
+  el.value = String(m.body || '');
+  chatTyping();
+  el.focus();
+}
+async function chatEditSend() {
+  const el = document.getElementById('chatIn');
+  const m = chatEdit;
+  const body = el ? el.value.trim() : '';
+  if (!m || !body) return;
+  chatEdit = null;
+  chatCtxRender();
+  if (el) { el.value = chatEditDraft; chatTyping(); }
+  chatEditDraft = '';
+  if (body === String(m.body || '').trim()) return;
+  const old = { body: m.body, edited_at: m.edited_at };
+  m.body = body;
+  m.edited_at = new Date().toISOString();
+  chatTr.delete(String(m.id));
+  renderChat();
+  const { data, error } = await sb.rpc('dm_edit', { p_msg: Number(m.id), p_body: body });
+  if (error) {
+    Object.assign(m, old);
+    renderChat();
+    if (typeof haptic === 'function') haptic('snooze');
+    showToast({ title: 'แก้ไม่สำเร็จ', body: error.message });
+    return;
+  }
+  if (data) m.edited_at = data;
+  // แก้แล้วต้องผ่านตัวกรองอีกรอบ — ไม่งั้นส่งข้อความธรรมดาแล้วค่อยแก้เป็นอย่างอื่น = เลี่ยงตัวกรองได้
+  if (typeof guardText === 'function') guardText('dm', m.id, body);
+  renderChat();
+}
+
+// ข้อความต้นทางเหนือฟองที่เป็นการตอบกลับ — แตะแล้วเลื่อนไปหา
+function chatQuoteHtml(m, mine) {
+  const o = chatMsgs.find(x => String(x.id) === String(m.reply_to));
+  const me = currentUser && currentUser.id;
+  const nm = chatThread.name;
+  let label = (mine ? 'คุณ' : nm + ' ') + 'ตอบกลับ';
+  if (o) label += o.sender === m.sender ? 'ตัวเอง' : o.sender === me ? 'คุณ' : ' ' + nm;
+  return `<button type="button" class="ch-quote"${o ? ` onclick="chatGoto('${esc(String(o.id))}')"` : ' disabled'}>
+    <i>${CH_IC.reply}${esc(label)}</i><span>${o ? esc(chatSnip(o)) : 'ข้อความก่อนหน้านี้'}</span></button>`;
+}
+function chatGoto(id) {
+  const row = document.querySelector('#chatList .ch-msg[data-id="' + id + '"]');
+  if (!row) return;
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  row.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  row.classList.remove('flash');
+  void row.offsetWidth;
+  row.classList.add('flash');
+  setTimeout(() => row.classList.remove('flash'), 1500);
+}
+
+// ---------- ปฏิกิริยา ----------
+// คนละหนึ่งอันต่อข้อความ (เลือกใหม่ = แทนอันเดิม · กดอันเดิมซ้ำ = เอาออก) · แตะสองทีที่ฟอง = ❤️
+function chatReactSet(r) {
+  if (!r) return;
+  const k = String(r.msg);
+  let mm = chatReacts.get(k);
+  if (!mm) chatReacts.set(k, mm = new Map());
+  if (r.emoji) mm.set(r.uid, r.emoji); else mm.delete(r.uid);
+}
+function chatRxHtml(id) {
+  const mm = chatReacts.get(id);
+  if (!mm || !mm.size) return '';
+  const me = currentUser && currentUser.id;
+  const es = [...new Set(mm.values())];
+  return `<button type="button" class="ch-rx${mm.has(me) ? ' mine' : ''}" onclick="chatRxTap('${esc(id)}')"
+    aria-label="ปฏิกิริยา ${esc(es.join(' '))}${mm.has(me) ? ' · แตะเพื่อเอาของคุณออก' : ''}">${esc(es.join(''))}${mm.size > 1 ? `<b>${mm.size}</b>` : ''}</button>`;
+}
+function chatRxTap(id) {
+  const mm = chatReacts.get(id);
+  const me = currentUser && currentUser.id;
+  if (!mm || !mm.size) return;
+  chatReact(id, mm.has(me) ? '' : [...mm.values()][0]);
+}
+async function chatReact(id, emoji, opt) {
+  opt = opt || {};
+  if (!chatV2 || !sb || !currentUser || String(id).startsWith('tmp')) return;
+  const me = currentUser.id;
+  const before = (chatReacts.get(String(id)) || new Map()).get(me) || '';
+  if (before === emoji) {
+    if (opt.keep) { chatBurst(id); return; }   // แตะสองทีซ้ำบนฟองที่ใจอยู่แล้ว = ไม่เอาออก (แบบ IG)
+    emoji = '';                                 // กดอันเดิมซ้ำในแถบ = เอาออก
+  }
+  chatReactSet({ msg: id, uid: me, emoji });
+  renderChat();
+  if (emoji && opt.burst) chatBurst(id);
+  if (emoji && typeof haptic === 'function') haptic('tap');
+  const { error } = await sb.rpc('dm_react', { p_msg: Number(id), p_emoji: emoji });
+  if (error) {
+    chatReactSet({ msg: id, uid: me, emoji: before });
+    renderChat();
+    showToast({ title: 'ใส่ปฏิกิริยาไม่สำเร็จ', body: error.message });
+  }
+}
+function chatBurst(id) {
+  const col = document.querySelector('#chatList .ch-msg[data-id="' + id + '"] .ch-col');
+  if (!col || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const s = document.createElement('span');
+  s.className = 'ch-burst';
+  s.textContent = '❤️';
+  s.setAttribute('aria-hidden', 'true');
+  col.appendChild(s);
+  setTimeout(() => s.remove(), 800);
+}
+let chTap = null;
+function chatDoubleTap(b) {
+  const row = b.closest('.ch-msg[data-id]');
+  if (!row || row.classList.contains('sending')) return;
+  const id = row.dataset.id, now = Date.now();
+  if (chTap && chTap.id === id && now - chTap.t < 320) {
+    chTap = null;
+    chatReact(id, '❤️', { keep: true, burst: true });
+    return;
+  }
+  chTap = { id, t: now };
+}
+
+// ---------- ปุ่มข้างฟองตอนเอาเมาส์ไปชี้ (คอม) ----------
+// ปุ่มชุดเดียวทั้งห้อง ย้ายไปอยู่แถวที่เมาส์ชี้ — ไม่สร้างสามปุ่มให้ทุกข้อความ (200 ข้อความ = 600 ปุ่ม)
+function chatToolsAt(row) {
+  const col = row.querySelector('.ch-col');
+  if (!col) return;
+  let t = document.getElementById('chTools');
+  if (!t) {
+    t = document.createElement('span');
+    t.id = 'chTools';
+    t.className = 'ch-tools';
+    t.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-tool]');
+      const r = t.closest('.ch-msg[data-id]');
+      if (!btn || !r) return;
+      const m = chatMsgs.find(x => String(x.id) === r.dataset.id);
+      const bub = r.querySelector('.ch-bub, .ch-img:not(.wait)');
+      if (!m || !bub) return;
+      if (btn.dataset.tool === 'reply') chatStartReply(m);
+      else chatHoldOpen(bub, { rxOnly: btn.dataset.tool === 'react' });
+    });
+  }
+  const html = (chatV2 ? `<button type="button" data-tool="react" aria-label="ใส่ปฏิกิริยา">${CH_IC.smile}</button>`
+    + `<button type="button" data-tool="reply" aria-label="ตอบกลับ">${CH_IC.reply}</button>` : '')
+    + `<button type="button" data-tool="more" aria-label="ตัวเลือกเพิ่มเติม">${CH_IC.more}</button>`;
+  if (t.__html !== html) { t.innerHTML = html; t.__html = html; }
+  if (row.classList.contains('me')) { if (t.nextSibling !== col) row.insertBefore(t, col); }
+  else if (col.nextSibling !== t) col.after(t);
+}
+
+// ---------- ส่งต่อ ----------
+// ส่งต่อได้เฉพาะข้อความตัวหนังสือ — รูปในแชทผูกกับไฟล์ของคนส่งเดิม ถ้าเขายกเลิกการส่ง ไฟล์ถูกลบ
+// รูปที่ส่งต่อไปแล้วจะกลายเป็นกรอบเปล่าในห้องอื่นโดยไม่มีใครรู้ว่าทำไม
+let chFwdText = '';
+async function chatForwardOpen(m) {
+  const box = document.getElementById('chatBody');
+  const text = String(m.body || '').trim();
+  if (!box || !text || !sb || !currentUser) return;
+  chFwdText = text;
+  if (!dmRows.length) {
+    try { const { data } = await sb.rpc('dm_inbox'); dmRows = data || []; } catch (_) {}
+  }
+  // ห้องที่ยังเป็นคำขอส่งต่อไม่ได้ (คนขอส่งได้ข้อความเดียว · คนรับยังไม่ได้ตอบรับ)
+  const rows = dmRows.filter(r => r.id !== chatThread.id && r.state !== 'pending');
+  const av = r => r.avatar ? `<img class="ch-fwd-av" src="${esc(r.avatar)}" alt="">`
+    : `<span class="ch-fwd-av" style="${typeof faceTint === 'function' ? faceTint(r) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(r) : String(r.display_name || '?').slice(0, 1))}</span>`;
+  const nm = r => typeof personName === 'function' ? personName(r) : (r.display_name || r.handle || 'นักเรียน');
+  const ov = document.createElement('div');
+  ov.className = 'ch-fwd';
+  ov.innerHTML = `<div class="ch-hold-dim" onclick="chatForwardClose()"></div>
+    <div class="ch-fwd-sheet" role="dialog" aria-label="ส่งต่อข้อความ">
+      <div class="ch-fwd-head"><b>ส่งต่อ</b>
+        <button type="button" class="ch-ctx-x" onclick="chatForwardClose()" aria-label="ปิด">${icon('x')}</button></div>
+      <p class="ch-fwd-msg">${esc(chatSnip(m))}</p>
+      <div class="ch-fwd-list">${rows.length ? rows.map(r => `<div class="ch-fwd-row">
+          ${av(r)}<span class="ch-fwd-nm">${esc(nm(r))}</span>
+          <button type="button" class="ch-fwd-go" onclick="chatForwardSend(this,'${esc(r.id)}')">ส่ง</button>
+        </div>`).join('') : '<p class="ch-fwd-none">ยังไม่มีห้องคุยอื่นให้ส่งต่อ</p>'}</div>
+    </div>`;
+  chatForwardClose();
+  box.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('on'));
+}
+function chatForwardClose() {
+  const ov = document.querySelector('#chatBody .ch-fwd');
+  if (!ov) return;
+  ov.classList.remove('on');
+  setTimeout(() => ov.remove(), 220);
+}
+async function chatForwardSend(btn, threadId) {
+  if (!chFwdText || !sb || btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'กำลังส่ง…';
+  const { data, error } = await sb.rpc('dm_say', { p_thread: threadId, p_body: chFwdText, p_image: null });
+  if (error) {
+    btn.disabled = false;
+    btn.textContent = 'ส่ง';
+    showToast({ title: 'ส่งต่อไม่สำเร็จ', body: error.message });
+    return;
+  }
+  btn.textContent = 'ส่งแล้ว';
+  btn.classList.add('done');
+  const row = Array.isArray(data) ? data[0] : data;
+  if (typeof guardText === 'function' && row && row.id) guardText('dm', row.id, chFwdText);
+  refreshDmRows();
+}
+
+// ---------- แปล ----------
+// ใช้ฟังก์ชัน translate ตัวเดียวกับเธรดหัวข้อ (Gemini) · ข้อความไทย → อังกฤษ · ภาษาอื่น → ไทย
+// ส่งข้อความเฉพาะตอนเจ้าตัวกดแปลเองเท่านั้น · คำแปลอยู่ในหน่วยความจำ (chatTr) ปิดห้องแล้วหาย
+// ฝั่งเซิร์ฟเวอร์เก็บแคชด้วยค่าแฮชของข้อความ (topic_tr ไม่มี policy อ่าน) — ไม่มีใครค้นย้อนหาข้อความได้
+async function chatTranslate(m) {
+  const id = String(m.id);
+  const have = chatTr.get(id);
+  if (have) { have.show = !have.show; renderChat(); return; }
+  const text = String(m.body || '').trim();
+  if (!text || !sb || !currentUser) return;
+  const thai = typeof looksThai === 'function' ? looksThai(text) : /[\u0E00-\u0E7F]/.test(text);
+  showToast({ title: 'กำลังแปล…', body: '' });
+  let out = null, status = 0;
+  try {
+    const { data, error } = await sb.functions.invoke('translate', { body: { texts: [text], to: thai ? 'en' : 'th' } });
+    out = !error && data && Array.isArray(data.out) ? data.out[0] : null;
+    status = error && error.context ? error.context.status : 0;
+  } catch (_) { out = null; }
+  if (!out) {
+    showToast({ title: 'แปลไม่ได้', body: status === 501 ? 'ตัวแปลยังไม่ได้เปิดใช้' : 'ลองใหม่อีกครั้ง' });
+    return;
+  }
+  chatTr.set(id, { text: out, show: true });
+  const t = document.getElementById('appToast');
+  if (t) t.classList.remove('show');
+  renderChat();
+}
+function chatTrToggle(id) {
+  const t = chatTr.get(id);
+  if (!t) return;
+  t.show = !t.show;
+  renderChat();
+}
+
+// ---------- ปักหมุด ----------
+async function chatPin(m) {
+  if (!chatV2 || !sb) return;
+  const on = !m.pinned_at;
+  const before = m.pinned_at;
+  m.pinned_at = on ? new Date().toISOString() : null;
+  renderChat();
+  const { error } = await sb.rpc('dm_pin', { p_msg: Number(m.id), p_on: on });
+  if (error) {
+    m.pinned_at = before;
+    renderChat();
+    showToast({ title: 'ปักหมุดไม่สำเร็จ', body: error.message });
+    return;
+  }
+  showToast({ title: on ? 'ปักหมุดแล้ว' : 'เลิกปักหมุดแล้ว', body: '' });
+}
+
+function chatCopy(t) {
+  const ok = () => showToast({ title: 'คัดลอกแล้ว', body: '' });
+  const old = () => {
+    const a = document.createElement('textarea');
+    a.value = t; a.setAttribute('readonly', '');
+    a.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(a);
+    a.select();
+    let r = false;
+    try { r = document.execCommand('copy'); } catch (_) {}
+    a.remove();
+    if (r) ok(); else showToast({ title: 'คัดลอกไม่ได้', body: 'เครื่องนี้ไม่ให้แอปเขียนคลิปบอร์ด' });
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, old);
+  else old();
+}
+
+// ปุ่มลบเคยอยู่ข้างเวลาให้เห็นตลอด — ย้ายเข้าเมนูกดค้างแล้ว จึงบอกครั้งเดียวตอนเปิดห้องที่มีข้อความของเรา
+function chatHoldTip() {
+  const me = currentUser && currentUser.id;
+  if (!chatMsgs.some(m => m.sender === me)) return;
+  try {
+    if (localStorage.getItem('studentos.clear.chHoldTip')) return;
+    localStorage.setItem('studentos.clear.chHoldTip', '1');
+  } catch (_) { return; }
+  setTimeout(() => {
+    if (curScreen === 'scr-chat') showToast({ title: 'กดค้างที่ข้อความ', body: 'ตอบกลับ ส่งต่อ คัดลอก แปล หรือยกเลิกการส่งได้จากเมนูที่เด้งขึ้นมา' });
+  }, 900);
+}
+
+// ============================================================
+// กล่องข้อความ — ห้องที่เปิดแล้ว กับ คำขอทัก
+// ------------------------------------------------------------
+// จอนี้เกิดขึ้นเพราะการทักไม่ได้จำกัดอยู่แค่คนในห้องเรียนอีกต่อไป (migration 19)
+// ตอนที่ทักได้เฉพาะคนห้องเดียวกัน ทางเข้าห้องคุยคือรายชื่อคนในห้อง ซึ่งพอ
+// พอเปิดให้ทักกันได้ทั่วไป ต้องมีที่ที่ข้อความเข้ามารวมกัน ไม่งั้นข้อความจากคนที่
+// ไม่ได้อยู่ในรายชื่อไหนเลยจะไม่มีทางถูกเห็น
+//
+// คำขออยู่บนสุดเสมอและนับให้เห็นเป็นตัวเลข ส่วนห้องที่เปิดแล้วเรียงตามเวลาปกติ
+// ============================================================
+let dmRows = [];
+let dmBusy = false;
+let dmPending = 0;        // จำนวนคำขอที่ยังไม่ได้ตอบ — ใช้ติดจุดแดงบนปุ่มในหัวฟีด
+let dmReady = false;      // กล่องข้อความโผล่ต่อเมื่อหลังบ้านมี dm_inbox แล้ว
+let dmDotAt = 0;
+
+// เช็คคำขอค้างแบบเบา ๆ · ไม่ยิงถี่กว่าทุกสองนาที เพราะจุดแดงเป็นของที่ช้าได้
+// (บทเรียนเดียวกับ HW_MIN_GAP ใน hw.js — ยิงทุกเรนเดอร์คือเน็ตของเด็ก)
+async function loadDmDot(force) {
+  if (!sb || !currentUser) { dmPending = 0; return; }
+  if (!force && Date.now() - dmDotAt < 120000) return;
+  dmDotAt = Date.now();
+  const { data, error } = await sb.rpc('dm_inbox');
+  if (rpcMissing(error)) { dmReady = false; if (typeof renderFeed === 'function') renderFeed(); return; }
+  if (error) return;
+  dmReady = true;
+  dmRows = data || [];
+  const n = dmRows.filter(r => r.is_request).length;
+  if (n !== dmPending) { dmPending = n; if (typeof renderFeed === 'function') renderFeed(); }
+}
+
+// ============================================================
+// 1B95 · ปุ่มย้อนกลับเลิกเดาปลายทาง
+// ------------------------------------------------------------
+// ของเดิมทั้งกล่องข้อความและห้องคุยเขียนตายตัวว่า go('scr-mates') = ฟีดโพสต์เสมอ
+// ไม่ว่าจะเข้ามาจากทางไหน · เข้าจากแท็บ "ฉัน" แล้วกดย้อนกลับ จึงโผล่ไปอยู่กลางฟีด
+// ของคนอื่น ซึ่งเป็นคนละระบบกับสิ่งที่เขากำลังทำอยู่ (เจ้าของสั่งแยกเอง 14 ก.ย. 2569:
+// "หน้าคุยกับเพื่อน = communication · Social = community ไม่ควรใช้ Back กระโดดข้าม")
+//
+// จำจอที่เข้ามาแล้วกลับไปที่นั่น · แต่ไม่ใช่ทุกจอที่กลับไปได้ —
+// จอที่วาดเนื้อในด้วย JS แล้วไม่มีใครวาดซ้ำให้ตอนกลับ จะกลายเป็นจอเปล่าที่ออกไม่ได้
+// (บทเรียนเดียวกับ NO_RESUME ใน app.js) รายการนี้จึงเป็นรายชื่อขาว ไม่ใช่รายชื่อดำ
+// scr-post / scr-user อยู่ในรายชื่อได้เพราะเนื้อในของมันไม่ถูกล้างตอนย้ายจอ
+// (ต่างจาก scr-chat ที่ closeChat() ตัดช่อง realtime ทิ้งแล้วต้องเปิดใหม่)
+const BACK_OK = ['scr-menu', 'scr-tasks', 'scr-profile', 'scr-mates', 'scr-dm',
+  'scr-post', 'scr-user'];
+let dmReturn = 'scr-profile';
+let chatReturn = 'scr-dm';
+// ห้ามคืนค่าเป็นจอที่กำลังจะเปิด — เปิดโปรไฟล์จากในโปรไฟล์แล้วกดย้อนกลับ
+// จะได้จอเดิมค้างอยู่ ซึ่งอ่านว่า "ปุ่มเสีย" ไม่ใช่ "ย้อนกลับแล้ว"
+function pickReturn(fallback, opening) {
+  if (curScreen === opening) return fallback;
+  return BACK_OK.includes(curScreen) ? curScreen : fallback;
+}
+// ปุ่มเรียกฟังก์ชัน ไม่ใช่ฝังชื่อจอลงใน onclick ตอนวาด — จอถูกวาดซ้ำหลายรอบ
+// (พิมพ์ในช่องค้นหาทีละตัวก็วาดใหม่) ถ้าฝังค่าไว้ ค่าที่ฝังคือค่าตอนวาดครั้งนั้น
+function dmBack() { go(dmReturn); }
+function chatBack() {
+  go(chatReturn);
+  // กลับเข้ากล่องข้อความ = ต้องเห็นข้อความล่าสุดของห้องที่เพิ่งออกมา
+  // ไม่ใช่บรรทัดสรุปของรอบก่อนที่ค้างอยู่ใน DOM ตั้งแต่ตอนเปิดห้อง
+  if (chatReturn === 'scr-dm') { renderDmInbox(); refreshDmRows(); }
+}
+
+async function openDmInbox(from) {
+  // 7 ต.ค. 69 · เจ้าของ: "เมื่อกดปุ่มข้อความ ให้มันไปหน้าเข้าสู่ระบบก่อนถึงจะคุยได้"
+  // เดิมเด้งออกไปหน้า Google ทันที (loginFromMates) — คนที่ไม่ได้ใช้ Google เลือกทางอื่นไม่ได้
+  // ตอนนี้พาไปหน้าเข้าสู่ระบบของแอปก่อน (Google · อีเมลรับรหัส) แล้วฝากธงไว้ให้ routeAfterLogin()
+  // พากลับมากล่องข้อความหลังล็อกอินเสร็จ · กด "เริ่มใช้เลย" แทน = กลับหน้าแรก ไม่วนกลับมาที่นี่
+  if (!sb || !currentUser) {
+    try { localStorage.setItem(MATES_RETURN_KEY, 'scr-dm'); } catch (_) {}
+    if (typeof setLoginView === 'function') setLoginView('root');
+    go('scr-login');
+    return;
+  }
+  dmReturn = from || pickReturn('scr-profile');
+  go('scr-dm');
+  dmBusy = true;
+  renderDmInbox();
+  const { data, error } = await sb.rpc('dm_inbox');
+  dmBusy = false;
+  dmRows = error ? [] : (data || []);
+  renderDmInbox();
+}
+
+function dmPendingCount() {
+  return dmRows.filter(r => r.is_request).length;
+}
+
+// ============================================================
+// เริ่มแชทใหม่ — เลือกคนจากหน้าข้อความได้เลย
+// ------------------------------------------------------------
+// ของเดิมทักได้ทางเดียวคือเดินไปหน้าโปรไฟล์ของคนคนนั้นก่อน ซึ่งแปลว่า
+// ต้องเจอเขาในฟีดหรือในหัวข้อเสียก่อน · คนที่เปิดหน้าข้อความมาเพราะ
+// "อยากทักเพื่อน" จึงเจอทางตัน แล้วข้อความว่างเปล่าที่บอกให้ไปหาที่อื่น
+// คือหน้าจอที่ทำให้คนปิดแอป ไม่ใช่หน้าจอที่พาเขาไปต่อ
+//
+// ทำแบบ IG: ปุ่มดินสอมุมขวาบน → รายชื่อเพื่อน + ช่องค้นหา @ชื่อผู้ใช้
+// เพื่อนขึ้นก่อนเสมอโดยไม่ต้องพิมพ์อะไร เพราะคนที่จะทักส่วนใหญ่คือเพื่อนอยู่แล้ว
+// ส่วนช่องค้นหามีไว้สำหรับคนที่ยังไม่ได้เป็นเพื่อน ซึ่งจะกลายเป็นคำขอทักตามกติกาเดิม
+// ============================================================
+let dmNew = false;          // true = กำลังอยู่ในโหมดเลือกคนที่จะทัก
+let dmFriends = null;       // null = ยังไม่เคยโหลด
+let dmFound = [];           // ผลค้นหา @ชื่อผู้ใช้
+let dmFindQ = '';
+let dmFindBusy = false;
+
+async function openDmNew() {
+  dmNew = true;
+  renderDmInbox();
+  if (dmFriends === null) {
+    const { data, error } = await sb.rpc('friend_list');
+    dmFriends = error ? [] : (data || []);
+    renderDmInbox();
+  }
+}
+function closeDmNew() { dmNew = false; renderDmInbox(); }
+
+// พิมพ์แล้วค่อยยิง — พิมพ์ทีละตัวอักษรแล้วยิงทุกตัวคือเน็ตของเด็ก
+let dmFindTimer = null;
+function dmFindSoon(v) {
+  dmFindQ = String(v || '');
+  clearTimeout(dmFindTimer);
+  dmFindTimer = setTimeout(dmFind, 350);
+}
+async function dmFind() {
+  const q = dmFindQ.trim();
+  if (q.length < 2) { dmFound = []; renderDmInbox(); return; }
+  dmFindBusy = true; renderDmInbox();
+  const { data, error } = await sb.rpc('find_people', { p_q: q });
+  dmFindBusy = false;
+  dmFound = error ? [] : (data || []);
+  renderDmInbox();
+}
+
+// เลือกคนแล้วเข้าห้องเลย · pokeMate เป็นประตูเดิมที่เรียก open_dm อยู่แล้ว
+// กติกาทั้งหมด (เพื่อน = เปิดห้องเลย · ไม่ใช่เพื่อน = เข้ากล่องคำขอ) อยู่ฝั่งเซิร์ฟเวอร์
+// ฝั่งนี้จึงไม่ต้องรู้ว่าใครเป็นเพื่อนใคร แค่ส่ง id ไปแล้วรับผลมา
+function dmStart(id, name) {
+  dmNew = false;
+  pokeMate(id, '', name);
+}
+
+// ---------- วาดใหม่โดยไม่ให้โฟกัสหลุดจากช่องค้นหา ----------
+// จอนี้วาดด้วย innerHTML ทั้งก้อน แปลว่า <input> ถูกสร้างใหม่ทุกครั้ง —
+// พิมพ์ตัวแรกแล้ว debounce ยิง render กลับมา คีย์บอร์ดจะเด้งปิดกลางคัน
+// และตัวที่พิมพ์ต่อไปหายเงียบ ๆ · เก็บสถานะโฟกัสไว้แล้วคืนให้หลังวาดเสร็จ
+function renderDmInbox() {
+  const was = document.activeElement && document.activeElement.id === 'dmQ';
+  renderDmInboxInner();
+  if (!was) return;
+  const el = document.getElementById('dmQ');
+  if (!el) return;
+  el.focus();
+  // เคอร์เซอร์ต้องกลับไปท้ายข้อความ ไม่ใช่ต้นบรรทัด ไม่งั้นตัวถัดไปโผล่หน้าคำที่พิมพ์ไว้
+  try { el.setSelectionRange(el.value.length, el.value.length); } catch (_) {}
+}
+
+function renderDmInboxInner() {
+  const box = document.getElementById('dmBody');
+  if (!box) return;
+  const q = dmFindQ.trim().toLowerCase().replace(/^@/, '');
+
+  const avOfRow = (u) => u.avatar
+    ? `<img class="dm-av" src="${esc(u.avatar)}" alt="">`
+    : `<div class="dm-av" style="${typeof faceTint === 'function' ? faceTint(u) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(u)
+                                            : String(u.display_name || '?').slice(0, 1))}</div>`;
+
+  // ชื่อกับ @ชื่อผู้ใช้ต้องไม่ซ้ำกันในบรรทัดเดียว
+  // คนที่ยังไม่ได้ตั้งชื่อจะได้ @ชื่อผู้ใช้มาเป็นชื่อ ถ้าโชว์ @ต่อท้ายอีกก็จะอ่านว่า
+  // "sos1048666 @sos1048666" ซึ่งดูเหมือนแอปพิมพ์ซ้ำ มากกว่าจะดูเหมือนข้อมูลสองชิ้น
+  const nameLine = (u) => {
+    const nm = typeof personName === 'function' ? personName(u)
+                                                : (u.display_name || 'นักเรียน');
+    const hd = String(u.handle || '').trim();
+    return `${esc(nm)}${hd && hd !== nm ? `<span>@${esc(hd)}</span>` : ''}`;
+  };
+
+  const row = (r) => `<div class="dm-row" onclick="openDmRow('${esc(r.id)}','${esc(r.other)}','${
+      esc(String(typeof personName === 'function' ? personName(r) : (r.display_name || ''))
+            .replace(/'/g, "\'"))}','${esc(r.avatar || '')}','${esc(r.handle || '')}')">
+      ${avOfRow(r)}
+      <div class="dm-bd">
+        <b>${nameLine(r)}</b>
+        <i>${r.last_body ? (r.mine_last ? 'คุณ: ' : '') + esc(String(r.last_body).slice(0, 60))
+                         : 'ยังไม่มีข้อความ'}</i>
+      </div>
+    </div>`;
+
+  // แถวของคนที่ยังไม่มีห้องคุยกัน — ไม่มีข้อความล่าสุดให้โชว์ จึงโชว์เหตุผลที่จะทักเขาแทน
+  const pickRow = (p, why) => `<div class="dm-row" onclick="dmStart('${esc(p.id)}','${
+      esc(String(typeof personName === 'function' ? personName(p) : (p.display_name || ''))
+            .replace(/'/g, "\'"))}')">
+      ${avOfRow(p)}
+      <div class="dm-bd">
+        <b>${nameLine(p)}</b>
+        <i>${esc(why || '')}</i>
+      </div>
+      <span class="dm-go">${icon('chat')}</span>
+    </div>`;
+
+  // ---------- ช่องค้นหาอยู่บนสุดตลอดเวลา ----------
+  // ต่างจาก IG ที่ซ่อนช่องค้นหาไว้หลังปุ่มเขียนข้อความ · Telegram วางไว้ให้เห็นเสมอ
+  // แล้วมันค้นสองอย่างพร้อมกันในช่องเดียว: ห้องที่คุยกันอยู่แล้ว กับ คนที่ยังไม่เคยคุย
+  // ซึ่งตรงกับสิ่งที่คนคิดในหัวจริง ๆ — เขาคิดถึง "คน" ไม่ได้คิดว่าคนนั้นอยู่ในรายการไหน
+  const head = `
+    <div class="ch-top">
+      <button class="ch-back" onclick="dmBack()" aria-label="กลับ">${icon('chevron')}</button>
+      <div class="ch-who"><b>ข้อความ</b></div>
+    </div>
+    <!-- 8 ต.ค. 69 · ช่องค้นหาแบบ HaloSearchInput (เจ้าของส่งเดโมมา: "เอามาใช้ในตรงนี้") — วงไล่สีวนรอบช่อง
+         ระหว่างค้นหา (dmFindBusy) วงวนเร็วขึ้น + "กำลังค้นหา…" ไหลทีละตัวในช่อง (แบบ loadingText ของเดโม)
+         --hf-ph = จังหวะของวงตอนนี้ — จอนี้วาดใหม่ทั้งก้อนทุกครั้งที่เริ่ม/จบการค้นหา ถ้าไม่ต่อจังหวะ วงจะกระตุกกลับไปเริ่มที่เดิม -->
+    <div class="dm-find${dmFindBusy ? ' busy' : ''}" style="--hf-ph:-${((Date.now() / 1000) % 12).toFixed(2)}s">
+      <span class="dm-find-ic">${icon('search')}</span>
+      <input type="search" id="dmQ" value="${esc(dmFindQ)}" autocomplete="off"
+        placeholder="ค้นหาชื่อ หรือ @ชื่อผู้ใช้" oninput="dmFindSoon(this.value)">
+      ${dmFindBusy ? `<span class="dm-find-load" role="status">${dmLoadGlyphs('กำลังค้นหา…')}</span>`
+        : dmFindQ ? `<button class="dm-find-x" onclick="dmClearFind()" aria-label="ล้าง">${icon('x')}</button>` : ''}
+    </div>`;
+
+  // ปุ่มดินสอลอยมุมล่างขวา — ทางเข้าสำหรับคนที่ยังไม่รู้ว่าจะทักใคร จึงยังพิมพ์อะไรไม่ได้
+  const fab = `<button class="dm-fab" onclick="openDmNew()" aria-label="เริ่มแชทใหม่">${icon('pencil')}</button>`;
+
+  // ---------- โหมดไล่ดูเพื่อน (มาจากปุ่มดินสอ) ----------
+  if (dmNew) {
+    const fr = dmFriends || [];
+    box.innerHTML = `
+      <div class="ch-top">
+        <button class="ch-back" onclick="closeDmNew()" aria-label="กลับ">${icon('chevron')}</button>
+        <div class="ch-who"><b>ทักใครดี</b></div>
+      </div>
+      <div class="dm-list">
+        ${fr.length ? `<div class="sec-label">เพื่อนของคุณ</div>
+          ${fr.map(p => pickRow(p, (p.strong && p.strong.length)
+            ? 'ช่วยได้เรื่อง' + esc(p.strong.slice(0, 2).join(' · '))
+            : (p.bio || 'แตะเพื่อเริ่มคุย'))).join('')}`
+          : (dmFriends === null ? '<p class="so-hint">กำลังโหลด…</p>'
+            : `<p class="so-hint">ยังไม่มีเพื่อน ปิดหน้านี้แล้วพิมพ์ @ชื่อผู้ใช้ในช่องค้นหาด้านบน
+                 หรือส่ง @ชื่อผู้ใช้ของคุณให้เพื่อนที่หน้า "เพื่อนฉัน"</p>`)}
+      </div>`;
+    return;
+  }
+
+  // ---------- กำลังค้นหา ----------
+  if (q.length >= 1) {
+    const hit = (r) => (String(r.display_name || '').toLowerCase().includes(q)
+      || String(r.handle || '').toLowerCase().includes(q));
+    const chats = dmRows.filter(hit);
+    const known = new Set(dmRows.map(r => r.other));
+    const others = dmFound.filter(p => !known.has(p.id));
+
+    box.innerHTML = head + `
+      <div class="dm-list">
+        ${chats.length ? `<div class="sec-label">แชท</div>${chats.map(row).join('')}` : ''}
+        ${q.length >= 2 ? `
+          <div class="sec-label">คนอื่นในแอป</div>
+          ${others.length
+            ? others.map(p => pickRow(p, p.rel === 'friends' ? 'เพื่อนของคุณ'
+                : 'ยังไม่ใช่เพื่อน')).join('')
+            : (dmFindBusy ? '' : '<p class="so-hint">ไม่เจอใครที่ตรงกับคำนี้</p>')}`
+          : ''}
+      </div>` + fab;
+    return;
+  }
+
+  // ---------- รายการปกติ ----------
+  const reqs = dmRows.filter(r => r.is_request);
+  const open = dmRows.filter(r => !r.is_request);
+  box.innerHTML = head + `
+    <div class="dm-list">
+      ${dmBusy && !dmRows.length ? '<p class="so-hint">กำลังโหลด…</p>' : ''}
+      ${reqs.length ? `<div class="sec-label">คำขอทัก ${reqs.length}</div>
+        <p class="dm-fine">คนที่ยังไม่ใช่เพื่อนส่งข้อความมาได้ข้อความเดียว
+          จนกว่าคุณจะตอบกลับ · ไม่ตอบก็ไม่เกิดอะไรขึ้น</p>
+        ${reqs.map(row).join('')}` : ''}
+      ${open.length ? `<div class="sec-label">${reqs.length ? 'ห้องที่คุยกันแล้ว' : 'ข้อความ'}</div>
+        ${open.map(row).join('')}` : ''}
+      ${!dmBusy && !dmRows.length
+        ? `<div class="dm-blank">
+             <div class="dm-blank-ic">${icon('chat')}</div>
+             <p class="dm-blank-h">ยังไม่มีข้อความ</p>
+             <p class="dm-blank-p">พิมพ์ชื่อเพื่อนในช่องด้านบนเพื่อเริ่มคุย
+               หรือกดปุ่มดินสอเพื่อไล่ดูรายชื่อเพื่อน</p>
+           </div>` : ''}
+    </div>` + fab;
+}
+
+// ตัวอักษร "กำลังค้นหา…" ทีละพยางค์ (สระ/วรรณยุกต์ไม่หลุดจากพยัญชนะ) — แต่ละตัวมี --i ให้ CSS ไล่จังหวะเป็นคลื่น
+function dmLoadGlyphs(text) {
+  const seg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter('th', { granularity: 'grapheme' }) : null;
+  const g = seg ? Array.from(seg.segment(text), s => s.segment) : (text.match(/[\s\S][ัิ-ฺ็-๎]*/gu) || []);
+  return g.map((c, i) => `<span style="--i:${i}">${esc(c)}</span>`).join('');
+}
+
+// ปุ่ม × — ตัวหนังสือในช่องร่วงลงจางหายก่อน (แบบ deletion animation ของ HaloSearch) แล้วค่อยล้างจริง
+function dmClearFind() {
+  const box = document.querySelector('#dmBody .dm-find');
+  const done = () => {
+    dmFindQ = ''; dmFound = [];
+    renderDmInbox();
+    const el = document.getElementById('dmQ');
+    if (el) el.focus();
+  };
+  if (!box || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+  box.classList.add('clearing');
+  setTimeout(done, 220);
+}
+
+function openDmRow(id, other, name, avatar, handle) {
+  chatThread = { id, other, name: name || '', handle: handle || '',
+                 avatar: avatar || null, subject: '' };
+  chatMsgs = [];
+  // เข้ามาจากรายการในกล่องข้อความ — ย้อนกลับต้องคืนรายการนั้น เสมอ
+  chatReturn = 'scr-dm';
+  go('scr-chat');
+  openChat();
+}
+
+async function acceptDm(id) {
+  const { error } = await sb.rpc('dm_accept', { p_thread: id });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  if (chatThread && chatThread.id === id) { chatThread.state = 'open'; renderChat(); }
+  dmRows = dmRows.map(r => (r.id === id ? { ...r, is_request: false, state: 'open' } : r));
+  renderDmInbox();
+}
+
+// ปฏิเสธ = ลบห้องทิ้งทั้งใบ ไม่ใช่แค่ซ่อน (เหตุผลอยู่ใน dm_decline ที่ migration 19)
+// ถ้าแค่ซ่อน คนขอจะยังส่งเข้ามาได้ในห้องที่เรามองไม่เห็น ซึ่งเป็นช่องที่แย่ที่สุดช่องหนึ่ง
+async function declineDm(id, block) {
+  const { error } = await sb.rpc('dm_decline', { p_thread: id, p_block: !!block });
+  if (error) { showToast({ title: 'ทำไม่สำเร็จ', body: error.message }); return; }
+  dmRows = dmRows.filter(r => r.id !== id);
+  chatThread = null;
+  go('scr-dm');
+  renderDmInbox();
+  showToast({ title: block ? 'บล็อกแล้ว' : 'ไม่รับคำขอแล้ว',
+    body: '' });
+}
+
+// ---------- ล็อกอินแล้วต้องกลับมาที่หน้านี้ ----------
+// ของเดิม routeAfterLogin() พาไป scr-menu เสมอ · คนที่กดล็อกอินจากหน้าเพื่อน
+// จะถูกส่งกลับมาที่หน้าแรกแล้วต้องเดินมาเองใหม่ ซึ่งคนส่วนใหญ่ไม่เดินกลับมา
+// เก็บธงไว้ก่อนออกไป OAuth แล้ว routeAfterLogin() มาอ่านตอนกลับ (ธงใช้ครั้งเดียวแล้วลบ)
+const MATES_RETURN_KEY = 'studentos.clear.afterLogin';
+function loginFromMates() {
+  try { localStorage.setItem(MATES_RETURN_KEY, 'scr-mates'); } catch (_) {}
+  loginGoogle();
+}
+// เหมือน loginFromMates แต่จำว่ามาจากแท็บ "เพื่อนฉัน" — คนละปลายทางกัน
+function loginFromFriends() {
+  try { localStorage.setItem(MATES_RETURN_KEY, 'scr-friends'); } catch (_) {}
+  loginGoogle();
+}
+function takeAfterLogin() {
+  let v = null;
+  try { v = localStorage.getItem(MATES_RETURN_KEY); localStorage.removeItem(MATES_RETURN_KEY); } catch (_) {}
+  return v;
+}
