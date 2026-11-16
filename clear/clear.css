@@ -91,3 +91,8 @@
 .clr-setup { display: flex; align-items: center; gap: 8px; margin: 10px auto 0; border: 0; background: transparent;
   color: var(--muted); font: inherit; font-size: 13px; padding: 6px 8px; }
 .clr-setup svg { width: 16px; height: 16px; }
+
+/* ============================================================
+   เฟส 4 · ธีมเหลือ ตามระบบ / สว่าง / มืด — CSS ของธีมอื่นถูกตัดออกแล้ว ปุ่มของมันต้องไม่โผล่
+   ============================================================ */
+[data-th]:not([data-th="system"]):not([data-th="light"]):not([data-th="dark"]) { display: none !important; }

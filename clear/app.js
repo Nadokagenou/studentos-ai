@@ -561,7 +561,8 @@ function splashBurst(n = 8, cls = 'egg-bub') {
   }
 }
 function bubbleBurst(n = 8) { splashBurst(n, 'egg-bub'); }
-const THEMES = Object.keys(THEME_NAME);
+// Clear · เหลือสามตัวเลือก — CSS ของธีมอื่นถูกตัดออกจากไฟล์แล้ว (เฟส 4) · ค่าที่จำไว้เป็นธีมอื่น = ถอยไป light
+const THEMES = ['system', 'light', 'dark'];
 
 // ธีมที่ "เห็นอยู่บนจอจริง" ตอนนี้ — ต่างจาก themePref() ตรงที่คลี่ 'system' ออกแล้ว
 // 1B96 · สูตรนี้เคยถูกเขียนซ้ำสามที่ (applyTheme · syncSetVals · แถวธีมในแท็บฉัน)

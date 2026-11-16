@@ -25,4 +25,6 @@
 #bugMessage { min-height: 24px; line-height: 1.6; }
 .bug-error { color: var(--ink, #b42318); border-inline-start: 3px solid #d92d20; padding-inline-start: 10px; }
 #scr-bugs :focus-visible { outline: 3px solid var(--blue, #3862d6); outline-offset: 3px; }
-@media (max-width: 420px) { .bug-panel, .bug-item { padding: 16px; border-radius: 16px; } }
+@media (max-width: 420px) {
+.bug-panel, .bug-item { padding: 16px; border-radius: 16px; }
+}
