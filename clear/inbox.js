@@ -1,0 +1,1625 @@
+// ============================================================
+// inbox — ชั้นกลางระหว่าง "แหล่งข้อมูล" กับ "Decision Engine"  ·  *** ALT ***
+// ------------------------------------------------------------
+// ทุกอย่างที่ไหลเข้าแอป ไม่ว่ามาจากไหน ลงที่นี่ที่เดียวก่อนเสมอ:
+//   Classroom · LINE · รูป/OCR · เสียงพูด · แปะข้อความ · พิมพ์เอง
+//
+// หน้าที่ของชั้นนี้มี 4 อย่าง แล้วค่อยส่งต่อให้ engine:
+//   1. อ่าน      — ใช้ parseAssignment เดิม แกะ วิชา/กำหนดส่ง/คะแนน
+//   2. ให้คะแนนมั่นใจ — เจอครบแค่ไหน ยิ่งครบยิ่งมั่นใจ
+//   3. จับซ้ำ     — ครูสั่งซ้ำในหลายที่ / สแกนซ้ำ ต้องไม่กลายเป็นสองงาน
+//   4. ตัดสินใจ   — มั่นใจสูงพอ เข้าแผนเองเลย · ไม่พอ ค่อยถามแค่แตะเดียว
+//
+// ข้อ 4 คือหัวใจของ "ไม่ต้องกรอกข้อมูล" — เราไม่ได้เลิกให้นักเรียนตรวจ
+// เราแค่เลิกถามในเรื่องที่ไม่ต้องถาม
+// ============================================================
+
+// ---------- ทะเบียนตัวเชื่อม ----------
+// เพิ่มตัวใหม่ = เติมอีก 1 บรรทัด แล้วเขียนฟังก์ชัน pull ให้มัน
+//
+//   kind      = 'connector' แอปอื่นส่งงานเข้ามาให้ · 'manual' ทางที่ผู้ใช้ส่งเข้ามาเอง
+//   state     = 'live'   ต่อได้แล้ว
+//               'setup'  โค้ดพร้อม แต่ยังต้องตั้งค่าฝั่งผู้พัฒนาก่อน
+//               'noapi'  เจ้าของแอปไม่เปิดให้ใครต่อเลย — ไม่ใช่ล็อกที่รอปลด
+//   toggle    = ปิดได้ไหม · ปิดได้เฉพาะตัวที่ไหลเข้ามาเองโดยไม่มีใครสั่ง
+//               ทางที่ผู้ใช้กดเองไม่ควรมีสวิตช์ เพราะสวิตช์ที่ปิดสิ่งที่ผู้ใช้เพิ่งกดคือสวิตช์ที่โกหก
+//   viaInbox  = ไหลผ่านกล่องเข้าไหม (ถ้าไม่ = เข้าฟอร์มตรง ๆ ตัวเลขนับจึงไม่ต้องโชว์)
+//   blocker   = ติดอะไรอยู่ · เขียนให้ผู้ใช้อ่านรู้เรื่อง ไม่ใช่ศัพท์ภายใน
+const SOURCES = [
+  { id: 'line', name: 'LINE (บอทในกลุ่มห้อง)', icon: 'chat',
+    kind: 'connector', state: 'live', toggle: true, link: 'line', viaInbox: true,
+    desc: 'งานที่ครูสั่งในกลุ่มห้อง' },
+
+  // ตัวเชื่อมที่ครอบทุกแอปที่ไม่มี API ให้ต่อ — และเป็นตัวเดียวที่ใช้ได้ "วันนี้" โดยไม่ต้องรออนุมัติใคร
+  // ของนี้ทำงานอยู่แล้วตั้งแต่มี share_target ใน manifest แต่ไม่เคยถูกโชว์ว่ามีอยู่
+  // ผลคือไม่มีใครรู้ว่ากดแชร์จากโน้ตหรือ Classroom เข้าแอปนี้ได้ ทั้งที่มันได้มาตลอด
+  { id: 'share', name: 'แชร์จากแอปอื่น', icon: 'share',
+    kind: 'connector', state: 'live', toggle: true, viaInbox: true,
+    desc: 'โน้ต · Classroom · Gmail · เว็บ · แชทไหนก็ได้',
+    how: ['เปิดแอปที่มีงานอยู่ แล้วเลือกข้อความ', 'กดปุ่มแชร์ของเครื่อง', 'เลือก Student OS'] },
+
+  // ---------- ตัวเชื่อมที่ต่อผ่าน API ทางการ ----------
+  // id ต้องตรงกับชื่อ provider ฝั่งเซิร์ฟเวอร์เป๊ะ ๆ เพราะแถวใน inbox_items ใช้ชื่อนั้น
+  // เป็นค่า source · ไม่ตรงเมื่อไหร่ สวิตช์เปิด/ปิดกับตัวนับจะชี้ไปคนละตัวโดยไม่มีอะไรฟ้อง
+  //
+  // state: 'oauth' = โค้ดพร้อมแล้ว แต่ "พร้อมใช้จริงไหม" ขึ้นกับว่าเซิร์ฟเวอร์มีกุญแจ
+  // ของ Google หรือยัง ซึ่งเป็นคำตอบที่มีแต่เซิร์ฟเวอร์รู้ (integrations.js ถามให้)
+  // ไม่มี toggle: true เหมือนตัวอื่น โดยตั้งใจ — ตัวที่ต่อผ่าน API มีสวิตช์ของตัวเองอยู่แล้ว
+  // บนแถวบัญชีที่เชื่อมไว้ (ปุ่มตัดการเชื่อม) สวิตช์ที่สองที่ทำเรื่องคล้ายกันแต่ไม่เหมือนกัน
+  // คือของที่ทำให้คนไม่รู้ว่าต้องกดอันไหนถึงจะหยุดจริง
+  // shortName ใช้บนแถวบัญชีที่เชื่อมแล้ว — ตรงนั้นมีชื่อปฏิทินจริงอยู่ใต้ชื่ออยู่แล้ว
+  // วงเล็บ "(Canvas · Moodle)" จึงกลายเป็นตัวหนังสือที่ดันชื่อให้ตกบรรทัดโดยไม่ได้บอกอะไรเพิ่ม
+  { id: 'ics', name: 'ปฏิทินของโรงเรียน (Canvas · Moodle)', shortName: 'ปฏิทินของโรงเรียน',
+    icon: 'calendar',
+    kind: 'connector', state: 'live', viaInbox: true, connect: 'ics',
+    desc: 'วางลิงก์ปฏิทินของโรงเรียน' },
+
+  { id: 'google_classroom', name: 'Google Classroom', icon: 'book',
+    kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
+    desc: 'งานและกำหนดส่งจาก Classroom',
+    blocker: 'ยังไม่เปิดให้ใช้' },
+
+  { id: 'google_calendar', name: 'Google Calendar', icon: 'calendar',
+    kind: 'connector', state: 'oauth', viaInbox: true, connect: 'google',
+    desc: 'วันสอบและกิจกรรม',
+    blocker: 'ยังไม่เปิดให้ใช้' },
+
+  // Microsoft เปิด API ให้จริง (Graph · EduAssignments) แต่ล็อกไว้ที่ชั้นที่เราข้ามไม่ได้:
+  // สิทธิ์ชุดนั้นเป็นแบบ "ต้องให้แอดมินอนุมัติ" ทั้งโดเมน นักเรียนกดยอมรับเองไม่ได้เลยสักคน
+  // จึงไม่ใช่ทั้ง 'รอตั้งค่า' (รอเรา) และไม่ใช่ 'ต่อไม่ได้' (ไม่มีวันได้) — มันเป็นอย่างที่สาม
+  { id: 'ms_teams', name: 'Microsoft Teams (งานในห้องเรียน)', icon: 'users',
+    kind: 'connector', state: 'admin', viaInbox: true,
+    desc: 'งานที่ครูสั่งผ่าน Teams Assignments',
+    blocker: 'โรงเรียนต้องอนุมัติก่อน',
+    insteadOf: 'share' },
+
+  // เขียนไว้ให้ชัดว่า "ไม่ใช่ยังไม่ทำ" แต่ "ทำไม่ได้" — คนที่รอฟีเจอร์นี้จะได้ไม่รอเปล่า
+  { id: 'notes', name: 'โน้ต (Apple · Samsung · Keep)', icon: 'pencil',
+    kind: 'connector', state: 'noapi',
+    desc: 'งานที่จดไว้ในโน้ต',
+    blocker: 'ยังเชื่อมไม่ได้ ใช้ปุ่มแชร์แทน',
+    insteadOf: 'share' },
+
+  { id: 'scan',  name: 'สแกน/ถ่ายรูป', icon: 'camera', kind: 'manual', state: 'live',
+    desc: 'ใบงาน ตารางเรียนที่จด ประกาศหน้าห้อง' },
+  { id: 'voice', name: 'พูดใส่ไมค์',    icon: 'mic',    kind: 'manual', state: 'live',
+    desc: 'พูดงานที่ต้องทำ' },
+  { id: 'text',  name: 'แปะข้อความ',    icon: 'clipboard',   kind: 'manual', state: 'live',
+    desc: 'ก๊อปแล้ววาง' },
+  // ปุ่มลัดเพิ่มงานจากตัวเครื่อง (quickadd.js) — Android: กดค้างที่ไอคอนแอป · iPhone: แตะหลังเครื่อง
+  // ไม่มีสวิตช์ เพราะเป็นทางที่ผู้ใช้กดเองทุกครั้ง · panel = แผงตั้งค่าที่ quickPanel() วาด
+  { id: 'quick', name: 'ปุ่มลัดเพิ่มงาน', icon: 'plus', kind: 'manual', state: 'live',
+    desc: 'เพิ่มงานจากตัวเครื่อง', panel: 'quick' },
+];
+const sourceById = id => SOURCES.find(s => s.id === id) || SOURCES[0];
+
+// 15 ต.ค. 69 · เจ้าของ: "ตรงโลโก้ควรเป็นรูปแอปที่แจ้งเตือนมา เช่น classroom ก็เป็นโลโก้ classroom"
+// ไอคอนเส้นสีธีม (หนังสือ · ฟองแชท) บอกแค่ "ประเภท" — คนกวาดตาหาแอปจากสีกับรูปทรงของแอปนั้นเอง
+// วาดเป็นเครื่องหมายแบบย่อ ไม่ใช่ไฟล์โลโก้จริง (repo สาธารณะ · ไม่โหลดรูปจากเว็บอื่น) · พื้นสีของแบรนด์ทึบเต็มกล่อง
+// เลยไม่ขึ้นกับธีม — โลโก้แอปบนมือถือก็ไม่เปลี่ยนสีตามธีมเหมือนกัน · แหล่งที่ไม่มีแบรนด์ (สแกน · แปะ · ปฏิทินโรงเรียน) ใช้ไอคอนเส้นเดิม
+const SRC_LOGO = {
+  google_classroom: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#F9AB00"/>
+    <rect x="5" y="5" width="38" height="30" rx="3.5" fill="#1E8E3E"/>
+    <circle cx="13" cy="18.5" r="3" fill="#81C995"/><path d="M7.4 29.5c0-3.4 2.5-5.6 5.6-5.6s5.6 2.2 5.6 5.6z" fill="#81C995"/>
+    <circle cx="35" cy="18.5" r="3" fill="#81C995"/><path d="M29.4 29.5c0-3.4 2.5-5.6 5.6-5.6s5.6 2.2 5.6 5.6z" fill="#81C995"/>
+    <circle cx="24" cy="16.5" r="4.2" fill="#fff"/><path d="M15.6 30c0-4.6 3.8-7.6 8.4-7.6s8.4 3 8.4 7.6z" fill="#fff"/>
+    <rect x="27" y="38.5" width="12" height="3.6" rx="1.8" fill="#fff"/></svg>`,
+  line: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#06C755"/>
+    <path d="M24 9.5c-8.8 0-15.8 5.7-15.8 12.8 0 6.3 5.6 11.6 13.2 12.6.5.1 1.2.3 1.4.8.2.4.1 1.1.1 1.5l-.2 1.4c-.1.4-.3 1.6 1.4.9 1.7-.7 9-5.3 12.3-9.1 2.3-2.5 3.4-5 3.4-8.1 0-7.1-7-12.8-15.8-12.8z" fill="#fff"/>
+    <text x="24" y="25.6" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="8.4" letter-spacing=".2" fill="#06C755">LINE</text></svg>`,
+  google_calendar: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#fff"/>
+    <rect x="9" y="9" width="30" height="30" rx="4" fill="#fff" stroke="#4285F4" stroke-width="3"/>
+    <path d="M9 13a4 4 0 0 1 4-4h22a4 4 0 0 1 4 4v3H9z" fill="#4285F4"/>
+    <path d="M30 39h5a4 4 0 0 0 4-4v-5z" fill="#EA4335"/>
+    <text x="24" y="33" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" fill="#1A73E8">31</text></svg>`,
+  ms_teams: `<svg viewBox="0 0 48 48" aria-hidden="true">
+    <rect width="48" height="48" rx="12" fill="#5B5FC7"/>
+    <path d="M14 14h20v5h-7.5v16h-5V19H14z" fill="#fff"/></svg>`,
+};
+// กล่องไอคอนของแหล่ง — มีโลโก้ = กล่องแบรนด์ · ไม่มี = กล่องสีธีมกับไอคอนเส้นแบบเดิม
+function srcMark(s) {
+  return SRC_LOGO[s.id]
+    ? `<span class="nt-av src brand">${SRC_LOGO[s.id]}</span>`
+    : `<span class="nt-av src">${icon(s.icon)}</span>`;
+}
+
+// ---------- สวิตช์เปิด/ปิดตัวเชื่อม ----------
+// เก็บเฉพาะตัวที่ "ถูกปิด" ไม่ใช่เก็บทั้งหมด — ตัวเชื่อมที่เพิ่มมาทีหลังจะได้เปิดอยู่โดยปริยาย
+// ถ้าเก็บกลับด้าน ทุกตัวที่เพิ่มใหม่จะเงียบสนิทในเครื่องของคนที่ใช้อยู่แล้ว โดยไม่มีอะไรบอก
+function srcEnabled(id) {
+  const off = (state.settings && state.settings.srcOff) || {};
+  return !off[id];
+}
+// quiet = กดจากในเมนู + ซึ่งอยู่เหนือ toast (z-index 95 vs 70) — เด้ง toast ไปก็ไม่มีใครเห็น
+// และไม่จำเป็นด้วย เพราะสวิตช์ที่เพิ่งขยับคือคำตอบที่ชัดกว่าข้อความอยู่แล้ว
+function srcToggle(id, quiet) {
+  const s = sourceById(id);
+  if (!s || !s.toggle) return;
+  state.settings.srcOff = state.settings.srcOff || {};
+  if (state.settings.srcOff[id]) delete state.settings.srcOff[id];
+  else state.settings.srcOff[id] = true;
+  save();
+  renderSources();
+  // เมนู + วาดสวิตช์ชุดเดียวกัน ต้องอัปเดตด้วย ไม่งั้นกดแล้วสวิตช์ไม่ขยับ
+  if (typeof refreshAddSheet === 'function') refreshAddSheet();
+  // 8 ต.ค. 69 · วาดใหม่ทั้งแผ่น = ปุ่มกลมในสวิตช์กระโดดไปอีกฝั่งทันที — ให้มันไถลไปแบบสปริงแทน
+  // และแถวที่กดกะพริบพื้นอมสีหนึ่งที (เจ้าของ: "มีอนิเมชันตอนกด")
+  const row = document.querySelector(`#addSheet .as-tgl[data-sid="${id}"]`);
+  const knob = row && row.querySelector('.tg-k');
+  if (knob && knob.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const on = srcEnabled(id);
+    knob.animate([{ transform: `translateX(${on ? 0 : 17}px)` }, { transform: `translateX(${on ? 17 : 0}px)` }],
+      { duration: 380, easing: 'cubic-bezier(.3, 1.5, .5, 1)' });
+    row.classList.add('pulse');
+    setTimeout(() => row.classList.remove('pulse'), 500);
+  }
+  if (typeof haptic === 'function') haptic('tap');
+  if (quiet) return;
+  showToast(srcEnabled(id)
+    ? { title: 'เปิด ' + s.name + ' แล้ว' }
+    : { title: 'ปิด ' + s.name + ' แล้ว' });
+}
+
+// ---------- แถวตัวเชื่อมในเมนู + ----------
+// ทำไมต้องอยู่ในเมนู + ด้วย ทั้งที่มีหน้าเต็มอยู่แล้ว:
+// หน้าเต็มอยู่ลึกสองชั้น (กล่องเข้า → เลื่อนลงสุด → ปุ่ม) ซึ่งแปลว่าไม่มีใครหาเจอ
+// ส่วนปุ่ม + อยู่บนแถบล่างของทุกหน้า = ห่างจากนิ้วหนึ่งครั้งกดเสมอ
+// ตัวเชื่อมเป็นของที่ตั้งครั้งเดียวก็จริง แต่ "ครั้งเดียว" นั้นจะไม่เกิดขึ้นเลยถ้าหาไม่เจอ
+// ตัวที่ต่อผ่าน API ไม่อยู่ในเมนูนี้ (กรอง s.connect ออก) เพราะมันไม่มีสวิตช์ให้กด —
+// การเชื่อม/ตัดของพวกนั้นอยู่บนแถวบัญชีในหน้าเต็ม ซึ่งเป็นที่เดียวที่บอกสถานะจริงได้
+function connectorMenuRows() {
+  const list = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
+  return list.map(s => {
+    const on = srcEnabled(s.id);
+    return `<div class="as-row as-tgl ${on ? '' : 'off'}" data-sid="${s.id}" onclick="srcToggle('${s.id}', true)">
+      <span class="as-ic">${icon(s.icon)}</span>
+      <span class="as-tx"><b>${esc(s.name)}</b></span>
+      <button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
+        aria-label="${on ? 'ปิด' : 'เปิด'} ${esc(s.name)}"
+        onclick="event.stopPropagation();srcToggle('${s.id}', true)"><span class="tg-k"></span></button>
+    </div>`;
+  }).join('');
+}
+
+// จำนวนตัวเชื่อมที่เปิดอยู่ / ทั้งหมด — โชว์บนแถวหลัก ให้รู้สถานะโดยไม่ต้องกดเข้าไปดู
+function connectorCount() {
+  const live = SOURCES.filter(s => s.kind === 'connector' && s.state === 'live' && !s.connect);
+  // บัญชีที่เชื่อมผ่าน API นับเป็นตัวเชื่อมหนึ่งตัวต่อหนึ่งบัญชี ไม่ใช่หนึ่งตัวต่อหนึ่งเจ้า —
+  // คนที่ต่อปฏิทินสองใบมีสองเส้นจริง ๆ · เส้นที่เสียไม่ถูกนับว่า "เปิดอยู่" เพราะมันไม่ได้ทำงาน
+  const accts = typeof integItems === 'function' ? integItems() : [];
+  return {
+    on: live.filter(s => srcEnabled(s.id)).length + accts.filter(a => a.status === 'active').length,
+    all: live.length + accts.length,
+  };
+}
+
+// ---------- ความมั่นใจ ----------
+// คิดจาก "เจอข้อมูลที่จำเป็นครบแค่ไหน" ไม่ใช่ตัวเลขลอย ๆ
+// กำหนดส่งมีน้ำหนักมากที่สุด เพราะไม่มีกำหนดส่ง engine จัดลำดับไม่ได้เลย
+function inboxConfidence(parsed) {
+  const d = (parsed && parsed.detected) || {};
+  let c = 0.15;
+  if (d.due) c += 0.45;
+  if (d.subject) c += 0.2;
+  if (parsed && parsed.detail && parsed.detail.trim().length >= 6) c += 0.12;
+  if (d.score) c += 0.05;
+  if (d.est) c += 0.03;
+  return Math.min(1, Math.round(c * 100) / 100);
+}
+
+// เกณฑ์ที่ยอมให้เข้าแผนเองโดยไม่ถาม — ตั้งไว้สูงโดยตั้งใจ
+// ถ้าเผลอปล่อยงานผิดเข้าแผน ความเชื่อใจพังทันที ซึ่งแพงกว่าการถามเกินไปหนึ่งครั้ง
+const AUTO_ACCEPT = 0.8;
+
+// ---------- เกณฑ์เดียวกันนี้ปรับได้จาก Control Center ----------
+// ค่าเริ่มต้นคือ 0.8 เป๊ะ — ไม่ได้ตั้งอะไร/เน็ตหลุด = เหมือนก่อนมีระบบนี้ทุกประการ
+//
+// **ขั้นต่ำล็อกไว้ที่ 0.5** ไม่ใช่ 0 · ต่ำกว่าครึ่งแปลว่า "เดาถูกน้อยกว่าเดาผิด แล้วยัง
+// บันทึกเอง" ซึ่งไม่ใช่ค่าตั้งที่ใครควรตั้งได้แม้จะตั้งใจ — ของที่อ่านผิดจะไหลเข้าแผน
+// เงียบ ๆ แล้วผู้ใช้จะเจอตอนที่มันดันงานจริงตกไปแล้ว ซึ่งเป็นความเสียหายที่กู้คืนไม่ได้
+// ด้วยการเลื่อนสไลเดอร์กลับ
+function autoAcceptBar() {
+  const v = typeof sosCfg === 'function' ? sosCfg('ocr.confidence', null) : null;
+  if (typeof v !== 'number' || !isFinite(v)) return AUTO_ACCEPT;
+  return Math.max(0.5, Math.min(1, v / 100));
+}
+
+// สวิตช์ "บันทึกเองเมื่อมั่นใจพอ" ของเจ้าของระบบ **และ** ของผู้ใช้ ต้องเปิดทั้งคู่
+// ฝั่งไหนปิดก็พอให้ไม่บันทึกเอง — ค่าตั้งของเจ้าของระบบเป็นเพดาน ไม่ใช่คำสั่งที่ลบ
+// การตัดสินใจของผู้ใช้ทิ้ง (คนที่ปิดไว้เองมักปิดเพราะเคยโดนงานผิดเข้าแผนมาแล้ว)
+function autoAcceptOn() {
+  const owner = typeof sosCfg === 'function' ? sosCfg('ocr.autoFile', true) !== false : true;
+  return owner && state.settings.autoAccept !== false;
+}
+
+// ---------- ประตูแรก: นี่คืองาน หรือแค่คนในกลุ่มคุยกัน ----------
+// กลุ่มห้องเรียนมีข้อความวันละเป็นร้อย แต่เป็นงานจริงไม่กี่ข้อความ
+// ถ้าปล่อยเข้ามาหมดแล้วให้นักเรียนมานั่งกดทิ้งทีละอัน มันแย่กว่าการพิมพ์เองอีก
+//
+// เกณฑ์ผ่านมีสามทาง — ทางใดทางหนึ่งก็พอ:
+//   1. พูดถึงคะแนน = เป็นงานแทบแน่นอน ไม่มีใครคุยเล่นเรื่องคะแนนเก็บ
+//   2. มีคำที่บอกว่ากำลังสั่งงาน/สั่งให้เตรียมของ
+//   3. มีทั้งกำหนดส่งและชื่อวิชาพร้อมกัน
+//
+// ข้อ 3 ต้องมีครบทั้งคู่ ห้ามใช้กำหนดส่งอย่างเดียว — เพราะ "วันนี้/พรุ่งนี้"
+// โผล่ในบทสนทนาปกติตลอดเวลา ("วันนี้ร้อนมากเลย" ก็มีกำหนดส่งในสายตา parser)
+//
+// ตั้งใจให้ "ยอมปล่อยผ่านมาถามดีกว่าเผลอทิ้งงานจริง" — ของที่หลุดมาผิด
+// นักเรียนกดทิ้งทีเดียวจบ แต่ของที่ถูกทิ้งไปเงียบ ๆ ไม่มีใครรู้ว่าเคยมี
+// คำที่แทบไม่มีทางโผล่ในบทสนทนาทั่วไป — เจอแล้วเป็นงานเกือบแน่นอน
+const STRONG_HINTS = new RegExp([
+  'การบ้าน', 'แบบฝึกหัด', 'ใบงาน', 'ชีท', 'รายงาน', 'ชิ้นงาน', 'โครงงาน', 'ผังงาน',
+  'พรีเซ', 'นำเสนอ', 'สอบ', 'ควิซ', 'quiz', 'แล็บ', 'ปฏิบัติการ', 'assignment', 'homework',
+  'กำหนดส่ง', 'เดดไลน์', 'deadline', 'คะแนน', 'เก็บคะแนน',
+  'ทำข้อ', 'ทำโจทย์', 'ทำแบบ', 'บทที่',
+].join('|'), 'i');
+
+// คำที่ "อาจจะ" เป็นงาน แต่ใช้คุยเรื่องอื่นได้พอ ๆ กัน
+// "ส่ง" เป็นตัวอย่างที่ชัดที่สุด — ส่งการบ้าน ส่งรูป ส่งไลน์ ส่งสติกเกอร์
+const WEAK_HINTS = new RegExp([
+  'ส่ง', 'เตรียม', 'อย่าลืม', 'เอามา', 'นำมา', 'พกมา', 'ใส่มา', 'ท่อง', 'สรุป',
+].join('|'), 'i');
+
+// หลักฐานที่มี แบ่งเป็น 3 ระดับ เพราะสิทธิ์ของโมเดลขึ้นกับระดับนี้
+function taskEvidence(text, parsed) {
+  const d = (parsed && parsed.detected) || {};
+  if (d.score) return 'strong';           // ไม่มีใครคุยเล่นเรื่องคะแนนเก็บ
+  if (STRONG_HINTS.test(text)) return 'strong';
+  if (d.due && d.subject) return 'strong'; // มีทั้งกำหนดส่งและวิชา
+  if (WEAK_HINTS.test(text)) return 'weak';
+  return 'none';
+}
+
+function looksLikeTask(text, parsed) { return taskEvidence(text, parsed) !== 'none'; }
+
+// ประตูจริง = กฎคำ + สิ่งที่เรียนรู้จากผู้ใช้ (brain.js)
+//
+// จุดสำคัญ: โมเดลไม่ได้มีสิทธิ์เท่ากันทั้งสองทาง เพราะราคาของการผิดไม่เท่ากัน
+//   ค้านให้ "ผ่านเพิ่ม"  ผิดแล้วเสียแค่หนึ่งแตะ                → ให้สิทธิ์เต็ม
+//   ค้านให้ "ทิ้ง"       ผิดแล้วการบ้านจริงหายเงียบ ๆ ถึงวันส่ง  → ให้เฉพาะเคสก้ำกึ่ง
+//
+// เคยเขียนให้ค้านได้ทุกกรณี แล้วทดสอบเจอว่า "ส่งรายงานวิทยาศาสตร์ภายในวันศุกร์"
+// โดนทิ้ง เพราะสอนมันด้วยข้อความขยะที่ขึ้นต้นด้วย "ส่ง" หลายอัน — มันเลยเหมาว่า
+// อะไรที่มีคำว่าส่งคือขยะ ทั้งที่คำว่า "รายงาน" ในประโยคเดียวกันบอกชัดว่าเป็นงาน
+function taskGate(text, parsed) {
+  const ev = taskEvidence(text, parsed);
+  if (ev === 'strong') return { pass: true, why: 'rule' };  // ห้ามพลิกทิ้ง
+
+  const learned = brainScore(text);   // 0 ตลอด จนกว่าจะถูกสอนครบทั้งสองฝั่ง
+
+  if (ev === 'weak') {
+    // ก้ำกึ่ง — ตรงนี้แหละที่สิ่งที่เรียนรู้จากห้องนี้มีค่าที่สุด
+    return learned <= -BRAIN_FLIP ? { pass: false, why: 'learned' } : { pass: true, why: 'rule' };
+  }
+  return learned >= BRAIN_FLIP ? { pass: true, why: 'learned' } : { pass: false, why: 'rule' };
+}
+
+// ---------- ก้อนนี้คือ "ใบสั่งงาน" หรือ "คนคุยกัน" ----------
+// ตัดสินจากทั้งก้อน ไม่ใช่ทีละบรรทัด แล้วเอาคำตอบไปใช้สองที่:
+//   1. ตัดสินว่าข้อความหลายบรรทัดที่ไม่มีขีดนำหน้า ควรถูกตัดเป็นหลายงานไหม
+//   2. ตัดสินว่าบรรทัดที่ดูจืดในรายการ ควรถูกคัดทิ้งเป็นขยะไหม (ไม่ควร ถ้าเพื่อนบ้านเป็นงานหมด)
+// ต้องเป็นเกณฑ์เดียวกันทั้งสองที่ ไม่งั้นแอปจะตัดข้อความเป็นรายการแล้วทิ้งครึ่งรายการทันที
+const TASK_LIST_MIN_STRONG = 2;
+function isTaskListByEvidence(strongN, total) {
+  return strongN >= TASK_LIST_MIN_STRONG && strongN * 2 >= total;
+}
+function looksLikeTaskList(segments) {
+  let n = 0;
+  for (const s of segments) if (taskEvidence(s, parseAssignment(s)) === 'strong') n++;
+  return isTaskListByEvidence(n, segments.length);
+}
+
+// แหล่งที่ข้อมูลไหลเข้ามาเองโดยไม่มีใครสั่ง — พวกนี้ต้องผ่านประตูแรกก่อน
+// ส่วนสแกน/พูด/แปะเอง ไม่ต้องกรอง เพราะนักเรียนตั้งใจส่งเข้ามาเองอยู่แล้ว
+// ถ้าไปกรองของที่เขาตั้งใจส่ง จะกลายเป็นแอปที่เถียงกับผู้ใช้
+// (ตัวเชื่อมที่ต่อผ่าน API ไม่อยู่ในลิสต์นี้ และต้องไม่อยู่ — ของที่ครูกดสั่งในระบบของ
+//  โรงเรียนคืองานแน่นอนอยู่แล้ว ไม่ใช่บทสนทนาที่ต้องมาเดาว่าใช่งานหรือเปล่า)
+const PASSIVE_SOURCES = ['line'];
+
+// ---------- จับซ้ำ ----------
+// ครูสั่งงานเดียวกันทั้งในกลุ่ม LINE และ Classroom เป็นเรื่องปกติ
+// ถ้าไม่จับซ้ำ นักเรียนจะเห็นงานเดียวกันสองใบแล้วเลิกเชื่อแอปทันที
+function normText(s) {
+  return String(s || '').toLowerCase().replace(/[\s\-–—.,()"']/g, '');
+}
+
+// ข้อความสั้น ๆ ที่บังเอิญเป็นส่วนหนึ่งของกันและกัน ไม่ได้แปลว่าเป็นงานเดียวกัน
+// "ทำชีท" อยู่ใน "ทำชีทคณิต" ก็จริง แต่ถ้าครูสั่งชีทสองใบในวิชาเดียวกันคนละสัปดาห์
+// ใบที่สองจะถูกกลืนหายไปเงียบ ๆ — ซึ่งเป็นความผิดพลาดที่ไม่มีใครสังเกตจนถึงวันส่ง
+// ตรงตัวเป๊ะยอมได้เสมอ · ส่วนแบบ "อยู่ในกันและกัน" ต้องยาวพอที่จะไม่ใช่ความบังเอิญ
+const DUP_CONTAIN_MIN = 8;
+
+// เทียบสองงานว่าเป็นใบเดียวกันไหม — ใช้ทั้งกับงานที่รับเข้าแผนแล้วและของที่ยังค้างในกล่อง
+function sameAssignment(a, b) {
+  if (!a || !b) return false;
+  if ((a.subject || '') !== (b.subject || '')) return false;
+  const x = normText(a.detail), y = normText(b.detail);
+  if (!x || !y) return false;
+  const same = x === y
+    || (x.includes(y) && y.length >= DUP_CONTAIN_MIN)
+    || (y.includes(x) && x.length >= DUP_CONTAIN_MIN);
+  if (!same) return false;
+  // ข้อความเหมือนกันแต่คนละกำหนดส่ง = ครูสั่งงานแบบเดิมรอบใหม่ ไม่ใช่ของซ้ำ
+  if (!a.due || !b.due) return true;
+  return Math.abs(new Date(a.due) - new Date(b.due)) < 12 * 3.6e6;
+}
+
+// หาว่างานนี้มีอยู่แล้วไหม — ดูสามที่ ไม่ใช่ที่เดียวเหมือนเดิม:
+//   1. งานที่อยู่ในแผนแล้ว
+//   2. ของที่ยังค้างรอตรวจอยู่ในกล่องเข้า  ← เดิมไม่ได้ดู ครูส่งซ้ำสองรอบก่อนกดรับ = ได้สองใบ
+//   3. รายการอื่นในข้อความก้อนเดียวกัน (ส่งผ่าน extra) ← ครูมักเขียนงานเดิมซ้ำท้ายรายการ
+//
+// คืนค่าเป็น { kind, id, subject, detail, due } เพื่อให้ผู้เรียกบอกผู้ใช้ได้ว่าซ้ำกับ "อะไร"
+// การบอกแค่ว่า "ซ้ำ" โดยไม่บอกว่าซ้ำกับใบไหน ทำให้คนไม่กล้าเชื่อว่ามันจับถูกจริง
+function findDuplicate(parsed, extra = []) {
+  if (!normText(parsed.detail)) return null;
+
+  for (const t of liveTasks()) {
+    if (sameAssignment(t, parsed)) return { kind: 'task', id: t.id, subject: t.subject, detail: t.detail, due: t.due };
+  }
+  for (const it of inboxPending()) {
+    for (const c of inboxUnits(it)) {
+      if (c.status === 'new' && sameAssignment(c.parsed, parsed)) {
+        return { kind: 'inbox', id: it.id, subject: c.parsed.subject, detail: c.parsed.detail, due: c.parsed.due };
+      }
+    }
+  }
+  for (const p of extra) {
+    if (sameAssignment(p, parsed)) return { kind: 'batch', id: null, subject: p.subject, detail: p.detail, due: p.due };
+  }
+  return null;
+}
+
+// รายการในกล่องเข้าหนึ่งชิ้น อาจเป็นงานเดียว หรือเป็นก้อนที่มีหลายงานอยู่ข้างใน
+// ฟังก์ชันนี้ทำให้โค้ดที่เหลือไม่ต้องรู้ว่าเป็นแบบไหน — วนอ่านได้เหมือนกันทั้งสองแบบ
+function inboxUnits(item) {
+  return item && item.kind === 'batch' ? (item.children || []) : [item];
+}
+
+// ---------- ประตูเข้าหลัก ----------
+// ทุกแหล่งเรียกฟังก์ชันนี้ฟังก์ชันเดียว ส่งข้อความดิบมาให้
+// คืนค่าเป็นรายการที่เกิดขึ้นจริง เพื่อให้ตัวเรียกรู้ว่าควรพาไปหน้าไหนต่อ
+// ตัดก้อนข้อความเป็นงาน ๆ — ประตูเดียวที่ทุกทางเข้า (กล่องเข้า · ช่องแปะข้อความ · เบนช์) ต้องเรียก
+// เคยมีแค่กล่องเข้าที่ตัด ส่วนช่องแปะบนจอเพิ่มงานส่งทั้งก้อนเข้า parseAssignment ตรง ๆ
+// ผลคือแปะสองบรรทัดสองงาน ได้งานเดียวชื่อยาวที่กำหนดส่งของบรรทัดแรกหายไป (QA 6 ต.ค. 69)
+function cutAssignments(text) {
+  const cut = typeof splitAssignments === 'function'
+    ? splitAssignments(text) : { multi: false, reason: 'single', segments: [text], header: '' };
+
+  // ครูเขียนเป็นรายการโดยไม่ใส่ขีดและไม่มีหัวเรื่อง — ตัวตัดไม่กล้าตัดให้เอง
+  // (ถูกแล้ว: บทสนทนาสามบรรทัดในกลุ่มก็หน้าตาแบบนี้เป๊ะ)
+  // ชั้นนี้ตัดสินต่อได้ เพราะเรามี parseAssignment ที่ engine ไม่มีสิทธิ์เรียกในจังหวะนั้น:
+  // ถ้าเกินครึ่งของบรรทัดเป็นงานชัด ๆ ในตัวเอง แปลว่ามันคือรายการงานจริง
+  if (!cut.multi && cut.reason === 'lines' && cut.segments.length >= 2 && looksLikeTaskList(cut.segments)) {
+    cut.multi = true;
+  }
+  return cut;
+}
+
+// "พรุ่งนี้" ต้องนับจากตอนที่พิมพ์ ไม่ใช่ตอนที่แอปดึงมาอ่าน
+// ปุ่มลัดบน iPhone ส่งงานไปรอที่เซิร์ฟเวอร์ — พิมพ์ "ส่งพรุ่งนี้" ตอนห้าทุ่ม แล้วเปิดแอปเช้าวันถัดไป
+// ถ้านับจากตอนเปิดแอป กำหนดส่งจะเลื่อนไปหนึ่งวันเงียบ ๆ ซึ่งคือการส่งงานช้าที่แอปเป็นคนทำ
+// meta.sentAt มาจากเซิร์ฟเวอร์ (quick-add) · ไม่มี/อ่านไม่ได้/อยู่ในอนาคต = ใช้เวลาตอนนี้เหมือนเดิม
+function inboxNow(meta) {
+  const t = meta && meta.sentAt ? Date.parse(meta.sentAt) : NaN;
+  return isFinite(t) && t <= Date.now() ? new Date(t) : new Date();
+}
+
+function inboxAdd(rawText, sourceId = 'text', meta = {}) {
+  const text = String(rawText || '').trim();
+  if (!text) return { status: 'empty' };
+
+  // ผู้ใช้ปิดตัวเชื่อมนี้ไว้ — ไม่เก็บ ไม่ถาม ไม่บันทึกด้วย
+  // (บันทึกไว้จะกลายเป็นการเก็บของจากทางที่เขาเพิ่งบอกว่าไม่อยากให้เก็บ)
+  if (!srcEnabled(sourceId)) return { status: 'off' };
+
+  // ครูสั่งงานทั้งสัปดาห์ในข้อความเดียวเป็นเรื่องปกติ ไม่ใช่ข้อยกเว้น
+  // ต้องตัดเป็นงาน ๆ ก่อนเสมอ ไม่งั้นได้งานเดียวที่มีทุกวิชาปนกันแล้วไม่มีกำหนดส่ง
+  const cut = cutAssignments(text);
+  if (cut.multi) return inboxAddBatch(text, cut, sourceId, meta);
+
+  const parsed = parseAssignment(text, inboxNow(meta));
+  const conf = inboxConfidence(parsed);
+  const dup = findDuplicate(parsed);
+
+  const item = {
+    id: uid(), source: sourceId, raw: text, at: new Date().toISOString(),
+    parsed, confidence: conf, status: 'new', taskId: null, meta,
+  };
+
+  state.inbox = state.inbox || [];
+  // ไม่ให้บันทึกโตไม่มีที่สิ้นสุด — กลุ่มที่คุยกันเยอะจะกิน localStorage จนแอปอืด
+  if (state.inbox.length > 150) state.inbox.length = 150;
+
+  if (PASSIVE_SOURCES.includes(sourceId)) {
+    const gate = taskGate(text, parsed);
+    item.why = gate.why;
+    if (!gate.pass) {
+      // ไม่ทิ้งหายไปเฉย ๆ — เก็บไว้ในบันทึกให้ตอบได้ว่า "ทำไมงานนี้ไม่ขึ้น"
+      // แต่ไม่ไปโผล่เป็นคำถามให้ต้องกดทิ้ง
+      item.status = 'noise';
+      state.inbox.unshift(item);
+      save();
+      return { status: 'noise', item };
+    }
+  }
+
+  if (dup) {
+    // ไม่ทิ้งเงียบ ๆ — บันทึกไว้ว่าเจอซ้ำ เพื่อให้ตอบได้ว่า "ทำไมงานนี้ไม่ขึ้น"
+    item.status = 'duplicate';
+    item.taskId = dup.kind === 'task' ? dup.id : null;
+    item.dupOf = dup;
+    state.inbox.unshift(item);
+    save();
+    return { status: 'duplicate', item, dup };
+  }
+
+  if (conf >= autoAcceptBar() && autoAcceptOn()) {
+    const t = inboxToTask(item);
+    item.status = 'accepted';
+    item.taskId = t.id;
+    state.inbox.unshift(item);
+    save();
+    return { status: 'accepted', item, task: t };
+  }
+
+  state.inbox.unshift(item);
+  save();
+  return { status: 'pending', item };
+}
+
+// ============================================================
+// ประตูที่สอง: ของที่มาจาก API ของแพลตฟอร์มอื่น
+// ------------------------------------------------------------
+// **ไม่ผ่านตัวแกะข้อความเลยสักบรรทัด และต้องไม่ผ่านตลอดไป**
+// Classroom กับปฏิทินของ LMS ส่ง "ชื่องาน · คำสั่ง · กำหนดส่ง · คอร์ส" มาเป็นช่อง ๆ
+// อยู่แล้ว · เอาไปให้ parseAssignment เดาใหม่คือการเพิ่มโอกาสผิดให้ข้อมูลที่ถูกอยู่แล้ว
+//
+// สามอย่างที่ประตูนี้ทำต่างจากประตูแรก:
+//   1. ไม่ให้คะแนนความมั่นใจ — ข้อมูลมีโครงจากต้นทาง ไม่ได้เดาเอา จึงเข้าแผนเลย
+//   2. จับซ้ำด้วย srcKey (ต้นทาง + id ของต้นทาง) ไม่ใช่ด้วยข้อความ
+//      เพราะครูแก้กำหนดส่งย้อนหลังได้ และการแก้ต้องตามไปที่งานใบเดิม ไม่ใช่เกิดใบใหม่
+//   3. รับคำสั่ง "ถูกแก้" กับ "ถูกยกเลิก" ได้ ซึ่งข้อความจากแชทไม่มีวันบอกได้
+// ============================================================
+
+// ชนิดของงานฝั่งเรามีสี่แบบ (engine.js · TASK_TYPES) ตัวเชื่อมรู้จักแค่สาม
+const SYNC_TYPES = { homework: 'homework', exam: 'exam', event: 'activity' };
+
+// 16 ต.ค. 69 · หาใบที่อยู่ในถังขยะด้วย — เดิมข้ามใบที่ deleted ทิ้ง ผลคือสองอย่างที่ผิด:
+//   1. ทาง "ต้นทางเอางานที่ยกเลิกกลับมา" ข้างล่างไม่เคยถูกเรียกเลย (หาใบในถังไม่เจอตั้งแต่ต้น)
+//      ครูเปิดงานคืน = ได้ใบใหม่ซ้อนกับใบเดิมที่ค้างในถัง
+//   2. นักเรียนลบงานเองแล้วครูแก้กำหนดส่ง = งานใบนั้นเกิดใหม่ทั้งที่เขาตั้งใจลบ
+// ใบที่ยังไม่ลบมาก่อนเสมอ — srcKey เดียวกันอาจมีทั้งใบในถัง (ของเก่าจากข้อ 1) และใบที่ใช้อยู่
+function taskBySrcKey(key) {
+  if (!key) return null;
+  const all = (state.tasks || []).filter(t => t.srcKey === key);
+  return all.find(t => !t.deleted) || all[0] || null;
+}
+
+// ต้นทางบอกว่านักเรียนกดส่งงานในแพลตฟอร์มนั้นแล้ว — งานเสร็จจริง ทองได้
+// ทำสิ่งเดียวกับการติ๊กเสร็จในแอป (app.js · toggleDone) เท่าที่เกี่ยวกับงานที่มาจากต้นทาง
+// srcTurnedIn = ใบนี้ "ต้นทาง" เป็นคนติ๊ก ไม่ใช่นักเรียน · ใช้ตอนต้นทางถอนการส่ง (ข้างล่าง)
+function syncMarkTurnedIn(t) {
+  const r = typeof runningWork === 'function' && runningWork();
+  if (r && r.taskId === t.id && typeof stopWork === 'function') stopWork(true);
+  t.done = true;
+  t.progress = 100;
+  t.doneAt = new Date().toISOString();
+  t.srcTurnedIn = true;
+  if (Array.isArray(t.subs)) t.subs.forEach(x => { x.done = true; });
+  if (typeof funnelDone === 'function') funnelDone();
+}
+
+// ชื่อคอร์สจากต้นทางเป็นข้อความอิสระ ("ว31101 เคมี ม.4/2" · "Mathematics 4/2")
+// ส่วน StudentOS ใช้รายชื่อวิชาตายตัว — จับคู่ด้วยตัวแกะตัวเดิมของแอป
+// ไม่เขียนตัวจับคู่ชุดที่สองขึ้นมา เพราะสองชุดแปลว่ามีวันที่มันไม่ตรงกัน
+function syncSubject(courseName) {
+  if (!courseName || typeof parseAssignment !== 'function') return 'อื่น ๆ';
+  return parseAssignment(String(courseName)).subject || 'อื่น ๆ';
+}
+
+function syncParsed(meta) {
+  const t = (meta && meta.task) || {};
+  const subject = syncSubject(t.subject);
+  return {
+    subject,
+    detail: String(t.title || '').trim(),
+    teacher: '',
+    due: t.due || null,
+    type: SYNC_TYPES[t.type] || 'homework',
+    scorePct: null,
+    // ต้นทางไม่เคยบอกว่างานหนึ่งใช้เวลากี่นาที — ปล่อยให้ค่าเริ่มต้นของแอปทำงาน
+    // ใส่ตัวเลขเดาลงไปแล้วแผนทั้งสัปดาห์จะถูกจัดจากเวลาที่ไม่มีใครเคยวัด
+    estMin: null,
+    detected: { due: !!t.due, subject: subject !== 'อื่น ๆ' },
+  };
+}
+
+// ---------- ประตูหลักของของที่ซิงก์มา ----------
+// เรียกจาก pullInbox() เมื่อแถวนั้นมีธง structured · คืนสถานะให้ผู้เรียกสรุปรวมทีเดียว
+function inboxAddSynced(meta, sourceId) {
+  if (!meta || !meta.task) return { status: 'empty' };
+  if (!srcEnabled(sourceId)) return { status: 'off' };
+
+  const key = String(meta.srcKey || '');
+  const parsed = syncParsed(meta);
+  if (!parsed.detail) return { status: 'empty' };
+  const existing = taskBySrcKey(key);
+
+  // ---------- ต้นทางยกเลิก/ลบงานนี้ ----------
+  // ไม่ลบทิ้งเอง — ย้ายไปถังขยะ (deleted) ซึ่งเป็นกลไกที่แอปมีอยู่แล้วและกู้คืนได้
+  // ลบถาวรแทนคนคือการตัดสินใจแทนเขาในเรื่องที่เขาอาจทำไปแล้วครึ่งทาง
+  if (meta.op === 'cancel') {
+    if (!existing || existing.done || existing.deleted) return { status: 'gone' };
+    // 16 ต.ค. 69 · Classroom ส่ง op 'cancel' มาพร้อม reason 'turned_in' เมื่อนักเรียนกดส่งงานแล้ว
+    // (op ยังเป็น cancel เพื่อให้แอปรุ่นเก่าเอาออกจากแผนได้ · ดู sync-integrations)
+    // เดิมแอปรุ่นนี้ย้ายไปถังขยะแล้วขึ้นว่า "ครูยกเลิกงาน" ทั้งที่เด็กเพิ่งส่งงานเสร็จ
+    if (meta.reason === 'turned_in') {
+      syncMarkTurnedIn(existing);
+      save();
+      return { status: 'turnedIn', task: existing };
+    }
+    existing.deleted = true;
+    existing.deletedAt = new Date().toISOString();
+    existing.srcCancelled = true;
+    save();
+    return { status: 'cancelled', task: existing };
+  }
+
+  // ---------- ต้นทางแก้ของเดิม ----------
+  if (existing) {
+    // นักเรียนลบใบนี้ทิ้งเอง — การตัดสินใจของเขา ต้นทางแก้อะไรมาก็ไม่พากลับ
+    if (existing.deleted && !existing.srcCancelled) return { status: 'same', task: existing };
+    // ฝั่งต้นทางเป็นเจ้าของ "ข้อเท็จจริงของงาน" (ชื่อ · กำหนดส่ง · วิชา)
+    // ฝั่งนักเรียนเป็นเจ้าของ "การลงมือ" (ติ๊กเสร็จ · ความคืบหน้า · เวลาที่ประเมินเอง · งานย่อย)
+    // เส้นแบ่งนี้คือเหตุผลที่การซิงก์ไม่ลบความพยายามของใครทิ้ง
+    let changed = false;
+    if (parsed.detail && parsed.detail !== existing.detail) { existing.detail = parsed.detail; changed = true; }
+    if (parsed.due !== existing.due) { existing.due = parsed.due; changed = true; }
+    if (parsed.subject !== 'อื่น ๆ' && parsed.subject !== existing.subject) {
+      existing.subject = parsed.subject; changed = true;
+    }
+    if (meta.sourceUrl && meta.sourceUrl !== existing.sourceUrl) {
+      existing.sourceUrl = meta.sourceUrl; changed = true;
+    }
+    // ต้นทางเอางานที่เคยยกเลิกกลับมา — พากลับออกจากถังขยะให้ด้วย
+    if (existing.deleted && existing.srcCancelled) {
+      existing.deleted = false; existing.srcCancelled = false; changed = true;
+    }
+    // ต้นทางส่งงานที่เคยบอกว่า "ส่งแล้ว" กลับมาอีก = นักเรียนถอนการส่ง (unsubmit) ในต้นทาง
+    // ปลดติ๊กเฉพาะใบที่ต้นทางเป็นคนติ๊ก — ใบที่นักเรียนติ๊กเองในแอปไม่แตะ (การลงมือเป็นของเขา)
+    if (existing.done && existing.srcTurnedIn) {
+      existing.done = false; existing.doneAt = null; existing.srcTurnedIn = false;
+      if (existing.progress === 100) existing.progress = 0;
+      changed = true;
+    }
+    if (!changed) return { status: 'same', task: existing };
+    save();
+    return { status: 'updated', task: existing };
+  }
+
+  // ---------- ของใหม่ ----------
+  const item = {
+    id: uid(), source: sourceId, raw: meta.raw || parsed.detail,
+    at: new Date().toISOString(),
+    parsed, confidence: 1, status: 'new', taskId: null,
+    meta: { srcKey: key, sourceUrl: meta.sourceUrl || null, account: meta.account || null },
+    sync: { srcKey: key, sourceUrl: meta.sourceUrl || null, srcSubject: (meta.task || {}).subject || '' },
+  };
+
+  // ครูสั่งงานเดียวกันทั้งในกลุ่ม LINE และใน Classroom เป็นเรื่องปกติที่สุด
+  // เจอของเดิมที่พิมพ์/รับเข้ามาก่อนแล้ว = ผูก srcKey เข้ากับใบเดิม ไม่สร้างใบที่สอง
+  // (ผูกแล้วการแก้กำหนดส่งรอบหน้าจะไหลเข้าใบนั้นเองโดยไม่ต้องทำอะไรเพิ่ม)
+  const dup = findDuplicate(parsed);
+  if (dup && dup.kind === 'task') {
+    const t = (state.tasks || []).find(x => x.id === dup.id);
+    if (t && !t.srcKey) {
+      t.srcKey = key;
+      t.sourceUrl = meta.sourceUrl || t.sourceUrl || null;
+      item.status = 'duplicate'; item.taskId = t.id; item.dupOf = dup;
+      state.inbox = state.inbox || [];
+      state.inbox.unshift(item);
+      save();
+      return { status: 'linked', task: t };
+    }
+  }
+
+  const task = inboxToTask(item);
+  item.status = 'accepted';
+  item.taskId = task.id;
+  state.inbox = state.inbox || [];
+  if (state.inbox.length > 150) state.inbox.length = 150;
+  state.inbox.unshift(item);
+  save();
+  return { status: 'accepted', task };
+}
+
+// ---------- ข้อความเดียว หลายงาน ----------
+// ทั้งก้อนอยู่รวมกันเป็นรายการเดียวในกล่องเข้า มีเช็คลิสต์อยู่ข้างใน
+// เหตุผลที่ไม่แตกเป็น 11 การ์ด: ในสายตาผู้ใช้มันคือ "ข้อความจากครูหนึ่งข้อความ"
+// การเห็นสิบเอ็ดการ์ดที่ไม่รู้ว่ามาจากที่เดียวกัน แล้วต้องกดสิบเอ็ดครั้ง
+// คือการย้ายงานกรอกข้อมูลจากคีย์บอร์ดไปไว้ที่นิ้วโป้ง ไม่ได้แก้ปัญหาอะไรเลย
+function inboxAddBatch(text, cut, sourceId, meta) {
+  const now = inboxNow(meta);
+  const parts = cut.segments.map(seg => ({ seg, parsed: parseAssignment(seg, now) }));
+
+  // ---- บริบทของทั้งก้อนมาก่อนการตัดสินทีละบรรทัด ----
+  // ประตูคัดขยะถูกออกแบบมาสำหรับข้อความเดี่ยว ๆ ที่ลอยมาในกลุ่ม จึงต้องการหลักฐานในตัวมันเอง
+  // แต่บรรทัดที่อยู่ในรายการการบ้าน มีหลักฐานอยู่ที่ "เพื่อนบ้าน" ของมัน ไม่ใช่ในตัวมันเอง
+  //
+  // ของจริงที่วัดมา: ในรายการ 11 บรรทัดของครู มี 3 บรรทัดถูกคัดทิ้งเป็นขยะ —
+  //   "ทำอินโฟของประวัติศาสตร์และหน้าที่" · "งานชิ้นที่ 6 Blockly ซ้ำ"
+  //   "ทำพอร์ตหน้าประวัติการศึกษาให้เสร็จ"
+  // ทั้งสามคือการบ้านจริง แค่เขียนสั้นจนไม่มีคำว่าส่ง ไม่มีวันที่ ไม่มีคะแนน
+  // เมื่ออีกแปดบรรทัดรอบตัวมันเป็นงานชัด ๆ การเถียงว่าบรรทัดพวกนี้ไม่ใช่งานคือการดื้อกับบริบท
+  //
+  // เกณฑ์: เกินครึ่งของรายการเป็นงานชัด → ทั้งก้อนคือใบสั่งงาน ทุกบรรทัดผ่าน
+  // (ยังปลดติ๊กรายบรรทัดได้ ของที่หลุดเข้ามาผิดจึงเสียแค่หนึ่งแตะ
+  //  ส่วนของที่ถูกทิ้งไปเงียบ ๆ ไม่มีใครรู้ว่าเคยมี — ราคาไม่เท่ากัน)
+  const strongN = parts.filter(p => taskEvidence(p.seg, p.parsed) === 'strong').length;
+  const isTaskList = isTaskListByEvidence(strongN, parts.length);
+
+  const seen = [];   // งานที่รับไปแล้วในก้อนนี้ — ใช้จับซ้ำกันเองภายในข้อความเดียว
+  const children = parts.map(({ seg, parsed }) => {
+    const c = {
+      id: uid(), raw: seg, parsed,
+      confidence: inboxConfidence(parsed),
+      status: 'new', pick: true, taskId: null, dupOf: null,
+    };
+
+    // ประตูคัดขยะทำงานทีละบรรทัด ไม่ใช่ทั้งก้อน — บรรทัด "อย่าลืมเอาเงินมาจ่ายค่าเสื้อ"
+    // ที่ปนอยู่กลางรายการงาน ต้องถูกคัดออกได้โดยไม่ทำให้ทั้งก้อนตกไปด้วย
+    if (PASSIVE_SOURCES.includes(sourceId) && !isTaskList && !taskGate(seg, parsed).pass) {
+      c.status = 'noise'; c.pick = false;
+      return c;
+    }
+    if (isTaskList) c.why = 'list';
+    const dup = findDuplicate(parsed, seen);
+    if (dup) {
+      c.status = 'duplicate'; c.pick = false; c.dupOf = dup;
+      if (dup.kind === 'task') c.taskId = dup.id;
+      return c;
+    }
+    seen.push(parsed);
+    return c;
+  });
+
+  const fresh = children.filter(c => c.status === 'new');
+  const item = {
+    id: uid(), source: sourceId, kind: 'batch', raw: text, header: cut.header,
+    at: new Date().toISOString(), children, meta,
+    parsed: (fresh[0] || children[0]).parsed,   // ให้โค้ดเก่าที่อ่าน .parsed ยังทำงานได้
+    confidence: fresh.length ? Math.min(...fresh.map(c => c.confidence)) : 0,
+    status: 'new', taskId: null,
+  };
+
+  state.inbox = state.inbox || [];
+  if (state.inbox.length > 150) state.inbox.length = 150;
+
+  // ทั้งก้อนไม่เหลืออะไรใหม่เลย — ซ้ำหมดหรือไม่ใช่งานหมด ไม่ต้องไปกวนให้กดทิ้ง
+  if (!fresh.length) {
+    item.status = children.some(c => c.status === 'duplicate') ? 'duplicate' : 'noise';
+    state.inbox.unshift(item);
+    save();
+    return { status: item.status, item };
+  }
+
+  // เข้าแผนเองได้ก็ต่อเมื่อ **ทุก** ใบในก้อนมั่นใจถึงเกณฑ์
+  // ก้อนหนึ่งคือคำตอบเดียวที่ครอบสิบเอ็ดงาน — ปล่อยผ่านทั้งที่มีใบเดียวไม่แน่ใจ
+  // คือการเดาแทนผู้ใช้สิบเอ็ดครั้งจากการตัดสินใจครั้งเดียว ราคาของการผิดจึงสูงกว่ากันมาก
+  if (fresh.every(c => c.confidence >= autoAcceptBar()) && autoAcceptOn()) {
+    for (const c of fresh) { c.taskId = inboxToTask(childShim(item, c)).id; c.status = 'accepted'; }
+    item.status = 'accepted';
+    state.inbox.unshift(item);
+    save();
+    return { status: 'accepted', item, count: fresh.length };
+  }
+
+  state.inbox.unshift(item);
+  save();
+  return { status: 'pending', item, count: fresh.length };
+}
+
+// ให้ลูกในก้อนหน้าตาเหมือนรายการเดี่ยว เพื่อใช้ inboxToTask ตัวเดิมได้โดยไม่ต้องแยกทาง
+function childShim(item, c) {
+  return { id: c.id, parsed: c.parsed, source: item.source, raw: c.raw };
+}
+
+// ติ๊กเลือก/ไม่เลือกทีละบรรทัด
+function inboxPick(itemId, childId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  const c = item && (item.children || []).find(x => x.id === childId);
+  if (!c || c.status === 'accepted') return;
+  c.pick = !c.pick;
+  // เคยถูกตัดออกเพราะคิดว่าซ้ำ/ไม่ใช่งาน แล้วผู้ใช้ติ๊กกลับ = เราคิดผิด ต้องยอมรับเข้ามา
+  if (c.pick && c.status !== 'new') { c.status = 'new'; c.dupOf = null; c.taskId = null; }
+  save(); renderInbox();
+}
+
+function inboxExpand(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item) return;
+  item.expanded = true;
+  save(); renderInbox();
+}
+
+function inboxAcceptBatch(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item || item.status !== 'new') return;
+  const take = (item.children || []).filter(c => c.pick && c.status === 'new');
+  for (const c of take) { c.taskId = inboxToTask(childShim(item, c)).id; c.status = 'accepted'; }
+  item.status = 'accepted';
+  // สอนจากบรรทัดที่ "คน" เลือกจริง ไม่ใช่จากทั้งก้อน — ก้อนเดียวมีทั้งงานจริงและของที่ไม่ใช่
+  for (const c of item.children || []) {
+    if (c.status === 'accepted') brainLearn(c.raw, true);
+    else if (!c.pick && c.status === 'new') brainLearn(c.raw, false);
+  }
+  save(); renderAll();
+  showToast({ title: `เพิ่มเข้าแผนแล้ว ${take.length} งาน`,
+    body: take.length ? take.slice(0, 3).map(c => c.parsed.subject).join(' · ') + (take.length > 3 ? ' …' : '') : '' });
+}
+
+function inboxIgnoreBatch(itemId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  if (!item) return;
+  item.status = 'ignored';
+  for (const c of item.children || []) if (c.status === 'new') brainLearn(c.raw, false);
+  save(); renderAll();
+}
+
+// แก้บรรทัดเดียวก่อนรับ — ที่เหลือในก้อนยังค้างรอต่อไป
+function inboxEditChild(itemId, childId) {
+  const item = (state.inbox || []).find(i => i.id === itemId);
+  const c = item && (item.children || []).find(x => x.id === childId);
+  if (!c) return;
+  c.status = 'ignored'; c.pick = false;   // ฟอร์มจะสร้างงานใหม่ให้เอง
+  brainLearn(c.raw, true);
+  save();
+  openForm(null, c.parsed);
+}
+
+// แปลงรายการในกล่องเข้าเป็นงานจริง
+function inboxToTask(item) {
+  const p = item.parsed;
+  const t = {
+    id: uid(),
+    subject: p.subject, detail: p.detail, teacher: p.teacher || '',
+    scorePct: p.scorePct != null ? p.scorePct : null,
+    estMin: p.estMin || 30,
+    type: p.type || 'homework',
+    due: p.due || null,
+    done: false, progress: 0,
+    // จำไว้ว่างานนี้มาจากไหน — ใช้ตอบคำถาม "งานนี้โผล่มาจากไหน" และใช้กรองในชั้นหนังสือ
+    sourceId: item.source, sourceText: item.raw, fromInbox: item.id,
+  };
+  // งานที่ซิงก์มาจาก API ถือกุญแจของต้นทางติดตัวไว้ — มันคือสิ่งเดียวที่ทำให้การแก้
+  // กำหนดส่งรอบหน้าไหลเข้าใบนี้ แทนที่จะกลายเป็นงานใบที่สองที่หน้าตาเหมือนกันเป๊ะ
+  // srcSubject เก็บชื่อคอร์สตามที่ต้นทางเรียก ("ว31101 เคมี ม.4/2") ไว้ตอบว่ามาจากห้องไหน
+  // เพราะ subject ถูกบีบให้เป็นหนึ่งในรายชื่อวิชาตายตัวไปแล้ว
+  if (item.sync) {
+    t.srcKey = item.sync.srcKey;
+    t.sourceUrl = item.sync.sourceUrl || null;
+    t.srcSubject = item.sync.srcSubject || '';
+  }
+  state.tasks.push(t);
+  // typeof กันไว้เพราะ inbox.js ถูกโหลดก่อน app.js — ตอนไฟล์นี้ถูกอ่านยังไม่มีฟังก์ชันนี้
+  // (ตอนถูกเรียกจริงมีแล้ว แต่ลำดับโหลดห้ามสลับ จึงไม่พึ่งลำดับ)
+  if (typeof funnelTask === 'function') funnelTask(item.source === 'line' ? 'line' : 'inbox');
+  return t;
+}
+
+function inboxPending() { return (state.inbox || []).filter(i => i.status === 'new'); }
+
+// สามฟังก์ชันข้างล่างนี้คือที่เดียวที่ brain เรียนรู้ — เพราะเป็นที่เดียวที่ "คน" ตัดสิน
+function inboxAccept(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (!item || item.status !== 'new') return;
+  const t = inboxToTask(item);
+  item.status = 'accepted'; item.taskId = t.id;
+  brainLearn(item.raw, true);
+  save(); renderAll();
+  showToast({ title: 'เพิ่มเข้าแผนแล้ว', body: `${t.subject} · ${t.detail}` });
+}
+
+function inboxIgnore(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (!item) return;
+  item.status = 'ignored';
+  brainLearn(item.raw, false);
+  save(); renderAll();
+  // บอกให้รู้ตัวว่าเพิ่งสอนไป ไม่งั้นมันดูเหมือนแค่ลบทิ้งเฉย ๆ
+  // ครั้งแรก ๆ สำคัญที่สุด เพราะเป็นตอนที่ผู้ใช้ยังไม่รู้ว่าแอปจำได้
+  if (brainExamples() <= BRAIN_MIN_EXAMPLES + 2) {
+    const need = brainNeeds();
+    showToast({ title: 'จำไว้แล้ว',
+      body: brainReady() ? ''
+        : need.pos ? `ขอตัวอย่างงานจริงอีก ${need.pos} ครั้ง`
+        : `สอนอีก ${BRAIN_MIN_EXAMPLES - brainExamples()} ครั้ง จะเริ่มคัดให้เอง` });
+  }
+}
+
+// ---------- ตรวจในฟอร์มแล้วค่อยรับ (15 ต.ค. 69 · กดแจ้งเตือนที่รอตรวจ) ----------
+// ต่างจาก inboxEdit ตรงที่ไม่ปิดรายการก่อน — รายการในกล่องเข้าจบหน้าที่เมื่อ "บันทึก" จริงเท่านั้น
+// กดย้อนกลับจากฟอร์ม = ยังรอตรวจอยู่ที่เดิม ไม่หายไปเงียบ ๆ แบบที่ inboxEdit ทำ
+let inboxFormItem = null;
+// saveForm เรียกหลังสร้างงานใหม่ (ไม่ใช่ตอนแก้งานเดิม) · openForm ล้าง inboxFormItem ทุกครั้งที่เปิด
+function inboxFormSaved(t) {
+  const item = inboxFormItem && (state.inbox || []).find(i => i.id === inboxFormItem);
+  inboxFormItem = null;
+  if (!item || item.status !== 'new' || !t) return;
+  item.status = 'accepted'; item.taskId = t.id;
+  // ของที่ซิงก์จากแอปต้นทางต้องพากุญแจต้นทางไปด้วย ไม่งั้นรอบซิงก์ถัดไปสร้างงานซ้ำอีกใบ
+  if (item.sync) {
+    t.srcKey = item.sync.srcKey; t.sourceUrl = item.sync.sourceUrl || null; t.srcSubject = item.sync.srcSubject || '';
+  }
+  brainLearn(item.raw, true);
+}
+
+// ปุ่มติ๊กบนแถวแจ้งเตือน — รับเข้าแผนเลยโดยไม่ออกจากจอ · ก้อนหลายงานรับเฉพาะบรรทัดที่ติ๊กไว้ (ค่าเริ่มต้นคือที่ AI คิดว่าเป็นงาน)
+function notifAccept(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (!item || item.status !== 'new') return;
+  if (item.kind === 'batch') inboxAcceptBatch(id); else inboxAccept(id);
+  if (typeof haptic === 'function') haptic('tap');
+  if (curScreen !== 'scr-notif') return;
+  renderNotif();
+  // ป้ายมุมไอคอนพลิกจากกระดิ่งเป็นติ๊ก — เด้งหนึ่งที ให้เห็นว่าแถวไหนเพิ่งเข้าแผน
+  const b = document.querySelector(`#notifBody .nt-row[data-nt="${id}"] .nt-ic-b`);
+  if (b && b.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    b.animate([{ transform: 'scale(.3)' }, { transform: 'scale(1.3)', offset: .55 }, { transform: 'scale(1)' }],
+      { duration: 420, easing: 'cubic-bezier(.34, 1.56, .64, 1)' });
+  }
+}
+
+// แก้ก่อนรับ — ส่งเข้าฟอร์มเดิมที่มีอยู่ แล้วให้ฟอร์มเป็นคนบันทึก
+function inboxEdit(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (!item) return;
+  item.status = 'ignored'; // ฟอร์มจะสร้างงานใหม่ให้เอง รายการในกล่องจึงถือว่าจบหน้าที่
+  // แก้ก่อนรับ = ยอมรับว่าเป็นงาน แค่รายละเอียดเพี้ยน จึงนับเป็นตัวอย่างฝั่งบวก
+  brainLearn(item.raw, true);
+  save();
+  openForm(null, item.parsed);
+}
+
+// ---------- จอ "กล่องเข้า" ----------
+function renderInbox() {
+  const body = document.getElementById('inboxBody');
+  if (!body) return;
+  const all = state.inbox || [];
+  const wait = inboxPending();
+  const recent = all.filter(i => i.status !== 'new').slice(0, 8);
+
+  // นับเป็น "จำนวนงาน" ไม่ใช่ "จำนวนข้อความ" — ข้อความเดียวของครูมีสิบเอ็ดงานได้
+  // ตัวเลขที่บอกว่ารอตรวจ 1 ทั้งที่ข้างในมีสิบเอ็ดใบ ทำให้คนไม่กดเข้าไปดู
+  const countUnits = (list, ok) => list.reduce((n, i) => n + inboxUnits(i).filter(ok).length, 0);
+  const waitN = countUnits(wait, c => c.status === 'new');
+
+  const sub = document.getElementById('inboxSub');
+  if (sub) {
+    const auto = countUnits(all.filter(i => i.status === 'accepted'), c => c.status === 'accepted');
+    // ยังไม่เคยมีอะไรเข้ามา = "เข้าแผนเองแล้ว 0" ไม่ได้บอกอะไรเลย · บอกว่าจอนี้คืออะไรแทน
+    sub.textContent = waitN
+      ? `รอตรวจ ${waitN} · เข้าแผนเองแล้ว ${auto}`
+      : all.length ? `เข้าแผนเองแล้ว ${auto} รายการ` : '';
+  }
+
+  // ---- 1C40 · การ์ดสถานะแทนหัวจอซ้ำ ----
+  // คนเปิดจอนี้มาถามเรื่องเดียว: "มีอะไรต้องให้ฉันทำไหม" — ตอบในการ์ดใบแรกด้วยประโยคเดียวตัวใหญ่
+  // ของเดิมมีชื่อจอซ้ำสองชั้น (หัวจอ + page-head) แล้วตามด้วยย่อหน้าอธิบายระบบ ก่อนจะถึงคำตอบ
+  // ตัวเลขสามช่องข้างล่างคือหลักฐานว่า AI ทำงานอยู่ — ขึ้นเฉพาะเมื่อเคยมีอะไรเข้ามาแล้ว
+  const auto = countUnits(all, c => c.status === 'accepted');
+  const skipped = countUnits(all, c => c.status === 'noise' || c.status === 'duplicate' || c.status === 'ignored');
+  const mood = waitN ? 'wait' : all.length ? 'clear' : 'fresh';
+  const hero = `<section class="ib2-hero ${mood}">
+    <div class="ib2-hero-top">
+      <!-- 8 ต.ค. 69 · ตอนยังไม่มีอะไรเข้ามา ใช้รูปถาดกล่องเข้า (#lu-inbox ไอคอนเดียวกับไทล์ "กล่องเข้า") แทนประกาย
+           (เจ้าของ: "ทำให้ตรงโลโก้มันตรงกับหัวข้อ") — ประกายไม่ได้บอกว่านี่คือกล่องที่ของจะไหลเข้ามา -->
+      <span class="ib2-hero-ic">${icon(waitN ? 'bell' : all.length ? 'check-circle' : 'inbox')}</span>
+      <div>
+        <div class="ib2-hero-t">${waitN ? `รอคุณดู ${waitN} งาน` : all.length ? 'ไม่มีอะไรค้าง' : 'ยังไม่มีอะไรเข้ามา'}</div>
+        ${waitN ? '<p class="ib2-hero-p">AI ไม่แน่ใจ ช่วยตรวจหน่อย</p>' : ''}
+      </div>
+    </div>
+    ${all.length ? `<div class="ib2-stats">
+      <div><b>${auto}</b><span>เข้าแผนเอง</span></div>
+      <div><b>${skipped}</b><span>ข้ามให้</span></div>
+      <div class="${waitN ? 'hot' : ''}"><b>${waitN}</b><span>รอตรวจ</span></div>
+    </div>` : ''}
+  </section>`;
+
+  // ---- 1C40 · แหล่งงานเป็นรายการในจอนี้เลย ----
+  // เดิมเป็นปุ่ม "จัดการตัวเชื่อม" ลอย ๆ ท้ายจอ — คนที่เห็นกล่องว่างไม่รู้ว่าว่างเพราะไม่มีงาน
+  // หรือเพราะยังไม่ได้ต่ออะไรเลย · แถวบอกสถานะของแต่ละทางเข้าตรง ๆ แตะแล้วไปจอตัวเชื่อมเหมือนเดิม
+  // โชว์เฉพาะตัวที่ต่อได้จริง (live/oauth) — ตัวที่ต่อไม่ได้อยู่ในจอตัวเชื่อม ไม่ต้องมาเกะกะที่นี่
+  if (typeof integAutoLoad === 'function') integAutoLoad();
+  const perSrc = {};
+  for (const i of all) perSrc[i.source] = (perSrc[i.source] || 0) + inboxUnits(i).filter(c => c.status !== 'noise').length;
+  const srcStatus = s => {
+    if (s.toggle && !srcEnabled(s.id)) return ['off', 'ปิดอยู่'];
+    if (s.id === 'line') {
+      const n = typeof lineLinks !== 'undefined' ? lineLinks.length : 0;
+      return n ? ['ok', `เชื่อมแล้ว ${n} กลุ่ม`] : ['idle', 'ยังไม่เชื่อม'];
+    }
+    if (s.id === 'share') return ['ok', 'พร้อมใช้'];
+    if (s.state === 'oauth' && typeof integ !== 'undefined' && integ.loaded && !integ.google) return ['wait', 'ยังเปิดใช้ไม่ได้'];
+    const n = typeof integBy === 'function' ? integBy(s.id).length : 0;
+    return n ? ['ok', 'เชื่อมแล้ว'] : ['idle', 'ยังไม่เชื่อม'];
+  };
+  const srcList = SOURCES.filter(s => s.kind === 'connector' && (s.state === 'live' || s.state === 'oauth'))
+    .map(s => {
+      const [k, txt] = srcStatus(s);
+      const n = perSrc[s.id] || 0;
+      return `<button class="ib2-src" onclick="go('scr-sources')">
+        <span class="ib2-src-ic">${icon(s.icon)}</span>
+        <span class="ib2-src-bd">
+          <span class="t">${esc(s.shortName || s.name)}</span>
+          <span class="s ${k}"><i></i>${esc(txt)}${n ? ` · ${n} งาน` : ''}</span>
+        </span>
+        ${k === 'idle' ? '<span class="ib2-src-go">เชื่อม</span>' : icon('chevron')}
+      </button>`;
+    }).join('');
+  const sources = `<div class="ib2-sec"><span>แหล่งที่ส่งงานเข้ามา</span>
+      <button onclick="go('scr-sources')">จัดการ</button></div>
+    <div class="ib2-list">${srcList}</div>`;
+
+  // ---- การ์ดของก้อนที่มีหลายงาน ----
+  // หน้าตาเป็นเช็คลิสต์ ไม่ใช่คำถาม — ของที่แกะได้ครบติ๊กมาให้แล้ว
+  // สิ่งที่ผู้ใช้ต้องทำจึงเหลือแค่ "ปลดติ๊กอันที่ไม่เอา" ซึ่งส่วนใหญ่ไม่ต้องทำอะไรเลย
+  const CHILD_PREVIEW = 6;
+  const childRow = (it, c) => {
+    const p = c.parsed;
+    const why = c.status === 'duplicate'
+      ? 'ซ้ำกับ' + (c.dupOf && c.dupOf.kind === 'inbox' ? 'ที่รออยู่ในกล่อง' : 'งานที่มีอยู่แล้ว')
+      : c.status === 'noise' ? 'อ่านแล้วไม่เหมือนงานที่ครูสั่ง'
+      : c.status === 'accepted' ? 'เข้าแผนแล้ว'
+      : p.due ? fmtDue(p.due, new Date(), p) : 'ไม่เจอกำหนดส่ง';
+    const subj = p.subject && p.subject !== 'อื่น ๆ' ? esc(p.subject) + ' · ' : '';
+    return `<div class="ibr ${c.pick ? 'on' : 'off'} ${c.status}">
+      <button class="ibr-ck" onclick="inboxPick('${it.id}','${c.id}')"
+        aria-pressed="${c.pick}" aria-label="เลือกงานนี้">${c.pick ? icon('check') : ''}</button>
+      <span class="ibr-bd" onclick="inboxPick('${it.id}','${c.id}')">
+        <span class="t">${subj}${esc(p.detail || c.raw)}</span>
+        <span class="s ${c.status !== 'new' ? 'flag' : (p.due ? '' : 'miss')}">${esc(why)}</span>
+      </span>
+      ${c.status === 'accepted' ? ''
+        : `<button class="ibr-ed" onclick="inboxEditChild('${it.id}','${c.id}')"
+             aria-label="แก้ก่อนรับ">${icon('pencil')}</button>`}
+    </div>`;
+  };
+
+  const batchCard = it => {
+    const s = sourceById(it.source);
+    const kids = it.children || [];
+    const picked = kids.filter(c => c.pick && c.status === 'new').length;
+    const shown = it.expanded ? kids : kids.slice(0, CHILD_PREVIEW);
+    const more = kids.length - shown.length;
+    return `<article class="ib ib-batch" data-ib="${esc(it.id)}">
+      <div class="ib-top">
+        <span class="ib-src">${icon(s.icon)}${esc(s.name)}</span>
+        <span class="ib-batch-n">${icon('tasks-alt')}เจอ ${kids.length} งานในข้อความเดียว</span>
+      </div>
+      <div class="ib-title">${esc(it.header || it.raw.split('\n')[0].slice(0, 60))}</div>
+      <div class="ib-rows">${shown.map(c => childRow(it, c)).join('')}</div>
+      ${more > 0 ? `<button class="ib-more" onclick="inboxExpand('${it.id}')">${icon('chevron')}ดูอีก ${more} รายการ</button>` : ''}
+      <div class="ib-act">
+        <button class="ib-go" ${picked ? '' : 'disabled'} onclick="inboxAcceptBatch('${it.id}')">
+          ${icon('check')}${picked ? `เพิ่มทั้งหมด ${picked} งาน` : 'ยังไม่ได้เลือกอะไร'}</button>
+        <button class="warn" onclick="inboxIgnoreBatch('${it.id}')">ทิ้งทั้งก้อน</button>
+      </div>
+    </article>`;
+  };
+
+  const card = it => {
+    if (it.kind === 'batch') return batchCard(it);
+    const p = it.parsed, s = sourceById(it.source);
+    const pct = Math.round(it.confidence * 100);
+    return `<article class="ib" data-ib="${esc(it.id)}">
+      <div class="ib-top">
+        <span class="ib-src">${icon(s.icon)}${esc(s.name)}</span>
+        <span class="ib-conf ${it.confidence >= 0.6 ? 'ok' : 'low'}">มั่นใจ ${pct}%</span>
+      </div>
+      <div class="ib-title">${esc(p.subject || 'ไม่รู้วิชา')} · ${esc(p.detail || '—')}</div>
+      <div class="ib-meta">
+        ${p.due ? `<span>${esc(fmtDue(p.due, new Date(), p))}</span>`
+          : '<span class="miss">ไม่เจอกำหนดส่ง</span>'}
+        ${p.scorePct != null ? `<span>คะแนน ${p.scorePct}%</span>` : ''}
+        <span>~${p.estMin || 30} นาที</span>
+      </div>
+      <div class="ib-raw">${esc(it.raw.slice(0, 140))}${it.raw.length > 140 ? '…' : ''}</div>
+      <div class="ib-act">
+        <button class="ib-go" onclick="inboxAccept('${it.id}')">${icon('check')}เพิ่มเข้าแผน</button>
+        <button onclick="inboxEdit('${it.id}')">${icon('pencil')}แก้ก่อน</button>
+        <button class="warn" onclick="inboxIgnore('${it.id}')">ไม่ใช่งาน</button>
+      </div>
+    </article>`;
+  };
+
+  const logRow = it => {
+    const s = sourceById(it.source);
+    const label = it.status === 'accepted' ? 'เข้าแผนเอง'
+      : it.status === 'duplicate' ? 'ซ้ำกับที่มีอยู่ เลยไม่เพิ่ม'
+      : it.status === 'noise' ? (it.why === 'learned'
+          ? 'ไม่ใช่งาน (เคยลบแบบนี้ไปแล้ว)' : 'ไม่ใช่งาน ข้ามให้แล้ว')
+      : 'ข้ามไป';
+
+    // ก้อนที่จบไปแล้ว บอกเป็นตัวเลขว่าเข้าไปกี่ใบ ข้ามกี่ใบ
+    // ("เข้าแผนเอง · การบ้านประจำสัปดาห์" ไม่ได้บอกอะไรเลยว่าเกิดอะไรขึ้นกับสิบเอ็ดบรรทัดนั้น)
+    if (it.kind === 'batch') {
+      const kids = it.children || [];
+      const took = kids.filter(c => c.status === 'accepted').length;
+      const dup = kids.filter(c => c.status === 'duplicate').length;
+      const skip = kids.length - took - dup;
+      const parts = [took ? `เข้าแผน ${took}` : '', dup ? `ซ้ำ ${dup}` : '', skip ? `ข้าม ${skip}` : ''];
+      return `<div class="ib-log ${it.status}" data-ib="${esc(it.id)}">
+        <span class="ib-log-ic">${icon(s.icon)}</span>
+        <span class="ib-log-bd">
+          <span class="t">${esc(it.header || it.raw.split('\n')[0].slice(0, 40))} · ${kids.length} งาน</span>
+          <span class="s">${esc(parts.filter(Boolean).join(' · '))} · ${esc(s.name)}</span>
+        </span>
+      </div>`;
+    }
+    return `<div class="ib-log ${it.status}" data-ib="${esc(it.id)}">
+      <span class="ib-log-ic">${icon(s.icon)}</span>
+      <span class="ib-log-bd">
+        <span class="t">${esc([it.parsed.subject, it.parsed.detail || it.raw.slice(0, 40)].filter(Boolean).join(' · '))}</span>
+        <span class="s">${esc(label)} · ${esc(s.name)}</span>
+      </span>
+    </div>`;
+  };
+
+  // ลำดับ: คำตอบ → ของที่ต้องตัดสิน → เกิดอะไรขึ้นไปแล้ว → ทางเข้า
+  // คนที่ยังไม่มีอะไรเข้ามาเลย สองช่องกลางว่าง แถวแหล่งงานจึงขึ้นมาอยู่ใต้การ์ดสถานะพอดี
+  body.innerHTML = hero
+    + (wait.length ? `<div class="ib2-sec"><span>รอคุณตัดสินใจ</span></div>` + wait.map(card).join('') : '')
+    + (recent.length ? `<div class="ib2-sec"><span>ที่ผ่านมา</span></div>
+        <div class="ib2-list">${recent.map(logRow).join('')}</div>` : '')
+    + sources
+    + brainCard();
+}
+
+// ---------- จอ "ตัวเชื่อม" ----------
+// บอกตรง ๆ ว่าอันไหนต่อได้แล้ว อันไหนยัง และติดอะไรอยู่
+// ไม่เขียนว่า "เร็ว ๆ นี้" ลอย ๆ เพราะมันไม่ได้บอกอะไรกับใครเลย
+function renderSources() {
+  const body = document.getElementById('srcBody');
+  if (!body) return;
+  // ข้อมูลการเชื่อมอยู่ฝั่งเซิร์ฟเวอร์ — ถ้ายังไม่เคยถาม ถามตอนนี้แล้วให้มันวาดซ้ำเองเมื่อได้คำตอบ
+  if (typeof integAutoLoad === 'function') integAutoLoad();
+
+  // นับเป็น "จำนวนงาน" ไม่ใช่ "จำนวนข้อความ" — ให้ตรงกับตัวเลขในกล่องเข้า
+  // ข้อความเดียวของครูมีสิบเอ็ดงานได้ ตัวเลข 1 ตรงนี้จะดูเหมือนตัวเชื่อมแทบไม่ทำงาน
+  const counts = {};
+  for (const i of state.inbox || []) {
+    counts[i.source] = (counts[i.source] || 0) + inboxUnits(i).filter(c => c.status !== 'noise').length;
+  }
+
+  // แอปต้องถูกติดตั้งลงจอโฮมก่อน ปุ่มแชร์ของเครื่องถึงจะเห็นชื่อ Student OS
+  // และ iOS ไม่รองรับเลยสักรุ่น — บอกตรง ๆ ดีกว่าให้เขากดแชร์แล้วหาไม่เจอแล้วคิดว่าแอปพัง
+  const installed = (() => {
+    try {
+      return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    } catch (_) { return false; }
+  })();
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  // ---------- สวิตช์ ----------
+  const sw = s => {
+    if (!s.toggle) return '';
+    const on = srcEnabled(s.id);
+    return `<button class="tg ${on ? 'on' : ''}" role="switch" aria-checked="${on}"
+      aria-label="${on ? 'ปิด' : 'เปิด'} ${esc(s.name)}"
+      onclick="srcToggle('${s.id}')"><span class="tg-k"></span></button>`;
+  };
+
+  // ---------- ตัวเชื่อมที่ใช้ได้แล้ว ----------
+  const liveRow = s => {
+    const on = srcEnabled(s.id);
+    // คำเตือนของ "แชร์จากแอปอื่น" ต่างกันตามเครื่อง เพราะข้อจำกัดคนละเรื่องกัน
+    const warn = s.id !== 'share' ? ''
+      : isIOS ? 'iPhone ยังไม่รองรับ ใช้ "แปะข้อความ" แทน'
+      : !installed ? 'ติดตั้งแอปก่อน'
+      : '';
+    return `<div class="src ${on ? 'on' : 'muted'}">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        ${s.how && on ? `<span class="src-how">${s.how.map((h, i) =>
+          `<span><b>${i + 1}</b>${esc(h)}</span>`).join('')}</span>` : ''}
+        ${warn && on ? `<span class="src-warn">${icon('flag')}${esc(warn)}</span>` : ''}
+        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
+        ${s.link === 'line' && on ? lineLinkPanel() : ''}
+      </span>
+      ${s.viaInbox && counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
+      ${sw(s)}
+    </div>`;
+  };
+
+  // ---------- ตัวเชื่อมที่ยังต่อไม่ได้ ----------
+  // แยกสองเหตุผลออกจากกัน เพราะมันไม่เหมือนกันเลยสำหรับคนที่รอ:
+  //   setup = รอเราไปตั้งค่า · noapi = เจ้าของแอปไม่เปิดให้ใครต่อ รอไปก็ไม่มีวันได้
+  const DEAD_TAG = { noapi: 'ต่อไม่ได้', admin: 'รอโรงเรียนอนุมัติ' };
+  const deadRow = s => {
+    const alt = s.insteadOf && sourceById(s.insteadOf);
+    return `<div class="src off">
+      <span class="src-ic off">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        <span class="src-need">${icon(s.state === 'noapi' ? 'unplug' : 'lock')}${esc(s.blocker)}</span>
+      </span>
+      <span class="src-tag ${s.state}">${DEAD_TAG[s.state] || 'รอตั้งค่า'}</span>
+    </div>`;
+  };
+
+  // ---------- บัญชีที่เชื่อมผ่าน API ----------
+  // ความจริงเรื่องนี้อยู่ฝั่งเซิร์ฟเวอร์ (integrations.js ถามมาให้) ไม่ได้อยู่ในเครื่อง
+  const accts = typeof integItems === 'function' ? integItems() : [];
+  const busyId = typeof integ !== 'undefined' ? integ.busy : '';
+
+  const acctRow = r => {
+    const s = SOURCES.find(x => x.id === r.provider) || { name: r.provider, icon: 'calendar' };
+    const why = typeof integEmptyReason === 'function' ? integEmptyReason(r) : null;
+    // บัญชีที่เชื่อมผ่านแต่ไม่อยู่ในห้องเรียนไหน = ต้องให้คนแก้เหมือนกุญแจหมดอายุ (เชื่อมบัญชีที่ถูก)
+    const bad = r.status === 'needs_reauth' || !!(why && why.warn);
+    const busy = busyId === r.id;
+    // ปุ่ม "เชื่อมใหม่" พาไปคนละทางตามชนิดของตัวเชื่อม: ฝั่ง Google พาออกไปหน้าอนุญาตใหม่
+    // ส่วนปฏิทินต้องให้คนไปก๊อปลิงก์ใหม่มาเอง เพราะลิงก์เดิมถูกเพิกถอนไปแล้ว
+    const again = r.provider === 'ics'
+      ? `document.getElementById('icsUrl').focus()`
+      : `integConnectGoogle('${r.provider}')`;
+    return `<div class="lk-room col">
+      <span class="lk-room-ic"${bad ? ' style="background:var(--warn-soft);color:var(--warn)"' : ''}>${icon(s.icon)}</span>
+      <span class="lk-room-bd">
+        <span class="t">${esc(s.shortName || s.name)}</span>
+        ${r.account ? `<span class="s">${esc(r.account)}</span>` : ''}
+        <span class="src-state ${bad ? 'bad' : 'ok'}">${icon(bad ? 'flag' : 'check-circle')}${esc(integStatusText(r))}</span>
+      </span>
+      <button onclick="integDisconnect('${esc(r.id)}')"${busy ? ' disabled' : ''}>ตัดการเชื่อม</button>
+      <div class="ib-act" style="width:100%">
+        ${bad ? `<button class="ib-go" style="flex:1" onclick="${again}">${why && why.warn ? 'เชื่อมบัญชีอื่น' : 'เชื่อมใหม่'}</button>` : ''}
+        <button onclick="integSyncNow('${esc(r.id)}')"${busy ? ' disabled' : ''}>
+          ${busy ? 'กำลังซิงก์…' : 'ซิงก์เดี๋ยวนี้'}</button>
+      </div>
+    </div>`;
+  };
+
+  // ---------- แถวของตัวที่ "ต่อได้" ----------
+  // ต้องล็อกอินก่อนเสมอ เพราะการเชื่อมคือการผูกบัญชีของที่อื่นเข้ากับบัญชีที่นี่
+  // ถ้าไม่บอกตรงนี้ คนจะกดปุ่มแล้วเจอ error ที่ไม่ได้อธิบายอะไร
+  const signedIn = typeof currentUser !== 'undefined' && !!currentUser;
+  const googleReady = typeof integ !== 'undefined' && integ.google;
+
+  const apiRow = s => {
+    const busy = busyId === s.id || busyId === 'ics';
+    const serverDown = typeof integ !== 'undefined' && !!integ.err;
+    let action;
+    if (!signedIn) {
+      action = `<div class="src-need">${icon('lock')}ต้องล็อกอินก่อน</div>
+        <button class="ib-go" style="margin-top:10px; align-self:flex-start"
+          onclick="go('scr-profile')">ไปล็อกอิน</button>`;
+    } else if (serverDown) {
+      // ถามเซิร์ฟเวอร์ไม่ได้เลย (ยังไม่ได้ deploy · เน็ตหลุด) — ต้องไม่โชว์ปุ่มที่กดแล้วพัง
+      // และต้องไม่โชว์ว่า "ยังไม่ได้เชื่อมอะไร" ทั้งที่จริง ๆ แค่ถามไม่ได้
+      action = `<div class="src-need">${icon('flag')}ตอนนี้ยังต่อกับเซิร์ฟเวอร์ตัวเชื่อมไม่ได้
+        ลองใหม่อีกครั้งภายหลัง</div>`;
+    } else if (s.connect === 'ics') {
+      action = `<input class="src-in" id="icsUrl" inputmode="url" spellcheck="false"
+          placeholder="วางลิงก์ปฏิทินที่นี่"
+          onkeydown="if(event.key==='Enter')integConnectIcs(this.value)">
+        <button class="ib-go" style="margin-top:9px; align-self:flex-start"${busy ? ' disabled' : ''}
+          onclick="integConnectIcs(document.getElementById('icsUrl').value)">
+          ${icon('check')}${busy ? 'กำลังตรวจลิงก์…' : 'เชื่อมปฏิทิน'}</button>
+        <span class="src-help">
+          <b>Canvas:</b> ปฏิทิน → Calendar Feed → ก๊อปลิงก์<br>
+          <b>Moodle:</b> ปฏิทิน → Export calendar → Get calendar URL
+        </span>`;
+    } else if (!googleReady) {
+      // พูดตรง ๆ ว่าติดที่ฝั่งเรา ไม่ใช่ที่เครื่องเขา — ปุ่มที่กดแล้วขึ้น error
+      // แย่กว่าปุ่มที่ยังไม่มี (กติกาเดียวกับปุ่มล็อกอินใน config.js)
+      action = `<div class="src-need">${icon('lock')}${esc(s.blocker || 'ยังไม่พร้อมใช้งาน')}</div>`;
+    } else {
+      action = `<button class="ib-go" style="margin-top:10px; align-self:flex-start"${busy ? ' disabled' : ''}
+        onclick="integConnectGoogle('${s.id}')">${busy ? 'กำลังพาไป Google…' : 'เชื่อมด้วย Google'}</button>`;
+    }
+    return `<div class="src on">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd">
+        <span class="t">${esc(s.name)}</span>
+        ${s.note ? `<span class="src-note">${esc(s.note)}</span>` : ''}
+        ${action}
+      </span>
+      ${s.viaInbox && counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
+    </div>`;
+  };
+
+  const conn = SOURCES.filter(s => s.kind === 'connector');
+  const api = conn.filter(s => s.connect);
+  const live = conn.filter(s => s.state === 'live' && !s.connect);
+  const dead = conn.filter(s => s.state !== 'live' && !s.connect);
+  const manual = SOURCES.filter(s => s.kind === 'manual');
+  const onN = live.filter(s => srcEnabled(s.id)).length;
+
+  body.innerHTML = `<div class="page-head">
+      <h1 class="page-title">ตัวเชื่อม</h1>
+    </div>
+
+    ${accts.length ? `<div class="sec-title">บัญชีที่เชื่อมไว้ ${accts.length}</div>
+      ${accts.map(acctRow).join('')}` : ''}
+
+    <div class="sec-title">ต่อกับระบบของโรงเรียน</div>
+    ${api.map(apiRow).join('')}
+
+    <div class="sec-title">ใช้งานอยู่ ${onN}/${live.length}</div>
+    ${live.map(liveRow).join('')}
+
+    <div class="sec-title">ยังต่อไม่ได้</div>
+    ${dead.map(deadRow).join('')}
+
+    <div class="sec-title">ทางที่คุณส่งเข้ามาเอง</div>
+    ${manual.map(s => `<div class="src on">
+      <span class="src-ic">${icon(s.icon)}</span>
+      <span class="src-bd"><span class="t">${esc(s.name)}</span>
+        ${s.panel === 'quick' && typeof quickPanel === 'function' ? quickPanel() : ''}</span>
+      ${counts[s.id] ? `<span class="src-n">${counts[s.id]}</span>` : ''}
+    </div>`).join('')}`;
+}
+
+// ============================================================
+// 1C40 · การแจ้งเตือน — ทุกอย่างที่ "เข้ามาหาคุณ" ในที่เดียว
+// ------------------------------------------------------------
+// ของที่เข้ามามีสองสาย: ข้อความจากเพื่อน (คำขอทัก + ข้อความใหม่) กับงานที่ไหลเข้ากล่องเข้า
+// เดิมกระดิ่งบนหน้าแรกพาไปกล่องเข้าอย่างเดียว ข้อความจากเพื่อนต้องเดินไปเปิดกล่องข้อความเอง
+// ถึงจะรู้ว่ามีคนทักมา — จอนี้รวมทั้งสองสายไว้ใต้กระดิ่งอันเดียว
+//
+// "อ่านแล้ว" เก็บในเครื่อง ไม่ได้เก็บที่เซิร์ฟเวอร์ — dm_inbox ไม่มีสถานะอ่าน/ยังไม่อ่าน
+// จึงจำเวลาที่เปิดแต่ละห้องล่าสุดไว้ (ข้อความที่มาหลังเวลานั้น = ยังไม่อ่าน)
+// เปลี่ยนเครื่องแล้วจุดแดงขึ้นใหม่ได้ ซึ่งยอมได้ — ดีกว่าบอกว่าอ่านแล้วทั้งที่ยังไม่เห็น
+// ============================================================
+const NOTIF_KEY = 'studentos.clear.notifSeen';
+let notifFilter = 'all';        // all · dm · work
+let notifLoadedAt = 0;
+let notifKickAt = 0;
+// 14 ต.ค. 69 · เจ้าของ: "เมื่อเข้าไปแล้ว จะเปลี่ยนจากยังไม่ได้อ่านเป็นอ่านแล้ว"
+// เปิดจอ = อ่านแล้วทั้งหมด (แบบ IG) แต่รายการที่ "ใหม่" ตอนเปิดยังไฮไลต์ไว้ตลอดการเปิดครั้งนั้น
+// ไม่งั้นกดเข้ามาแล้วทุกแถวกลายเป็นอ่านแล้วต่อหน้า ไม่รู้ว่าอันไหนเพิ่งเข้ามา · ออกจากจอ = ล้าง
+let notifVisit = null;
+function notifKey(n) { if (n.staff) return 's:' + n.staff.id + ':' + n.at; return (n.row ? 'd:' + n.row.id : 'i:' + n.item.id) + ':' + n.at; }
+
+function notifTs(v) { const n = Date.parse(v || ''); return isNaN(n) ? 0 : n; }
+function notifSeen() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)) || {}; } catch (_) { return {}; }
+}
+function notifSaveSeen(s) { try { localStorage.setItem(NOTIF_KEY, JSON.stringify(s)); } catch (_) {} }
+// เรียกจากจอแชททั้งตอนเปิดและตอนออก — ข้อความที่มาระหว่างนั่งอยู่ในห้องก็นับว่าเห็นแล้ว
+function notifSeenDm(id) {
+  if (!id) return;
+  const s = notifSeen(); s.dm = s.dm || {}; s.dm[id] = Date.now(); notifSaveSeen(s);
+}
+
+function notifName(r) {
+  return typeof personName === 'function' ? personName(r) : (r.display_name || 'เพื่อน');
+}
+
+// รายการทั้งหมด เรียงใหม่สุดก่อน · ไม่เก็บลงที่ไหน คำนวณใหม่ทุกครั้งจากของจริงสองก้อน
+function notifItems() {
+  const s = notifSeen(), dmSeen = s.dm || {}, cut = s.all || 0;
+  const out = [];
+  for (const r of (typeof dmRows !== 'undefined' ? dmRows : [])) {
+    const at = notifTs(r.last_at);
+    if (!at) continue;
+    // คนพูดล่าสุดคือเรา = ไม่มีอะไรเข้ามาใหม่ในห้องนั้น (เว้นคำขอ ซึ่งเป็นของเขาเสมอ)
+    if (r.mine_last && !r.is_request) continue;
+    out.push({ kind: r.is_request ? 'req' : 'dm', at, unread: at > Math.max(dmSeen[r.id] || 0, cut), row: r });
+  }
+  for (const i of state.inbox || []) {
+    const at = notifTs(i.at);
+    // ของที่ AI ข้ามให้เอง (ไม่ใช่งาน · ซ้ำ) ไม่ใช่ข่าว — มันอยู่ในบันทึกของกล่องเข้าอยู่แล้ว
+    if (!at || ['noise', 'duplicate', 'ignored'].includes(i.status)) continue;
+    out.push({ kind: i.status === 'new' ? 'wait' : 'auto', at, unread: at > cut, item: i });
+  }
+  if (typeof staffNotifItems === 'function') out.push(...staffNotifItems(cut));
+  return out.sort((a, b) => b.at - a.at).slice(0, 50);
+}
+function notifUnread() { return notifItems().filter(n => n.unread).length; }
+
+function notifReadAll() {
+  const s = notifSeen(); s.all = Date.now(); notifSaveSeen(s);
+  renderNotif(); notifPaintBell();
+}
+// วาดจอใหม่ทั้งก้อนก็จริง แต่ตัวบอกปุ่มที่เลือกต้อง "เลื่อน" จากปุ่มเดิมไปปุ่มใหม่ ไม่ใช่โผล่ที่ใหม่เฉย ๆ
+// ตั้ง --i ของแผงใหม่เป็นตำแหน่งเดิมก่อน บังคับวาด แล้วค่อยเปลี่ยนเป็นตำแหน่งใหม่ — transition ใน CSS พาไปเอง
+function notifSetFilter(f) {
+  const keys = ['all', 'dm', 'work'];
+  const from = keys.indexOf(notifFilter);
+  notifFilter = f;
+  renderNotif();
+  const g = document.querySelector('#notifBody .gbg');
+  if (!g || from < 0 || from === keys.indexOf(f)) return;
+  g.classList.add('gbg-hold');
+  g.style.setProperty('--i', from);
+  void g.offsetWidth;
+  g.classList.remove('gbg-hold');
+  g.style.setProperty('--i', keys.indexOf(f));
+}
+
+// 14 ต.ค. 69 · เจ้าของ: "ปรับหน้าเมื่อกดเข้าไปข้างใน" — กดแจ้งเตือนงานแล้วเคยไปแค่หัวกล่องเข้า ต้องเลื่อนหาเอง
+// ตอนนี้: เปิดกล่องเข้า → เลื่อนให้การ์ดชิ้นนั้นอยู่กลางจอ → วงสีธีมวาดรอบการ์ดแล้วจาง (Pointer Highlight ของ Aceternity)
+// ไม่เจอชิ้นนั้นในจอ (ถูกเก็บไปแล้ว) = อยู่หัวกล่องเข้าเหมือนเดิม · ลดการเคลื่อนไหว = กระโดดไปเลย ไม่เลื่อนนุ่ม
+//
+// 15 ต.ค. 69 · เจ้าของ: "พอกดเข้าไปแล้วก็เหมือนเชื่อมเป็นงานเลย" — แจ้งเตือนหนึ่งใบ = งานหนึ่งชิ้น
+//   เข้าแผนแล้ว → เปิดงานชิ้นนั้นเลย (ใบงานเดียวกับที่กดจากรายการงาน)
+//   รอตรวจ    → เปิดฟอร์ม "ตรวจก่อนบันทึก" ที่เติมให้แล้ว กดบันทึก = เข้าแผน · ย้อนกลับ = ยังรออยู่ที่เดิม ไม่หาย
+//   ก้อนหลายงาน (LINE) หรืองานถูกลบไปแล้ว → กล่องเข้าที่การ์ดชิ้นนั้นเหมือนเดิม (ติ๊กเลือกทีละบรรทัดได้ที่นั่นที่เดียว)
+function notifOpenItem(id) {
+  const item = (state.inbox || []).find(i => i.id === id);
+  if (item && item.kind !== 'batch' && typeof openForm === 'function') {
+    const t = item.taskId && (state.tasks || []).find(x => x.id === item.taskId);
+    if (item.status === 'accepted' && t) { openForm(t.id); return; }
+    if (item.status === 'new' && item.parsed && item.parsed.detected) {
+      openForm(null, item.parsed);
+      inboxFormItem = item.id;   // ตั้งหลัง openForm — openForm ล้างค่านี้ทุกครั้งที่ถูกเปิดจากทางอื่น
+      return;
+    }
+  }
+  go('scr-inbox');
+  if (typeof renderInbox === 'function') renderInbox();
+  // รอให้จอที่เพิ่งเปิดจัดผังเสร็จ (ไม่ผูกกับเฟรม — เครื่องที่วาดช้าก็ยังเลื่อนไปถูกที่)
+  setTimeout(() => {
+    const el = [...document.querySelectorAll('#scr-inbox [data-ib]')].find(x => x.dataset.ib === String(id));
+    if (!el) return;
+    const still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+    el.classList.remove('ib-spot'); void el.offsetWidth; el.classList.add('ib-spot');
+    setTimeout(() => el.classList.remove('ib-spot'), 1900);
+  }, 60);
+}
+
+function notifOpenDm(id) {
+  const r = (typeof dmRows !== 'undefined' ? dmRows : []).find(x => x.id === id);
+  if (!r || typeof openDmRow !== 'function') return;
+  notifSeenDm(id);
+  openDmRow(r.id, r.other, notifName(r), r.avatar || '', r.handle || '');
+  // กดย้อนกลับจากห้องคุย ต้องกลับมาที่รายการแจ้งเตือน ไม่ใช่กล่องข้อความที่ไม่ได้เปิดมา
+  if (typeof chatReturn !== 'undefined') chatReturn = 'scr-notif';
+}
+
+// ตัวเลขบนกระดิ่ง — แก้ตรงที่ปุ่ม ไม่วาดหน้าแรกใหม่ทั้งจอเพราะเลขตัวเดียว
+// 14 ต.ค. 69 · เจ้าของ: "ตรงกระดิ่งจะขึ้นจำนวนเลขตามข้อความที่ยังไม่ได้อ่าน เมื่อไม่มีก็ไม่ต้องแจ้งเตือน"
+// เดิมเป็นจุดแดงไม่มีเลข · ศูนย์ = ไม่มีป้ายเลย · เกิน 9 = "9+"
+function notifPaintBell() {
+  const b = document.querySelector('.th-bell');
+  if (!b) return;
+  const n = notifUnread();
+  let dot = b.querySelector('.th-dot');
+  if (n && !dot) { dot = document.createElement('span'); dot.className = 'th-dot n'; b.appendChild(dot); }
+  if (n) { dot.classList.add('n'); dot.textContent = n > 9 ? '9+' : String(n); }
+  if (!n && dot) dot.remove();
+  b.setAttribute('aria-label', n ? `การแจ้งเตือน ใหม่ ${n} รายการ` : 'การแจ้งเตือน');
+  // เลขเพิ่มขึ้น (มีของใหม่เข้ามา) = กระดิ่งแกว่ง + ป้ายเลขเด้ง · เปิดแอปครั้งแรก (ยังไม่รู้เลขเดิม) ไม่แกว่ง
+  if (notifBellN >= 0 && n > notifBellN) notifRing(b, dot);
+  notifBellN = n;
+}
+// Bell Toggle ของ React Bits (Micro): หมุนรอบหูกระดิ่งด้านบน มุมสลับซ้ายขวาและเบาลงทุกรอบ (สร้างมุมใน JS)
+// ป้ายเลขเด้งแบบ Pulse Heart ของ React Bits: ease-out ถึง 40% แล้วตกลงที่ด้วยการเด้งเกินเล็กน้อย
+// โหมดลื่น / ลดการเคลื่อนไหว = ไม่แกว่ง (เลขเปลี่ยนเฉย ๆ)
+let notifBellN = -1;
+function notifRing(b, dot) {
+  const root = document.documentElement;
+  if (root.dataset.lite || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const svg = b.querySelector('svg');
+  if (svg) {
+    const k = [{ transform: 'rotate(0deg)' }];
+    for (let i = 0, a = 16; i < 6; i++, a *= .62) k.push({ transform: `rotate(${i % 2 ? -a : a}deg)` });
+    k.push({ transform: 'rotate(0deg)' });
+    svg.style.transformOrigin = '50% 8%';
+    svg.animate(k, { duration: 720, easing: 'ease-out' });
+  }
+  if (dot) dot.animate([
+    { transform: 'scale(1)' },
+    { transform: 'scale(1.32)', offset: .4, easing: 'cubic-bezier(.34, 1.56, .64, 1)' },
+    { transform: 'scale(1)' },
+  ], { duration: 460 });
+}
+
+// ---------- ป้ายเด้งเมื่อมีข้อความเข้ามา ----------
+// ถามเซิร์ฟเวอร์ห่างกันอย่างน้อย 45 วิ (จังหวะเดียวกับที่กล่องเข้าดึง LINE) และเฉพาะตอนจอเปิดอยู่
+// ป้ายขึ้นเฉพาะข้อความที่ใหม่กว่าป้ายใบล่าสุด — เปิดแอปครั้งแรกจะไม่เด้งข้อความเก่าทั้งกองใส่หน้า
+async function notifKick(force) {
+  if (typeof staffNewsLoad === 'function') void staffNewsLoad();
+  if (typeof staffPersonalLoad === 'function') void staffPersonalLoad(force);
+  if (typeof sb === 'undefined' || !sb || typeof currentUser === 'undefined' || !currentUser) return;
+  if (typeof loadDmDot !== 'function') return;
+  if (!force && Date.now() - notifKickAt < 45000) return;
+  notifKickAt = Date.now();
+  await loadDmDot(true);
+  notifLoadedAt = Date.now();
+  const s = notifSeen();
+  if (!s.banner) { s.banner = Date.now(); notifSaveSeen(s); }
+  const fresh = notifItems().filter(n => (n.kind === 'dm' || n.kind === 'req') && n.unread && n.at > s.banner
+    // อยู่ในห้องนั้นอยู่แล้ว = เห็นข้อความกับตา ไม่ต้องเด้งซ้ำ
+    && !(curScreen === 'scr-chat' && typeof chatThread !== 'undefined' && chatThread && chatThread.id === n.row.id));
+  if (fresh.length) {
+    s.banner = Math.max(...fresh.map(n => n.at)); notifSaveSeen(s);
+    notifBanner(fresh[0], fresh.length);
+  }
+  notifPaintBell();
+  if (curScreen === 'scr-notif') renderNotif();
+}
+
+let notifBannerTimer = null;
+function notifBanner(n, count) {
+  const phone = document.querySelector('.phone');
+  if (!phone) return;
+  let el = document.getElementById('notifBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'notifBanner'; el.className = 'nt-banner'; el.setAttribute('role', 'status');
+    phone.appendChild(el);
+  }
+  const r = n.row, nm = notifName(r);
+  el.innerHTML = `${notifAvatar(r)}
+    <span class="nt-bn-bd">
+      <span class="nt-bn-top"><b>${esc(nm)}</b><i>เมื่อกี้</i></span>
+      <span class="nt-bn-tx">${n.kind === 'req' ? 'ขอทักคุณ' : esc(notifPreview(r))}${
+        count > 1 ? ` <em>+${count - 1}</em>` : ''}</span>
+    </span>`;
+  el.onclick = () => { el.classList.remove('show'); notifOpenDm(r.id); };
+  void el.offsetWidth;
+  el.classList.add('show');
+  clearTimeout(notifBannerTimer);
+  notifBannerTimer = setTimeout(() => el.classList.remove('show'), 5000);
+  if (typeof haptic === 'function') haptic('arm');
+}
+
+function notifPreview(r) {
+  return r.last_body ? String(r.last_body).slice(0, 90) : 'ส่งรูปมา';
+}
+function notifAvatar(r) {
+  const nm = notifName(r);
+  return r.avatar
+    ? `<img class="nt-av" src="${esc(r.avatar)}" alt="">`
+    : `<span class="nt-av" style="${typeof faceTint === 'function' ? faceTint(r) : ''}">${
+        esc(typeof faceLetter === 'function' ? faceLetter(r) : String(nm).slice(0, 1))}</span>`;
+}
+function notifAgo(ms) {
+  return typeof ago === 'function' ? ago(new Date(ms).toISOString()) : '';
+}
+
+// ---------- จอ "การแจ้งเตือน" ----------
+function renderNotif() {
+  const body = document.getElementById('notifBody');
+  if (!body) return;
+  // เปิดจอแล้วถามเซิร์ฟเวอร์รอบหนึ่ง — ข้อความจากเพื่อนไม่ได้อยู่ในเครื่อง
+  if (curScreen === 'scr-notif' && Date.now() - notifLoadedAt > 30000) {
+    notifLoadedAt = Date.now();
+    notifKick(true);
+  }
+
+  const all = notifItems();
+  const onScr = curScreen === 'scr-notif';
+  if (!onScr) notifVisit = null;
+  else {
+    // อยู่ในจอนี้ = เห็นแล้ว ทั้งตอนเพิ่งเปิดและของที่เด้งเข้ามาระหว่างเปิดอยู่
+    if (!notifVisit) notifVisit = new Set();
+    const unseen = all.filter(n => n.unread);
+    if (unseen.length) {
+      unseen.forEach(n => notifVisit.add(notifKey(n)));
+      const sn = notifSeen(); sn.all = Date.now(); notifSaveSeen(sn);
+    }
+    notifPaintBell();
+  }
+  const isNew = n => n.unread || !!(notifVisit && notifVisit.has(notifKey(n)));
+  const isDm = n => n.kind === 'dm' || n.kind === 'req';
+  const list = all.filter(n => notifFilter === 'all' || (notifFilter === 'dm' ? isDm(n) : !isDm(n) && n.kind !== 'staff'));
+  const nNew = list.filter(isNew).length;
+  const sub = document.getElementById('notifSub');
+  if (sub) sub.textContent = nNew ? `ใหม่ ${nNew} รายการ` : 'อ่านครบแล้ว';
+
+  // 14 ต.ค. 69 · เจ้าของ: "ให้มันเป็นหน้าแจ้งเตือน ไม่เอาคำว่าเข้าแผนแล้ว จัดลำดับให้ถูก"
+  // บรรทัดแรก = ของที่เข้ามาจริง (ตัวงาน · ชื่อคน) · บรรทัดสอง = รายละเอียด · บรรทัดสาม = มาจากไหน · เมื่อไหร่
+  // เดิมบรรทัดแรกเป็นสถานะ ("เข้าแผนให้แล้ว จาก …") ตัวงานไปอยู่บรรทัดรอง — อ่านกลับหัว
+  // สถานะยังบอกอยู่ที่ป้ายมุมไอคอน (ถูก = อยู่ในแผนแล้ว · กระดิ่ง = รอตรวจ) กับปุ่ม "ตรวจ" ทางขวา
+  const row = n => {
+    const t = notifAgo(n.at), nw = isNew(n);
+    const dot = nw ? '<span class="nt-dot" aria-label="ใหม่"></span>' : '';
+    if (isDm(n)) {
+      const r = n.row;
+      return `<button class="nt-row${nw ? ' new' : ''}" onclick="notifOpenDm('${esc(r.id)}')">
+        <span class="nt-ic">${notifAvatar(r)}<span class="nt-ic-b dm">${icon('chat')}</span></span>
+        <span class="nt-bd">
+          <span class="nt-t">${esc(notifName(r))}</span>
+          <span class="nt-p">${n.kind === 'req' ? 'ขอทักคุณ' : esc(notifPreview(r))}</span>
+          <span class="nt-meta">${n.kind === 'req' ? 'คำขอข้อความ' : 'ข้อความ'}<i aria-hidden="true">·</i>${esc(t)}</span>
+        </span>
+        ${n.kind === 'req' ? '<span class="nt-go">ดูคำขอ</span>' : dot}
+      </button>`;
+    }
+    if (n.kind === 'staff') return `<button class="nt-row${nw ? ' new' : ''}" onclick="staffNotifOpen(${esc(JSON.stringify(n.staff.id))})">
+      <span class="nt-ic"><span class="nt-av src">${icon(n.staff.personal ? 'check' : 'flag')}</span></span>
+      <span class="nt-bd"><span class="nt-t">${esc(n.staff.title)}</span><span class="nt-p">${esc(n.staff.body)}</span>
+      <span class="nt-meta">ทีม Student OS<i aria-hidden="true">·</i>${esc(t)}</span></span>${dot}</button>`;
+    const i = n.item, s = sourceById(i.source);
+    // ชื่อเต็มของแหล่งมีวงเล็บอธิบาย ("LINE (บอทในกลุ่มห้อง)") ซึ่งดันประโยคให้ตกบรรทัด — ที่นี่พอแค่ชื่อ
+    const srcName = s.shortName || s.name.replace(/\s*\(.*\)\s*$/, '');
+    const pz = i.parsed || {};
+    let title, note;
+    if (i.kind === 'batch') {
+      title = (i.header || i.raw.split('\n')[0]).slice(0, 70);
+      note = `${(i.children || []).length} งาน`;
+    } else {
+      title = pz.detail || pz.subject || i.raw.slice(0, 80);
+      // "อื่น ๆ" คือวิชาที่ AI ไม่รู้ — ไม่ใช่ข้อมูล ไม่ต้องขึ้น
+      note = pz.detail && pz.subject && pz.subject !== 'อื่น ๆ' ? pz.subject : '';
+    }
+    // 15 ต.ค. 69 · เจ้าของ: "พอกดเข้าไปแล้วก็เหมือนเชื่อมเป็นงานเลย ... ให้เขาเข้าไปติกก่อนก็ได้ แล้วเข้าแผน"
+    // ของที่รอตรวจมีปุ่มติ๊กกลมทางขวา = เข้าแผนในแตะเดียวโดยไม่ต้องออกจากจอ · กดตัวแถว = เข้าไปดูก่อน (notifOpenItem)
+    // ปุ่มติ๊กอยู่นอกปุ่มแถว (ปุ่มซ้อนปุ่มใช้ไม่ได้) จึงห่อทั้งคู่ด้วย .nt-wrap แล้ววางปุ่มทับขอบขวา
+    const rowBtn = `<button class="nt-row${nw ? ' new' : ''}${n.kind === 'wait' ? ' has-tick' : ''}" data-nt="${esc(i.id)}"
+        onclick="notifOpenItem('${esc(i.id)}')">
+      <span class="nt-ic">${srcMark(s)}<span class="nt-ic-b ${n.kind}">${
+        icon(n.kind === 'wait' ? 'bell' : 'check')}</span></span>
+      <span class="nt-bd">
+        <span class="nt-t">${esc(title)}</span>
+        ${note ? `<span class="nt-p">${esc(note)}</span>` : ''}
+        <span class="nt-meta">${esc(srcName)}<i aria-hidden="true">·</i>${esc(t)}</span>
+      </span>
+      ${n.kind === 'wait' ? '' : dot}
+    </button>`;
+    return n.kind === 'wait'
+      ? `<div class="nt-wrap">${rowBtn}<button class="nt-tick" onclick="notifAccept('${esc(i.id)}')"
+          aria-label="เข้าแผน: ${esc(title)}">${icon('check')}<span>เข้าแผน</span></button></div>`
+      : rowBtn;
+  };
+
+  const fresh = list.filter(isNew), older = list.filter(n => !isNew(n));
+  // 7 ต.ค. 69 · ปุ่มกรองเป็นแบบ GradientButtonGroup (cult-ui · MIT) — เจ้าของ: "เอามาใช้ในหน้านี้"
+  // ถาดยุบลง → แผงนูน → ปุ่มที่เลือกจมเป็นหลุม มีวงแหวนไล่สีหมุนรอบ · ตัวบอกปุ่มที่เลือกเป็นก้อนเดียว (.gbg-ind)
+  // ที่เลื่อนไปหาปุ่มใหม่แบบสปริง (notifSetFilter สั่งเลื่อนจากตำแหน่งเดิม หลังวาดจอใหม่)
+  const NT_FILTERS = [['all', 'ทั้งหมด'], ['dm', 'ข้อความ'], ['work', 'งาน']];
+  const chips = `<div class="nt-chips gbg-tray"><div class="gbg" role="tablist"
+      style="--i:${Math.max(0, NT_FILTERS.findIndex(x => x[0] === notifFilter))}">
+    <span class="gbg-ind" aria-hidden="true"><span class="gbg-ring"></span><span class="gbg-gap"></span></span>
+    ${NT_FILTERS.map(([k, l]) => `<button class="gbg-b${notifFilter === k ? ' on' : ''}" role="tab"
+      aria-selected="${notifFilter === k}" onclick="notifSetFilter('${k}')">${l}</button>`).join('')}
+  </div></div>`;
+
+  const loggedIn = typeof currentUser !== 'undefined' && !!currentUser;
+  const empty = `<section class="nt-empty">
+    <span class="nt-empty-ic">${icon('bell')}</span>
+    <div class="nt-empty-t">${notifFilter === 'dm' ? 'ยังไม่มีข้อความใหม่' : notifFilter === 'work' ? 'ยังไม่มีงานเข้ามา' : 'ยังไม่มีอะไรใหม่'}</div>
+  </section>`;
+  // ไม่ได้ล็อกอิน = ข้อความจากเพื่อนมาไม่ถึงเครื่องนี้เลย · บอกตรง ๆ ดีกว่าให้รอสิ่งที่ไม่มีวันมา
+  const login = !loggedIn && notifFilter !== 'work' && typeof cloudConfigured === 'function' && cloudConfigured()
+    ? `<button class="nt-login" onclick="go('scr-login')">
+        <span class="nt-av src">${icon('user-f')}</span>
+        <span class="nt-bd"><span class="nt-t"><b>เข้าสู่ระบบ</b> เพื่อรับข้อความจากเพื่อน</span></span>
+        ${icon('chevron')}
+      </button>` : '';
+
+  // 31 ต.ค. 69 · เจ้าของ: ประกาศสำคัญ (ระบบล่ม ฯลฯ) ต้องขึ้นที่นี่ด้วย ไม่ใช่แค่แท็บ "ฉัน"
+  // เฉพาะ kind "notice" ที่ยังปักอยู่ (newsPinned ใน news.js) · ข่าวฟีเจอร์ยังอยู่ที่จอข่าวสารที่เดียว
+  // ปักบนสุดทุกตัวกรองยกเว้น "ข้อความ" · กดแล้วเปิดตัวข่าวเต็มที่จอข่าวสาร
+  const notices = notifFilter !== 'dm' && typeof newsShown === 'function' ? newsShown().filter(newsPinned) : [];
+  const pinned = notices.length ? `<div class="ib2-sec"><span>ประกาศสำคัญ</span></div><div class="ib2-list">${
+    notices.map(it => `<button class="nt-row new" onclick="go('scr-news')">
+      <span class="nt-ic"><span class="nt-av src">${icon('flag')}</span></span>
+      <span class="nt-bd"><span class="nt-t">${esc(it.title)}</span><span class="nt-p">${esc(it.body)}</span>
+      <span class="nt-meta">จาก${esc(it.by || 'ทีม StudentOS')}<i aria-hidden="true">·</i>แตะเพื่ออ่านทั้งหมด</span></span>
+      <span class="nt-dot" aria-hidden="true"></span></button>`).join('')}</div>` : '';
+
+  // กลุ่มแบบ IG: ใหม่ → วันนี้ → เมื่อวาน → 7 วันที่ผ่านมา → ก่อนหน้านี้ · ในกลุ่มเรียงใหม่สุดก่อน (notifItems เรียงไว้แล้ว)
+  // ไม่มีปุ่ม "อ่านทั้งหมด" แล้ว — เปิดจอก็อ่านแล้ว
+  const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  const today0 = d0.getTime(), yest0 = today0 - 864e5, week0 = today0 - 6 * 864e5;
+  const bucket = n => n.at >= today0 ? 'วันนี้' : n.at >= yest0 ? 'เมื่อวาน' : n.at >= week0 ? '7 วันที่ผ่านมา' : 'ก่อนหน้านี้';
+  const groups = [['ใหม่', fresh]];
+  for (const name of ['วันนี้', 'เมื่อวาน', '7 วันที่ผ่านมา', 'ก่อนหน้านี้']) groups.push([name, older.filter(n => bucket(n) === name)]);
+  body.innerHTML = chips + pinned + login
+    + (!list.length && !notices.length ? empty : '')
+    + groups.filter(g => g[1].length).map(([name, items]) =>
+        `<div class="ib2-sec"><span>${name}</span></div><div class="ib2-list">${items.map(row).join('')}</div>`).join('');
+}

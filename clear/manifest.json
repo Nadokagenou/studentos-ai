@@ -1,0 +1,88 @@
+{
+  "id": "./",
+  "name": "Student OS Clear",
+  "short_name": "OS Clear",
+  "description": "AI Decision Assistant สำหรับนักเรียนมัธยม — รู้ว่าต้องทำอะไรก่อน เสมอ",
+  "lang": "th",
+  "start_url": ".",
+  "scope": ".",
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0D1220",
+  "background_color": "#0D1220",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "เพิ่มงานด่วน",
+      "url": "./?go=quick",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "ถามผู้ช่วย",
+      "url": "./?go=assistant",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "งานของฉัน",
+      "url": "./?go=tasks",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "วันนี้ทำอะไร",
+      "url": "./?go=today",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}

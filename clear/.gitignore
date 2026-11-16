@@ -1,0 +1,10 @@
+# โฟลเดอร์ชั่วคราวจากการแตกไฟล์ design system
+_ds/
+.claude/
+
+# ไฟล์ชั่วคราวของ Supabase CLI — ผูกกับเครื่องที่รันคำสั่ง ไม่ใช่ของโปรเจกต์
+supabase/.temp/
+
+# ไฟล์ชั่วคราวที่เผลอ commit ขึ้นเว็บ (QA 6 ต.ค. 69 · alt/sai-head.tmp)
+*.tmp
+__pycache__/

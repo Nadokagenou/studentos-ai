@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>StudentOS AI — ลิงก์ทั้งหมด</title>
+<meta name="description" content="ทางเข้าทุกอย่างของ StudentOS AI — เปิดแอป สมัครเป็นผู้ทดสอบใน Discord ติดตามใน Instagram / TikTok ทัก LINE และสนับสนุนค่าเซิร์ฟเวอร์">
+<meta name="theme-color" content="#EAF3FF">
+<link rel="icon" href="icon-192.png">
+<link rel="canonical" href="https://nadokagenou.github.io/studentos-ai/alt/hub.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://nadokagenou.github.io/studentos-ai/alt/hub.html">
+<meta property="og:title" content="StudentOS AI — ลิงก์ทั้งหมด">
+<meta property="og:description" content="ทางเข้าทุกอย่างของ StudentOS AI">
+<meta property="og:image" content="https://nadokagenou.github.io/studentos-ai/alt/logo-splash.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap">
+
+<style>
+/* ════════════════════════════════════════════════════════════
+   หน้ารวมลิงก์ — ประตูหน้าสุด ใช้แปะใน bio ของ IG / TikTok
+
+   19 ต.ค. 69 · เจ้าของ: "อยากให้ปรับ เอาคล้าย ๆ หน้า land ทำให้มันเข้ากัน"
+   รุ่นก่อนยืมชุดขอบดำหนา + ปุ่มสันสามมิติจาก land.html รุ่นแรก — แต่ land เปลี่ยนเป็น
+   "ฟ้าพาสเทลแบบในแอป" ไปตั้งแต่ 9 ต.ค. แล้ว คนกดจากไบโอเลยเด้งข้ามสองโลก
+   (หน้านี้ยังกลายเป็นธีมมืดตามเครื่องด้วย ขณะที่ land สว่างเสมอ)
+   ตอนนี้ยกภาษาภาพของ land มาทั้งชุด:
+   • พื้นฟ้าอ่อนไล่ลงขาว · ก้อนแสงฟ้าลอยช้า · เมฆ · ดาวเคราะห์มีวงแหวน · ประกายดาว
+   • ป้ายแคปซูลขอบไล่สี · คำว่า AI ไล่สีน้ำเงิน→ฟ้า (แบบคำสำคัญในหัวเรื่อง land)
+   • ปุ่มหลัก = ปุ่มสมัครของ land (ไล่สีน้ำเงิน + รัศมีวนรอบ)
+   • แถวลิงก์ = การ์ดกระจกขอบสว่าง ไอคอนเส้นในกล่องไล่สี (land ถอดอีโมจิออกจากการ์ดแล้ว)
+   • สว่างอย่างเดียว เหมือน land · ลดการเคลื่อนไหว = ทุกอย่างนิ่ง
+   • ฟอนต์ Sarabun ชุดเดียวกับ land และในแอป (เดิม Noto Sans Thai + Nunito) · หัวข้อไม่บีบระยะตัวอักษร — สระบน/วรรณยุกต์เบียดกัน
+   คัดลอกโทเคนมาไว้ในไฟล์นี้แทนที่จะแชร์ไฟล์ CSS — หน้านี้ต้องโหลดจบก่อนคนกดปุ่มแรก
+   ════════════════════════════════════════════════════════════ */
+:root{
+  color-scheme: light;
+  --ink:#0F1E3D; --muted:#55627E; --faint:#7A88A6;
+  --blue:#2563EB; --navy:#1D4ED8; --aqua:#22D3EE;
+}
+@property --ha { syntax:'<angle>'; inherits:false; initial-value:0deg; }
+@keyframes ha-spin { to { --ha:360deg; } }
+*{box-sizing:border-box}
+html{background:#F3F8FF}
+body{
+  margin:0; min-height:100vh; position:relative; isolation:isolate; overflow-x:hidden;
+  background:linear-gradient(180deg,#EAF3FF 0%,#F6FAFF 34%,#FFFFFF 70%);
+  color:var(--ink);
+  font-family:'Sarabun','Leelawadee UI',-apple-system,'Segoe UI',sans-serif;
+  font-weight:500; line-height:1.55; -webkit-font-smoothing:antialiased;
+  padding:44px 18px 56px;
+}
+img{max-width:100%; display:block}
+a{text-decoration:none; color:inherit}
+.wrap{position:relative; z-index:1; width:min(480px,100%); margin-inline:auto}
+
+/* ── ฉากหลัง (ชุดเดียวกับ .aura ของ land) · ตรึงกับจอ เลื่อนแล้วฉากอยู่ที่เดิม ── */
+.aura{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none}
+.aura .blob{position:absolute; border-radius:50%; filter:blur(60px); opacity:.55; will-change:transform; animation:blob-drift 16s ease-in-out infinite alternate}
+.aura .b1{width:460px; height:460px; left:-160px; top:-120px; background:radial-gradient(circle,#BAE6FD,transparent 70%)}
+.aura .b2{width:520px; height:520px; right:-200px; top:120px; background:radial-gradient(circle,#93C5FD,transparent 70%); animation-duration:19s; animation-delay:-6s}
+.aura .b3{width:420px; height:420px; left:22%; top:62%; background:radial-gradient(circle,#BFDBFE,transparent 70%); animation-duration:22s; animation-delay:-11s; opacity:.45}
+@keyframes blob-drift{from{transform:translate(0,0) scale(1)} to{transform:translate(60px,40px) scale(1.12)}}
+.aura .cloud{position:absolute; width:120px; height:38px; border-radius:40px; background:#fff; opacity:.92;
+  box-shadow:0 10px 24px -14px rgba(37,99,235,.35); animation:cloud-drift 38s linear infinite alternate}
+.aura .cloud::before,.aura .cloud::after{content:''; position:absolute; background:#fff; border-radius:50%}
+.aura .cloud::before{width:56px; height:56px; left:18px; top:-26px}
+.aura .cloud::after{width:40px; height:40px; left:60px; top:-16px}
+.aura .c1{left:calc(50% - 470px); top:250px}
+.aura .c2{right:calc(50% - 480px); top:160px; transform:scale(.8); animation-duration:46s; animation-delay:-14s}
+.aura .c3{left:calc(50% - 420px); top:600px; transform:scale(.62); animation-duration:52s; animation-delay:-24s; opacity:.78}
+@keyframes cloud-drift{from{translate:-30px 0} to{translate:40px 0}}
+.aura .planet{position:absolute; right:calc(50% - 420px); top:380px; width:66px; height:66px; border-radius:50%;
+  background:radial-gradient(circle at 32% 30%,#FFFFFF 0%,#BAE6FD 30%,#93C5FD 62%,#93C5FD 100%);
+  box-shadow:inset -8px -10px 18px rgba(37,99,235,.35), 0 14px 30px -12px rgba(37,99,235,.6); animation:planet-bob 7s ease-in-out infinite}
+.aura .planet::after{content:''; position:absolute; left:-24px; right:-24px; top:42%; height:16px; border-radius:50%;
+  border:3px solid rgba(255,255,255,.85); transform:rotate(-14deg); box-shadow:0 0 12px rgba(147,197,253,.8)}
+@keyframes planet-bob{50%{transform:translateY(-12px) rotate(4deg)}}
+.aura .spark{position:absolute; width:14px; height:14px; background:#fff;
+  clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+  filter:drop-shadow(0 0 6px rgba(96,165,250,.9)); animation:spark-tw 3.2s ease-in-out infinite}
+.aura .s1{left:calc(50% - 300px); top:130px}
+.aura .s2{right:calc(50% - 310px); top:96px; animation-delay:-1s; transform:scale(.7)}
+.aura .s3{left:calc(50% - 360px); top:470px; animation-delay:-2s}
+.aura .s4{right:calc(50% - 330px); top:560px; animation-delay:-.6s; transform:scale(.8)}
+@keyframes spark-tw{0%,100%{opacity:.2; scale:.6} 50%{opacity:1; scale:1.1}}
+/* มือถือ: คอลัมน์เต็มจอ — ฉากเล็กลงและชิดขอบ ไม่ทับปุ่ม */
+@media (max-width:640px){
+  .aura .blob{filter:blur(44px)} .aura .b1{width:300px; height:300px} .aura .b2{width:320px; height:320px; right:-160px}
+  .aura .c1{left:-58px; top:118px; transform:scale(.7)} .aura .c2{display:none} .aura .c3{left:auto; right:-62px; top:286px; transform:scale(.55)}
+  .aura .planet{right:-10px; top:40px; width:46px; height:46px} .aura .planet::after{left:-16px; right:-16px; height:12px; border-width:2px}
+  .aura .s1{left:14%; top:40px} .aura .s2{right:26%; top:200px} .aura .s3{left:6%; top:330px} .aura .s4{display:none}
+}
+
+/* ── หัว ── */
+.head{text-align:center; margin-bottom:28px}
+.plate{
+  width:112px; height:112px; margin:0 auto 18px; padding:12px; border-radius:28px; background:#fff;
+  display:grid; place-items:center;
+  box-shadow:0 0 0 1px rgba(37,99,235,.12), 0 18px 40px -18px rgba(29,78,216,.55);
+}
+h1{margin:0; font-size:30px; font-weight:800; letter-spacing:0; line-height:1.2}
+h1 .ai{
+  background-image:linear-gradient(90deg,#1D4ED8,#2563EB 25%,#0EA5E9 50%,#22D3EE 75%,#1D4ED8);
+  background-size:200% 100%; -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:mark-flow 7s ease-in-out infinite alternate;
+}
+@keyframes mark-flow{from{background-position:0% 50%} to{background-position:100% 50%}}
+/* ป้าย: แคปซูลแบบ eyebrow ของ land · ธงอีโมจิเดิมขึ้นเป็นตัว "TH" บน Windows → จุดไล่สีแทน */
+.tag{
+  display:inline-flex; align-items:center; gap:7px; margin-top:14px; padding:6px 14px; border-radius:99px;
+  font-size:13.5px; font-weight:700; color:var(--navy);
+  background:linear-gradient(rgba(255,255,255,.75),rgba(255,255,255,.75)) padding-box, linear-gradient(90deg,#BFDBFE,#BFDBFE,#A5F3FC) border-box;
+  border:1.5px solid transparent; box-shadow:0 6px 16px -10px rgba(37,99,235,.6);
+}
+.tag::before{content:''; width:7px; height:7px; border-radius:50%; background:linear-gradient(135deg,var(--blue),var(--aqua)); box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+/* ตัดบรรทัดไทยเองไม่รู้จักคำ (เคยตัด "การ|บ้าน") — วลีที่ห้ามขาดห่อด้วย .nb */
+.nb{white-space:nowrap}
+.blurb{margin:14px auto 0; max-width:24em; color:var(--muted); font-size:16px; text-wrap:balance}
+
+/* ── ปุ่มหลัก: ปุ่มสมัครของ land (ไล่สีน้ำเงิน + รัศมีวน) ── */
+.hero-btn{
+  position:relative; isolation:isolate; display:block; text-align:center; color:#fff;
+  margin:0 0 34px; padding:17px 22px; border-radius:22px;
+  background:linear-gradient(135deg,#2563EB,#1D4ED8 60%,#1E40AF);   /* เริ่ม #2563EB ไม่ใช่ #3B82F6 — ตัวขาว 5.2:1 (land ข้อ ②) */
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 14px 30px -14px rgba(37,99,235,.95);
+  transition:transform .15s ease, box-shadow .2s ease;
+}
+.hero-btn::before{
+  content:''; position:absolute; inset:-4px; z-index:-1; border-radius:inherit; pointer-events:none;
+  background:conic-gradient(from var(--ha),#2563EB,#22D3EE,#38BDF8,#60A5FA,#2563EB);
+  filter:blur(10px); opacity:.6; animation:ha-spin 6s linear infinite;
+}
+.hero-btn:active{transform:scale(.98)}
+.hero-btn b{display:block; font-size:19px; font-weight:800}
+.hero-btn span{display:block; font-size:14px; margin-top:2px; color:rgba(255,255,255,.88); font-weight:500}
+
+.lbl{font-size:13.5px; font-weight:700; color:var(--blue); margin:0 0 10px 6px}
+
+/* ── แถวลิงก์: การ์ดกระจกขอบสว่าง ── */
+.rows{display:grid; gap:10px; margin-bottom:26px}
+.row{
+  display:flex; align-items:center; gap:14px; padding:13px 16px 13px 13px; border-radius:20px;
+  background:rgba(255,255,255,.74); border:1px solid rgba(255,255,255,.95);
+  -webkit-backdrop-filter:saturate(160%) blur(14px); backdrop-filter:saturate(160%) blur(14px);
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 10px 26px -18px rgba(29,78,216,.45);
+  transition:transform .4s cubic-bezier(.22,1,.36,1), box-shadow .4s ease;
+}
+.row:active{transform:scale(.985)}
+.row .ico{
+  width:44px; height:44px; flex:none; border-radius:14px; display:grid; place-items:center;
+  background:linear-gradient(140deg,#60A5FA,#2563EB 55%,#1D4ED8);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 8px 16px -10px rgba(37,99,235,.9);
+}
+.row .ico svg{width:22px; height:22px; fill:none; stroke:#fff; stroke-width:2; stroke-linecap:round; stroke-linejoin:round}
+.row .txt{flex:1; min-width:0}
+.row b{display:block; font-size:16px; font-weight:700; line-height:1.3}
+.row small{display:block; font-size:13px; color:var(--muted); line-height:1.45; margin-top:1px}
+.row .go{flex:none; width:22px; height:22px; color:var(--blue)}
+.row .go svg{width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; transition:transform .3s ease}
+@media (hover:hover) and (pointer:fine){
+  .row:not(.soon):hover{transform:translateY(-3px); box-shadow:0 1px 0 rgba(255,255,255,.9) inset, 0 20px 36px -20px rgba(29,78,216,.55)}
+  .row:not(.soon):hover .go svg{transform:translateX(3px)}
+  .hero-btn:hover{transform:translateY(-1px); box-shadow:inset 0 1px 0 rgba(255,255,255,.35), 0 18px 34px -14px rgba(37,99,235,1)}
+}
+
+/* ลิงก์ที่ยังไม่ได้ใส่ที่อยู่จริง — บอกตรง ๆ ว่ายังไม่มี ดีกว่าปล่อยให้กดแล้วเงียบ
+   ไม่จางทั้งแถวด้วย opacity (ตัวหนังสือจางจนอ่านยากบนพื้นฟ้า) — ไอคอนเป็นเทา และป้าย "เร็ว ๆ นี้" เป็นแคปซูล */
+.row.soon{cursor:default; background:rgba(255,255,255,.5); box-shadow:0 1px 0 rgba(255,255,255,.9) inset}
+.row.soon .ico{background:#E4ECF8; box-shadow:none}
+.row.soon .ico svg{stroke:#6F7E9C}
+.row.soon b{color:#3D4A66}
+.row .soon-tag{flex:none; font-size:12px; font-weight:700; color:var(--muted); background:#EEF3FB; border-radius:99px; padding:4px 10px; font-style:normal; white-space:nowrap}
+
+footer{text-align:center; color:var(--muted); font-size:13.5px; margin-top:8px}
+footer a{color:var(--blue); font-weight:700}
+
+/* ── เปิดหน้า: ไล่ขึ้นทีละชิ้น ห่างกัน 60ms (ซ่อนได้ต่อเมื่อ JS ประกาศตัว — สคริปต์ล้มแล้วหน้ายังอยู่ครบ) ── */
+@keyframes up-in{from{opacity:0; transform:translateY(18px)} to{opacity:1; transform:none}}
+html.anim .head > *, html.anim .hero-btn, html.anim .lbl, html.anim .row, html.anim footer{animation:up-in .8s cubic-bezier(.22,1,.36,1) both; animation-delay:calc(var(--i,0) * 60ms)}
+@media (prefers-reduced-motion:reduce){
+  .aura *, h1 .ai, .hero-btn::before{animation:none !important}
+  html.anim .head > *, html.anim .hero-btn, html.anim .lbl, html.anim .row, html.anim footer{animation:none}
+  .row, .hero-btn{transition:none}
+}
+</style>
+<script>document.documentElement.classList.add('anim')</script>
+</head>
+<body>
+<div class="aura" aria-hidden="true">
+  <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+  <i class="cloud c1"></i><i class="cloud c2"></i><i class="cloud c3"></i>
+  <i class="planet"></i>
+  <i class="spark s1"></i><i class="spark s2"></i><i class="spark s3"></i><i class="spark s4"></i>
+</div>
+
+<!-- ไอคอนเส้นชุดเดียว (แบบการ์ดของ land) · ใช้ซ้ำด้วย <use> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-discord" viewBox="0 0 24 24"><path d="M8 17c-2.5-.4-4-1.3-5-2 0-4.5 1.2-8 3-10 1.4-.6 2.6-1 3.5-1l.5 1.2a14 14 0 0 1 4 0L14.5 4c.9 0 2.1.4 3.5 1 1.8 2 3 5.5 3 10-1 .7-2.5 1.6-5 2l-1-1.8"/><path d="M7.5 15.5c3 1.4 6 1.4 9 0"/><circle cx="9" cy="11.5" r="1.2"/><circle cx="15" cy="11.5" r="1.2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M12 4c4.7 0 8.5 3 8.5 6.8 0 3.7-3.8 6.7-8.5 6.7-.8 0-1.6-.1-2.4-.3L5.5 19.5l.9-3.6C4.6 14.7 3.5 12.9 3.5 10.8 3.5 7 7.3 4 12 4Z"/><path d="M8.5 11h7"/></symbol>
+  <symbol id="i-insta" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r=".6"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24"><path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5H12"/><path d="M14 4c.6 2.4 2.4 4 5 4.2"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5V9Z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8.5 3.5v2.5M12 3.5v2.5"/></symbol>
+  <symbol id="i-go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+</svg>
+
+<div class="wrap">
+
+  <div class="head">
+    <div class="plate" style="--i:0"><img src="logo-lockup.svg" data-fb="logo" alt="students OS"></div>
+    <h1 style="--i:1">StudentOS <span class="ai">AI</span></h1>
+    <span class="tag" style="--i:2">สร้างโดยนักเรียนไทย เพื่อนักเรียนไทย</span>
+    <p class="blurb" style="--i:3"><span class="nb">แอปที่บอกว่าคืนนี้ควรทำการบ้านอันไหนก่อน</span> <span class="nb">และเพราะอะไร</span></p>
+  </div>
+
+  <a class="hero-btn" href="land.html" style="--i:4">
+    <b>เปิดแอป ใช้ฟรี</b>
+    <span>ไม่ต้องติดตั้ง เปิดในเบราว์เซอร์ได้เลย</span>
+  </a>
+
+  <!-- ╔═══════════════════════════════════════════════╗
+       ║  ใส่ลิงก์จริงตรงนี้
+       ║  แถวไหนยังไม่มีที่อยู่ ให้คงคลาส "soon" กับ href="#" ไว้
+       ║  พอมีลิงก์แล้ว: เปลี่ยน href · ลบ soon ออกจาก class
+       ║  และเปลี่ยน <i class="soon-tag">เร็ว ๆ นี้</i>
+       ║  เป็น <i class="go"><svg><use href="#i-go"/></svg></i>
+       ╚═══════════════════════════════════════════════╝ -->
+
+  <p class="lbl" style="--i:5">ชุมชน</p>
+  <div class="rows">
+    <a class="row" href="https://discord.gg/kMfYsvzFG" target="_blank" rel="noopener" style="--i:6">
+      <span class="ico"><svg><use href="#i-discord"/></svg></span>
+      <span class="txt"><b>Discord</b><small>สมัครเป็นผู้ทดสอบรุ่นแรก · <span class="nb">ถามตอบกับทีม</span></small></span>
+      <i class="go"><svg><use href="#i-go"/></svg></i>
+    </a>
+    <a class="row soon" href="#" style="--i:7">
+      <span class="ico"><svg><use href="#i-chat"/></svg></span>
+      <span class="txt"><b>LINE Official</b><small>ทักมาถามอะไรก็ได้ ตอบเอง</small></span>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
+    </a>
+  </div>
+
+  <p class="lbl" style="--i:8">ติดตาม</p>
+  <div class="rows">
+    <a class="row" href="https://www.instagram.com/stu_dentos" target="_blank" rel="noopener" style="--i:9">
+      <span class="ico"><svg><use href="#i-insta"/></svg></span>
+      <span class="txt"><b>Instagram</b><small>อัปเดตฟีเจอร์ใหม่ เบื้องหลังการทำแอป</small></span>
+      <i class="go"><svg><use href="#i-go"/></svg></i>
+    </a>
+    <a class="row soon" href="#" style="--i:10">
+      <span class="ico"><svg><use href="#i-note"/></svg></span>
+      <span class="txt"><b>TikTok</b><small>คลิปสั้น วิธีใช้แอปให้ทันส่งงาน</small></span>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
+    </a>
+  </div>
+
+  <p class="lbl" style="--i:11">สนับสนุน</p>
+  <div class="rows">
+    <a class="row soon" href="#" style="--i:12">
+      <span class="ico"><svg><use href="#i-cup"/></svg></span>
+      <span class="txt"><b>เลี้ยงค่าเซิร์ฟเวอร์</b><small>แอปฟรีตลอดไป ค่าเซิร์ฟเวอร์ไม่ฟรี</small></span>
+      <i class="soon-tag">เร็ว ๆ นี้</i>
+    </a>
+  </div>
+
+  <footer style="--i:13">
+    ทำในไทย เพื่อห้องเรียนไทย · <a href="land.html">อ่านว่าแอปทำอะไรได้</a>
+  </footer>
+</div>
+
+<script>
+/* รูปสำรองฝังในไฟล์ — หน้านี้ถูกเปิดด้วยการดับเบิลคลิกไฟล์อยู่บ่อย ๆ
+   และไฟล์ใน OneDrive ที่ยังไม่ถูกดึงลงเครื่องจะโหลดไม่ขึ้น ได้กรอบเปล่าแทนตรา */
+const FB = { logo: 'data:image/png;base64,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' };
+document.querySelectorAll('img[data-fb]').forEach(im => {
+  const swap = () => { const u = FB[im.dataset.fb]; if (u && im.src !== u) im.src = u; };
+  im.addEventListener('error', swap, { once: true });
+  if (im.complete && im.naturalWidth === 0) swap();
+});
+
+/* แถวที่ยังไม่มีที่อยู่จริง — กันไม่ให้กดแล้วกระโดดขึ้นหัวหน้าเงียบ ๆ */
+document.querySelectorAll('.row.soon').forEach(a =>
+  a.addEventListener('click', e => e.preventDefault()));
+</script>
+</body>
+</html>

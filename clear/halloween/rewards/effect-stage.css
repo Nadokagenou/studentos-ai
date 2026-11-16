@@ -1,0 +1,86 @@
+/* Original vector scenes, short reactions and bounded particles. */
+.hw-game-cinematic {background:radial-gradient(ellipse at 50% 25%,#282335,#0e0d18 78%)}
+.hw-game-cinematic .hw-game-field {isolation:isolate}
+.hw-game-cinematic .hw-game-stage {opacity:.3;z-index:-1}
+.hw-game-cinematic .hw-game-stage .hw-game-orbit {display:none}
+.hw-game-cinematic .hw-game-destination {top:0;height:48%;width:78%;z-index:1}
+.hw-game-cinematic .hw-game-destination>img {visibility:hidden}
+.hw-game-cinematic .hw-game-destination::after {display:none}
+.hw-game-cinematic .hw-game-job {top:64%;z-index:2;width:min(78%,350px);min-height:122px}
+.hw-game-cinematic .hw-game-targets {z-index:3}
+.hw-game-cinematic .hw-game-targets button {bottom:3%;font-size:18px;background:#211c2d}
+.hw-game-cinematic .hw-game-head {position:relative;z-index:2}
+.hw-game-cinematic .hw-game-head h2 {margin:7px 0}
+.hw-game-cinematic .hw-game-status {line-height:1.6}
+.hw-game-cinematic .hw-game-controls {position:relative;z-index:4;background:linear-gradient(transparent,#0e0d18 28%)}
+.hw-game-cinematic .hw-game-action {min-width:160px}
+.hw-game-cinematic .hw-game-skip,.hw-game-cinematic .hw-game-motion,.hw-game-sound {min-height:36px}
+.hw-game-cinematic .hw-game-motion {max-width:140px}
+.hw-game-sound {position:absolute;top:16px;left:50%;translate:-50% 0;z-index:4;border:1px solid #ffffff28;background:#272331;color:#d8cbdc;border-radius:10px;padding:8px 11px;font-family:inherit;font-size:10px;cursor:pointer}
+.hw-effect-scene {position:absolute;inset:-1% -5% auto;height:58%;min-height:180px;color:var(--game-accent);pointer-events:none;z-index:0;opacity:1;transition:opacity .4s}
+.hw-effect-scene svg {width:100%;height:100%;overflow:visible;mask-image:linear-gradient(#000 83%,transparent)}
+.hw-effect-scene .hws-node .hws-eyes {opacity:.16;transition:opacity .3s}
+.hw-effect-scene .hws-node.awake .hws-eyes {opacity:1}
+.hw-effect-scene .hws-lamp-glow {opacity:0;transition:opacity .3s}
+.hw-effect-scene .awake .hws-lamp-glow {opacity:1}
+.hw-effect-scene .hws-node.awake {animation:hws-awaken .5s ease-out both;transform-box:fill-box;transform-origin:center}
+.hw-effect-scene .hws-tide {animation:hws-tide 7s ease-in-out infinite alternate}
+.hw-effect-scene .hws-boat {animation:hws-boat 4s ease-in-out infinite;transform-origin:50% 80%;transform-box:fill-box}
+.hw-effect-scene .hws-wing {animation:hws-wing 1.2s ease-in-out infinite alternate;transform-origin:center;transform-box:fill-box}
+.hw-effect-scene .hws-flock {animation:hws-flock 6s ease-in-out infinite alternate}
+.hw-effect-scene .hws-flower {transform:scale(.25);opacity:.3;transform-box:fill-box;transform-origin:center;transition:transform .5s,opacity .5s}
+.hw-effect-scene .hws-flower.awake {transform:scale(1);opacity:1}
+.hw-effect-scene .hws-verdict-blade {transform-origin:53% 30%;animation:hws-blade 5s ease-in-out infinite}
+.hw-effect-scene .hws-scars path {opacity:0;transition:opacity .2s}
+.hw-effect-scene .hws-scars path.awake {opacity:.8}
+.hw-effect-scene .hws-shadow {transform:translate(42px,-35px);transition:transform .55s ease-out}
+.hw-game-eclipse[data-step="1"] .hws-shadow {transform:translate(28px,-24px)}
+.hw-game-eclipse[data-step="2"] .hws-shadow {transform:translate(14px,-12px)}
+.hw-game-eclipse[data-step="3"] .hws-shadow {transform:translate(0,0)}
+.hw-effect-scene .hws-corona {opacity:0;transition:opacity .5s}
+.hw-game-eclipse.hw-game-won .hws-corona {opacity:1}
+.hw-effect-scene .hws-eclipse-rings {transform-origin:300px 220px;animation:hws-orbit 38s linear infinite}
+.hw-effect-scene .hws-vortex {transform-origin:300px 245px;animation:hws-vortex 6s ease-in-out infinite alternate}
+.hw-effect-scene .hws-portal-light {opacity:.35;transition:opacity .6s}
+.hw-game-gate .hw-game-job.held {box-shadow:0 12px 40px #b8a0d144}
+.hw-game-gate:has(.held) .hws-portal-light,.hw-game-gate.hw-game-won .hws-portal-light {opacity:1}
+.hw-game-cinematic .hw-game-job.held {rotate:-3deg;cursor:grabbing}
+.hw-game-cinematic .hw-game-job::before {transition:border-color .2s}
+.hw-game-verdict[data-step="1"] .hw-game-job::before {border-bottom:2px dashed #836340}
+.hw-game-verdict[data-step="2"] .hw-game-job::before {border-top:2px dashed #836340;rotate:7deg}
+.hw-effect-scene-particle {position:absolute;width:5px;height:9px;background:var(--game-accent);border-radius:60% 10% 60% 10%;z-index:4;pointer-events:none;box-shadow:0 0 8px color-mix(in srgb,var(--game-accent) 40%,transparent);animation:hws-particle var(--pd) ease-out both}
+.hw-game-bats .hw-effect-scene-particle {width:13px;height:7px;border-radius:0;clip-path:polygon(0 0,35% 20%,50% 0,65% 20%,100% 0,80% 100%,50% 55%,20% 100%)}
+.hw-game-arrival .hw-effect-scene-particle,.hw-game-wake .hw-effect-scene-particle {height:4px;border-radius:50%}
+.hw-effect-scene-particle.trail {width:3px;height:3px;border-radius:50%;opacity:.5}
+.hw-game-cinematic.hw-game-won .hw-game-job {animation:hws-paper 1.1s ease-in both;transition:none}
+.hw-game-cinematic.hw-game-verdict.hw-game-won .hw-game-job {animation:none;opacity:0}
+.hw-game-cinematic.hw-game-won .hw-game-action {opacity:.65}
+.hw-game-cinematic.hw-game-won .hw-game-progress {height:5px}
+.hw-game-arrival.hw-game-won .hws-voyage {animation:hws-depart 2.6s ease-in both}
+.hw-game-wake.hw-game-won .hws-voyage {animation:hws-depart 1.8s ease-in both}
+.hw-game-bats.hw-game-won .hws-flock {animation:hws-flock-away 1.9s ease-in both}
+.hw-game-bloom.hw-game-won .hws-flower {animation:hws-bloom 1.9s ease-out both}
+.hw-game-sparks.hw-game-won .hws-node {animation:hws-awaken .7s ease-out both}
+.hw-game-gate.hw-game-won .hws-vortex {animation:hws-gate-close 2.6s ease-in-out both}
+.hw-game-eclipse.hw-game-won .hws-eclipse-rings {animation:hws-coronation 2.6s ease-out both}
+.hw-game-verdict.hw-game-won .hws-verdict-blade {animation:hws-verdict 1.7s ease-out both}
+.hw-game-cinematic.hw-game-still.hw-game-won .hw-game-job {opacity:.3;transform:scale(.9)}
+.hw-game-cinematic.hw-game-still.hw-game-verdict.hw-game-won .hw-game-job {opacity:0}
+@keyframes hws-tide {to{transform:translateX(55px)}}
+@keyframes hws-boat {50%{transform:translateY(5px) rotate(2deg)}}
+@keyframes hws-wing {to{transform:scaleY(.38)}}
+@keyframes hws-flock {to{transform:translate(10px,-16px)}}
+@keyframes hws-orbit {to{transform:rotate(360deg)}}
+@keyframes hws-blade {50%{transform:rotate(4deg) translateY(-6px)}}
+@keyframes hws-vortex {to{transform:scaleX(.7);opacity:.7}}
+@keyframes hws-awaken {35%{transform:scale(1.1)}to{transform:scale(1)}}
+@keyframes hws-particle {from{opacity:.9;transform:translate(0,0) scale(.5)}to{opacity:0;transform:translate(var(--px),var(--py)) rotate(var(--pr)) scale(.15)}}
+@keyframes hws-paper {from{opacity:1;transform:translate(var(--release-x,0px),var(--release-y,0px)) rotate(0)}to{opacity:0;transform:translateY(-150px) rotate(-16deg) scale(.08)}}
+@keyframes hws-depart {0%,20%{opacity:1;transform:translateX(0)}to{opacity:0;transform:translate(220px,-20px) scale(.7)}}
+@keyframes hws-flock-away {to{transform:translate(150px,-210px) scale(.4);opacity:0}}
+@keyframes hws-bloom {30%{transform:scale(1.2)}to{transform:scale(1);opacity:1}}
+@keyframes hws-gate-close {30%{transform:scale(1.12);opacity:.9}to{transform:scaleX(.05);opacity:0}}
+@keyframes hws-coronation {30%{transform:scale(1.08);opacity:1}to{transform:scale(1);opacity:.55}}
+@keyframes hws-verdict {25%{transform:rotate(-35deg)}60%{transform:rotate(25deg)}to{transform:rotate(0)}}
+.hw-game-still *::before,.hw-game-still *::after {animation:none!important;transition:none!important}
+@media(max-height:680px){.hw-game-cinematic {padding:57px 14px 13px}.hw-game-cinematic .hw-game-head h2 {font-size:17px;margin:4px 0}.hw-game-cinematic .hw-game-head p {font-size:11px}.hw-game-cinematic .hw-game-job {min-height:86px;padding:8px 12px}.hw-game-cinematic .hw-game-job strong {font-size:13px;margin:4px 0}.hw-game-cinematic .hw-game-job i {margin-top:5px}.hw-game-cinematic .hw-effect-scene {min-height:125px}.hw-game-cinematic .hw-game-field {min-height:170px}.hw-game-cinematic .hw-game-targets button {bottom:1%;width:42px;height:42px}.hw-game-cinematic .hw-game-controls>small {margin-top:7px}.hw-game-cinematic .hw-game-status {margin-bottom:4px;font-size:11px}}

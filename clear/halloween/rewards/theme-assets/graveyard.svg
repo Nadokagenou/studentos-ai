@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 290" fill="none">
+ <defs><linearGradient id="soil" x2="0" y2="1"><stop stop-color="#17252a"/><stop offset="1" stop-color="#0b0d18"/></linearGradient><linearGradient id="stone" x2=".4" y2="1"><stop stop-color="#6a6478"/><stop offset="1" stop-color="#282737"/></linearGradient></defs>
+ <path d="M0 210Q150 157 350 205T700 197T1100 204T1600 180V290H0Z" fill="url(#soil)"/>
+ <g stroke="#8c7a8d" stroke-width="2" fill="url(#stone)">
+  <path d="m46 225-8-91q0-36 34-38t38 31l8 92Z"/><path d="m160 210 5-70q4-25 29-25t28 28l-3 73Z"/>
+  <path d="m349 218 2-105h-26V91h27V61h23v30h25v22h-26l2 102Z"/>
+  <path d="m509 229-4-78q-2-31 29-34t34 30l5 75Z"/>
+  <path d="m971 218 4-93q0-35 37-35t37 35l-5 96Z"/>
+  <path d="m1191 210-7-106h-27l-2-24h28l-1-27h22l3 27h29l1 24h-28l7 112Z"/>
+  <path d="m1380 213 3-71q0-30 27-32t34 32l-1 79Z"/>
+  <path d="m1495 217-4-105q-2-37 35-39t37 37l4 114Z"/>
+ </g>
+ <g stroke="#a59aa9" opacity=".45" stroke-linecap="round" stroke-width="2">
+  <path d="m60 143 29-3m-26 11 18-1m-22 29 35-3m84-12h28m-23 8h18m-5-46 4 11-9 12 7 17M526 157h25m-20 9h18m-9 2 4 10-6 14M997 140h28m-24 8h19m-14 9 4 9-8 9m196-64 5 17-7 11 6 14m201-5 20 1m-17 8 15 1m97-24 28-2m-23 9 18-1m-4-13-4 19 8 12-6 15"/>
+ </g>
+ <g fill="#0e111c"><path d="m0 235 10-47 8 43 17-21-7 37m91-18 9-42 11 41 14-19-5 36m69-4 10-43 5 35 18-25-9 41m49-8 13-31 7 27 14-41 4 47m265-2 15-36 3 31 14-22-2 32m269-5 14-51 10 47 19-32-8 42m266-7 13-38 5 35 17-28-7 37m145-10 14-44 5 38 18-25-8 40m106-2 13-35 6 29 13-46 7 53"/>
+ <path d="M772 216v-61l-8-5 9-15 9 15-6 5v61zm26 0v-65l-8-5 9-14 8 14-6 5v65zm26 0v-69l-8-5 9-16 8 16-6 5v69zm26 0v-62l-8-5 9-15 8 15-6 5v62z"/><path d="M760 171h105v6H760Z"/></g>
+ <g transform="translate(245 205)"><ellipse rx="24" ry="21" fill="#7c3d2c"/><ellipse rx="13" ry="21" fill="#a35635"/><path d="m-13-8 7 5-8 3m25-8-6 5 8 3m-24 5 23 1-7 6-8-1Z" fill="#f4bd66"/><path d="m0-20 2-10 6 2-5 9" fill="#4b5a40"/></g>
+ <g transform="translate(1330 216) scale(.7)"><ellipse rx="24" ry="21" fill="#7c3d2c"/><ellipse rx="13" ry="21" fill="#a35635"/><path d="m-13-8 7 5-8 3m25-8-6 5 8 3m-24 5 23 1-7 6-8-1Z" fill="#f4bd66"/><path d="m0-20 2-10 6 2-5 9" fill="#4b5a40"/></g>
+</svg>
