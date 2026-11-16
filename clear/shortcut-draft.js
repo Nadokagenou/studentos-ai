@@ -30,7 +30,8 @@
   window.shortcutDraftRoute = () => valid() ? pending.route : null;
   window.shortcutDraftApply = route => {
     if (!valid() || route !== pending.route) return false;
-    const input = document.getElementById(route === 'quick' ? 'qaIn' : 'aiInput');
+    // Clear · ช่องจดงานบนหน้าแรก (clrIn) มาก่อน — แผ่นเพิ่มงานด่วน (qaIn) ไม่มีทางเข้าแล้ว
+    const input = route === 'quick' ? (document.getElementById('clrIn') || document.getElementById('qaIn')) : document.getElementById('aiInput');
     if (!input || input.disabled || input.value) return false;
     input.value = pending.text.slice(0, route === 'quick' ? 500 : 2000);
     input.dispatchEvent(new Event('input', { bubbles: true }));

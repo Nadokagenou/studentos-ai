@@ -19566,7 +19566,8 @@ function shortcutTarget() {
   // แผ่นเพิ่มงานด่วนลบเองตอนส่ง/ปิด (quickClose) · ปุ่มลัดอื่นหมดอายุเองใน 30 วิ
   shortcutUsed = true;
   if (g === 'login' && (currentUser || hasStoredSession())) return 'scr-profile'; // Reuse native session validation; do not route returning accounts into login.
-  if (g === 'quick' && typeof quickOpen === 'function') setTimeout(quickOpen, 80);
+  // Clear · จดงานด่วน = หน้าแรก + โฟกัสช่องจดงาน (clear-home.js) · ไม่มีไฟล์นั้น = แผ่นเดิม
+  if (g === 'quick') setTimeout(typeof clearQuickOpen === 'function' ? clearQuickOpen : quickOpen, 80);
   return SHORTCUT_SCREENS[g];
 }
 
@@ -20154,6 +20155,8 @@ function syncLiteRow() { syncGfxRow(); }
   // 12 ต.ค. 69 · หน้าโหลดไม่ออกตรงนี้แล้ว — รอฟอนต์ เครื่องว่าง และข้อมูลบัญชีข้างล่างก่อน (ต้องถึง 75% ถึงเข้าได้ · ดู index.html)
   // แอปข้างใต้ยังบูตต่อตามปกติ ไม่มีบรรทัดไหนในนี้รอหน้าโหลด
   if (typeof window.bootDone === 'function') window.bootDone();
+  // Clear · เปิดแอปแล้วพร้อมพิมพ์ทันที (เป้า: เข้ามาจดแล้วออก ไม่เกิน 30 วิ)
+  if (typeof clearAutoFocus === 'function') setTimeout(clearAutoFocus, 120);
   watchOverlays();
 
   // ข้อความที่แชร์เข้ามาจากแอปอื่น — ทำหลังวาดจอแรก จะได้เห็นผลทันทีว่ามันเข้าแล้ว
