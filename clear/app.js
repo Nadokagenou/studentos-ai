@@ -16695,6 +16695,19 @@ async function pickWidgetPhoto(file) { return openCropFor(file, 'widget'); }
 
 // mode: 'ocr' = ครอบเพื่ออ่านตัวหนังสือ · 'widget' = ครอบเพื่อเอาไปเป็นภาพวิดเจ็ต
 async function openCropFor(file, mode) {
+  // Clear · ถ่ายจากปุ่มกล้องบนหน้าแรก = อ่านทั้งรูปเลย ไม่ผ่านจอครอบ (เป้า 30 วิ) — AI อ่านทั้งหน้าได้อยู่แล้ว
+  // ทางอื่น (วิดเจ็ต · สแกนจากจอสแกน) ยังผ่านจอครอบตามเดิม · การยินยอม/อ่านในเครื่องตอนออฟไลน์อยู่ใน readPhoto ไม่ได้ข้าม
+  if (mode === 'ocr' && typeof clearPhotoQuick !== 'undefined' && clearPhotoQuick) {
+    try {
+      const bmp = await ocrLoadBitmap(file);
+      const c = document.createElement('canvas');
+      c.width = bmp.width; c.height = bmp.height;
+      c.getContext('2d').drawImage(bmp, 0, 0);
+      go('scr-scan');
+      await readPhoto(c, 'ทั้งรูป');
+      return;
+    } catch (e) { console.warn('[clear photo]', e); }
+  }
   try {
     const bmp = await ocrLoadBitmap(file);
     // วิดเจ็ตเป็นช่องแนวนอน ตั้งกรอบเริ่มต้นให้ใกล้สัดส่วนนั้นไว้เลย
@@ -17453,6 +17466,8 @@ async function aiReadPhoto() {
     }
     if (barWrap) barWrap.hidden = true;
     stopFunFacts(document.getElementById('scanFact'));
+    // Clear · AI อ่านได้ครบ (วิชา + กำหนดส่ง + ชื่องาน) = บันทึกเลยพร้อมเลิกทำ/แก้ · ไม่ครบ = ฟอร์มยืนยันตามเดิม
+    if (typeof clearPhotoAutoSave === 'function' && clearPhotoAutoSave(parsed)) return 'ok';
     openForm(null, parsed);
     return 'ok';
   } catch (e) {

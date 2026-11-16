@@ -54,8 +54,8 @@ function clearCaptureHTML(empty) {
     <input id="clrIn" type="text" maxlength="500" enterkeyhint="done" autocomplete="off"
       aria-label="จดงานใหม่" placeholder="${empty ? 'จดงาน… เช่น คณิต ส่งพรุ่งนี้' : 'จดงาน…'}"
       oninput="clearPreview()" onkeydown="if(event.key==='Enter'){event.preventDefault();clearCapture();}">
-    <button class="clr-b clr-cam" onclick="openShot()" aria-label="ถ่ายรูปใบงาน">${icon('camera')}</button>
-    <button class="clr-b clr-mic" onclick="go('scr-scan');toggleVoice()" aria-label="พูดเพิ่มงาน">${icon('mic')}</button>
+    <button class="clr-b clr-cam" onclick="clearPhoto()" aria-label="ถ่ายรูปใบงาน">${icon('camera')}</button>
+    <button class="clr-b clr-mic" onclick="clearVoice()" aria-label="พูดเพิ่มงาน">${icon('mic')}</button>
     <button class="clr-b clr-go" onclick="clearCapture()" aria-label="บันทึกงาน">
       <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
   </div>`;
@@ -108,7 +108,7 @@ function clearPreview() {
 // ผู้ใช้พิมพ์เองในช่องจดงาน = ตั้งใจให้เป็นงาน → ไม่ผ่านเกณฑ์ความมั่นใจของกล่องเข้า (AUTO_ACCEPT)
 // เกณฑ์นั้นมีไว้กรองข้อความที่ไหลเข้ามาเอง (LINE · แชร์) ไม่ใช่สิ่งที่คนพิมพ์ใส่แอปตรง ๆ
 // ซ้ำกับงานที่มีอยู่ = ไม่เพิ่ม บอกว่ามีแล้ว · หลายงานในข้อความเดียว = ส่งให้กล่องเข้าตัดเป็นใบ ๆ ตามเดิม
-function clearCapture() {
+function clearCapture(via) {
   const input = document.getElementById('clrIn');
   const text = input ? input.value.trim() : '';
   if (!text) { if (input) input.focus(); return; }
@@ -135,7 +135,7 @@ function clearCapture() {
     return;
   }
 
-  const t = inboxToTask({ parsed, source: 'clear', raw: text, id: null });
+  const t = inboxToTask({ parsed, source: via === 'voice' ? 'clear-voice' : 'clear', raw: text, id: null });
   t.createdAt = new Date().toISOString();
   delete t.fromInbox;
   clearCaptureDone(input);
@@ -204,4 +204,95 @@ function clearCapLog() {
   if (ms <= 30000) c.u30++;
   c.last = (c.last || []).concat(Math.round(ms / 100) / 10).slice(-30);   // วินาที ทศนิยม 1 ตำแหน่ง
   clearOpenedAt = performance.now();      // จดต่อใบที่สองในรอบเดียวกัน = นับจากใบก่อนหน้า
+}
+
+// ============================================================
+// เป้า 30 วินาที รอบ 2: พูด · ถ่ายรูป (16 พ.ย. 69)
+// ============================================================
+
+// ---------- พูดแทนพิมพ์ ในช่องเดิม ----------
+// แตะไมค์ → พูด → หยุดพูด = บันทึกเอง (มี "เลิกทำ" ใน toast) · แตะไมค์อีกครั้งระหว่างฟัง = หยุด
+// เดิมไมค์พาไปจอสแกน แล้วต้องผ่านจอแกะ → ฟอร์มยืนยัน อีกสองจอ
+// เบราว์เซอร์ที่ไม่มีระบบแปลงเสียง = ใช้ทางเดิม (จอสแกน) ซึ่งบอกเหตุผลเองอยู่แล้ว
+let clearRecog = null;
+function clearVoice() {
+  if (clearRecog) { try { clearRecog.stop(); } catch (_) {} return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { go('scr-scan'); if (typeof toggleVoice === 'function') toggleVoice(); return; }
+  const input = document.getElementById('clrIn');
+  const wrap = input && input.parentNode;
+  if (!input) return;
+  const r = clearRecog = new SR();
+  r.lang = 'th-TH'; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+  let finalText = '', lastInterim = '', failed = '';
+  const prevPh = input.placeholder;
+  r.onstart = () => { if (wrap) wrap.classList.add('listening'); input.value = ''; input.placeholder = 'กำลังฟัง… พูดได้เลย'; clearPreview(); };
+  r.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+    }
+    lastInterim = interim;
+    input.value = (finalText + interim).trim();
+    clearPreview();
+  };
+  r.onerror = e => {
+    failed = {
+      'not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์', 'service-not-allowed': 'ยังไม่ได้อนุญาตให้ใช้ไมค์',
+      'no-speech': 'ไม่ได้ยินเสียง ลองพูดใหม่อีกครั้ง', 'audio-capture': 'หาไมโครโฟนไม่เจอ',
+      'network': 'ต้องต่อเน็ตเพื่อแปลงเสียงเป็นข้อความ', 'aborted': '',
+    }[e.error];
+    if (failed === undefined) failed = 'ฟังไม่สำเร็จ ลองอีกครั้ง';
+  };
+  r.onend = () => {
+    clearRecog = null;
+    if (wrap) wrap.classList.remove('listening');
+    input.placeholder = prevPh;
+    // Safari บน iPhone บางทีจบรอบโดยไม่ส่งผล isFinal — เก็บคำที่ขึ้นจอล่าสุดไว้ด้วย (แบบเดียวกับ toggleVoice)
+    const raw = (finalText + lastInterim).trim();
+    const text = raw && typeof normalizeSpokenText === 'function' ? normalizeSpokenText(raw) : raw;
+    if (!text || text.length < 3) {
+      input.value = ''; clearPreview();
+      if (failed || raw) showToast({ title: failed || 'ได้ยินไม่ชัด ลองพูดใหม่อีกครั้ง', body: '' });
+      return;
+    }
+    input.value = text; clearPreview();
+    // เว้นจังหวะให้เห็นผลแกะก่อนบันทึก — แตะช่องแล้วแก้ระหว่างนี้ = ไม่บันทึกเอง
+    setTimeout(() => { if (document.activeElement !== input && input.value === text) clearCapture('voice'); }, 700);
+  };
+  try { input.blur(); r.start(); } catch (_) { clearRecog = null; showToast({ title: 'เริ่มฟังไม่สำเร็จ ลองอีกครั้ง', body: '' }); }
+}
+
+// ---------- ถ่ายรูป: ข้ามจอครอบ · AI อ่านครบ = บันทึกเลย ----------
+// ทางเดิม: กล้อง → จอครอบ → AI อ่าน → ฟอร์มยืนยัน → บันทึก
+// ทาง Clear: กล้อง → AI อ่าน → (ครบ) บันทึกพร้อมเลิกทำ (แก้ = แตะงานบนหน้าแรก) · (ไม่ครบ) ฟอร์มยืนยันเหมือนเดิม
+// toast มีปุ่มได้ปุ่มเดียว (showToast: undo มาก่อน action) จึงเลือก "เลิกทำ"
+// การขอยินยอมครั้งแรก · ออฟไลน์/ไม่ยินยอม/AI ล้ม = อ่านในเครื่อง → ฟอร์ม ยังเป็นของ readPhoto ทุกอย่าง (ทางสำรองห้ามถอด)
+var clearPhotoQuick = false;
+function clearPhoto() {
+  clearPhotoQuick = true;
+  openShot();
+}
+document.addEventListener('visibilitychange', () => { /* ออกจากแอปกลางทาง = รอบหน้าเริ่มสะอาด */
+  if (document.visibilityState === 'hidden' && typeof curScreen !== 'undefined' && !['scr-shot', 'scr-scan', 'scr-crop', 'scr-parsing'].includes(curScreen)) clearPhotoQuick = false;
+});
+
+function clearPhotoAutoSave(parsed) {
+  if (!clearPhotoQuick) return false;
+  clearPhotoQuick = false;
+  if (!parsed || !parsed.due || !parsed.detail || !parsed.subject || parsed.subject === 'อื่น ๆ') return false;
+  const dup = typeof findDuplicate === 'function' ? findDuplicate(parsed) : null;
+  if (dup) return false;                      // ซ้ำ/คล้าย = ให้คนดูฟอร์มเอง
+  const t = inboxToTask({ parsed, source: 'clear-photo', raw: parsed.raw || '', id: null });
+  t.createdAt = new Date().toISOString();
+  delete t.fromInbox;
+  clearCapLog();
+  save();
+  go('scr-menu');
+  renderAll();
+  showToast({
+    title: 'บันทึกจากรูปแล้ว', body: [t.subject, t.detail].filter(Boolean).join(' · '),
+    undo: () => { state.tasks = state.tasks.filter(x => x.id !== t.id); save(); renderAll(); },
+  });
+  return true;
 }

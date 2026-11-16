@@ -96,3 +96,10 @@
    เฟส 4 · ธีมเหลือ ตามระบบ / สว่าง / มืด — CSS ของธีมอื่นถูกตัดออกแล้ว ปุ่มของมันต้องไม่โผล่
    ============================================================ */
 [data-th]:not([data-th="system"]):not([data-th="light"]):not([data-th="dark"]) { display: none !important; }
+
+/* รอบ 2 · กำลังฟังเสียง — ไมค์เต้น กรอบช่องเป็นสีเตือนเบา ๆ */
+.clr-in.listening { border-color: var(--alert); }
+.clr-in.listening .clr-mic { background: var(--alert); color: #fff; animation: clr-pulse 1s ease-in-out infinite; }
+.clr-in.listening .clr-cam { display: none; }
+@keyframes clr-pulse { 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .clr-in.listening .clr-mic { animation: none; } }
