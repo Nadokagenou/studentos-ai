@@ -117,6 +117,7 @@ function clearCapture() {
   if (cut && cut.multi && typeof inboxAdd === 'function') {
     const r = inboxAdd(text, 'text', { via: 'clear-capture' });
     clearCaptureDone(input);
+    clearCapLog();
     renderAll();
     showToast({ title: 'แยกเป็นหลายงานแล้ว', body: 'ดูและยืนยันในกล่องเข้า',
       action: { label: 'เปิดกล่องเข้า', fn: () => go('scr-inbox') } });
@@ -138,6 +139,7 @@ function clearCapture() {
   t.createdAt = new Date().toISOString();
   delete t.fromInbox;
   clearCaptureDone(input);
+  clearCapLog();
   save(); renderAll();
   showToast({
     title: 'บันทึกแล้ว', body: [t.subject !== 'อื่น ๆ' && t.subject, t.detail].filter(Boolean).join(' · '),
@@ -150,4 +152,56 @@ function clearCaptureDone(input) {
   if (input) { input.value = ''; input.blur(); if (input.parentNode) input.parentNode.classList.remove('typed'); }
   const box = document.getElementById('clrPreview');
   if (box) { box.hidden = true; box.innerHTML = ''; }
+}
+
+// ============================================================
+// เป้า 30 วินาที: เข้ามา → จด → ออก (รอบ 1 · 16 พ.ย. 69)
+// ------------------------------------------------------------
+// แอปเปิดจนพิมพ์ได้ ~1.5–2 วิ (วัดแล้ว) · เวลาที่เหลือคือขั้นตอนของคน — ตัดได้เท่าไหร่ตัดเท่านั้น
+//   1 เปิดแอป (หรือกลับเข้าแอปหลังหายไปเกิน 1 นาที) บนหน้าแรก = โฟกัสช่องจดงานเลย
+//     Android: คีย์บอร์ดขึ้นเอง · iPhone: Safari ไม่ยอมให้เว็บเปิดคีย์บอร์ดเอง ต้องแตะช่องหนึ่งครั้งอยู่ดี
+//   2 กดค้างไอคอน → "จดงานด่วน" (?go=quick) = หน้าแรก + โฟกัส + ข้อความจากปุ่มลัด Android (ถ้ามี)
+//   3 จดเวลาเปิด→บันทึกของจริงไว้ใน funnel.cap — รู้ว่าผู้ใช้จริงใช้กี่วินาที ไม่ต้องเดา
+// ============================================================
+let clearOpenedAt = 0;          // 0 = นับจากตอนเริ่มโหลดหน้า (performance.now() เริ่มที่ศูนย์) → รวมเวลาบูต
+let clearHiddenAt = 0;
+const CLEAR_REOPEN_MS = 60 * 1000;      // หายไปนานกว่านี้แล้วกลับมา = นับเป็นการเปิดใหม่
+const CLEAR_SESSION_MAX = 5 * 60 * 1000; // เปิดค้างนานกว่านี้แล้วค่อยจด = ไม่ใช่ "เข้ามาจด" ไม่นับเวลา
+
+function clearAutoFocus() {
+  if (typeof curScreen === 'undefined' || curScreen !== 'scr-menu') return;
+  const a = document.activeElement;
+  if (a && a !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;   // กำลังพิมพ์ที่อื่นอยู่
+  const i = document.getElementById('clrIn');
+  if (!i || i.offsetParent === null) return;
+  try { i.focus({ preventScroll: true }); } catch (_) {}
+}
+
+function clearQuickOpen() {
+  if (typeof curScreen !== 'undefined' && curScreen !== 'scr-menu') go('scr-menu');
+  setTimeout(() => {
+    if (typeof shortcutDraftApply === 'function') shortcutDraftApply('quick');
+    clearAutoFocus();
+  }, 60);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') { clearHiddenAt = Date.now(); return; }
+  if (clearHiddenAt && Date.now() - clearHiddenAt > CLEAR_REOPEN_MS) {
+    clearOpenedAt = performance.now();
+    setTimeout(clearAutoFocus, 120);
+  }
+});
+
+// เก็บแค่ตัวเลข (ไม่มีข้อความงาน) · ขึ้น cloud ไปกับ funnel ตามเดิม · 30 ค่าล่าสุดพอสำหรับดูแนวโน้ม
+function clearCapLog() {
+  if (typeof funnel !== 'function') return;
+  const ms = performance.now() - clearOpenedAt;
+  if (!(ms > 0) || ms > CLEAR_SESSION_MAX) return;
+  const f = funnel();
+  const c = f.cap = f.cap || { n: 0, u30: 0, last: [] };
+  c.n++;
+  if (ms <= 30000) c.u30++;
+  c.last = (c.last || []).concat(Math.round(ms / 100) / 10).slice(-30);   // วินาที ทศนิยม 1 ตำแหน่ง
+  clearOpenedAt = performance.now();      // จดต่อใบที่สองในรอบเดียวกัน = นับจากใบก่อนหน้า
 }

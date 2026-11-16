@@ -41,7 +41,7 @@
   ],
   "shortcuts": [
     {
-      "name": "เพิ่มงานด่วน",
+      "name": "จดงานด่วน",
       "url": "./?go=quick",
       "icons": [
         {
@@ -49,18 +49,8 @@
           "sizes": "192x192",
           "type": "image/png"
         }
-      ]
-    },
-    {
-      "name": "ถามผู้ช่วย",
-      "url": "./?go=assistant",
-      "icons": [
-        {
-          "src": "icon-192.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
+      ],
+      "short_name": "จดงาน"
     },
     {
       "name": "งานของฉัน",
