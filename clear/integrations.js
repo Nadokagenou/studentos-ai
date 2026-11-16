@@ -56,6 +56,9 @@ async function integLoad(force) {
     // ล้มรอบนี้ไม่ได้แปลว่าล้มตลอดไป (เน็ตสะดุดตอนบูตเป็นเรื่องปกติของมือถือ)
     // ปลดธงให้จอที่วาดครั้งหน้าได้ลองใหม่ · ไม่วนเองเพราะการวาดเกิดจากคนกดเท่านั้น
     integ.tried = false;
+    // Clear · 16 พ.ย. 69 · ล้มแล้วลองใหม่ได้ แต่ไม่ใช่ทันที — บรรทัด renderSources() ข้างล่างเรียก integAutoLoad อีกรอบ
+    // ล้มเร็ว (ออฟไลน์ · เซิร์ฟเวอร์ปฏิเสธทันที) = วนยิงไม่หยุดตราบที่จอตัวเชื่อม/กล่องเข้าเปิดอยู่ (เจอตอนทดสอบ)
+    integ.retryAt = Date.now() + 30000;
   }
   if (typeof renderSources === 'function') renderSources();
   // 1C40 · กล่องเข้ามีแถวสถานะของตัวเชื่อมด้วย — คำตอบจากเซิร์ฟเวอร์ต้องไปถึงจอนั้นเหมือนกัน
@@ -66,7 +69,7 @@ async function integLoad(force) {
 // ไม่ต้องไปพึ่งว่าเส้นทางบูตเส้นไหนจะเรียก integLoad ให้หรือเปล่า — ซึ่งเป็นสมมติฐาน
 // ที่ผิดมาแล้วหนึ่งรอบ (ดูหมายเหตุใน initCloud) และผิดแบบเงียบสนิทไม่มีอะไรฟ้อง
 function integAutoLoad() {
-  if (integ.tried || integ.loaded || !integReady()) return;
+  if (integ.tried || integ.loaded || !integReady() || Date.now() < (integ.retryAt || 0)) return;
   integLoad(true);
 }
 

@@ -20182,11 +20182,13 @@ function syncLiteRow() { syncGfxRow(); }
     // เขาปิดตัวเชื่อมนี้ไว้เอง แต่เพิ่งกดแชร์เข้ามา — เงียบไปเฉย ๆ คือแอปที่ดูเหมือนพัง
     // พาไปหน้าตัวเชื่อมเลย เพราะสวิตช์ที่ต้องกดอยู่ตรงนั้น ไม่ใช่ในกล่องเข้า
     const off = r && r.status === 'off';
-    go(off ? 'scr-sources' : 'scr-inbox');
+    // Clear · แชร์มาแล้วเข้าแผนเลย = อยู่หน้าแรก (เข้ามา → จด → ออก) · ต้องให้คนดู = กล่องเข้าตามเดิม
+    go(off ? 'scr-sources' : r && r.status === 'accepted' ? 'scr-menu' : 'scr-inbox');
     setTimeout(() => showToast(
       off ? { title: 'ปิด "แชร์จากแอปอื่น" ไว้อยู่', body: '' }
       : r && r.status === 'noise'
         ? { title: 'เก็บไว้ในบันทึกแล้ว', body: 'ไม่ใช่งาน' }
+        : r && r.status === 'accepted' ? { title: 'บันทึกแล้ว', body: r.task ? [r.task.subject, r.task.detail].filter(Boolean).join(' · ') : '' }
         : { title: 'รับข้อความแล้ว', body: '' }), 700);
   }
 

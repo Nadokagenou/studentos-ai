@@ -143,11 +143,13 @@ function inboxLiveEnsure() {
   inboxLiveStop();
   if (!uid || typeof sb === 'undefined' || !sb || typeof sb.channel !== 'function') return;
   inboxLiveUid = uid;
-  inboxLive = sb.channel('inbox:' + uid)
-    .on('postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'inbox_items', filter: 'user_id=eq.' + uid },
-      () => { if (currentUser && currentUser.id === uid) pullInbox(); })
-    .subscribe();
+  inboxLive = sb.channel('inbox:' + uid);
+  for (const tbl of INBOX_TABLES) {
+    inboxLive = inboxLive.on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: tbl, filter: 'user_id=eq.' + uid },
+      () => { if (currentUser && currentUser.id === uid) pullInbox(); });
+  }
+  inboxLive.subscribe();
 }
 function inboxLiveStop() {
   if (inboxLive) { try { sb.removeChannel(inboxLive); } catch (_) {} }
@@ -160,20 +162,36 @@ function inboxOffSources() {
   return Object.keys(off).filter(k => off[k] && /^[\w-]+$/.test(k));
 }
 
+// Clear · ของที่ไหลเข้ามีสองที่ (16 พ.ย. 69 · supabase/migrations/20261116130000_clear_inbox_route.sql)
+//   inbox_items        ทางเดิม — ผู้ใช้ยังไม่ได้เลือกให้ส่งมาที่ Clear (แอปไหนเปิดก่อนได้ไป)
+//   inbox_items_clear  ผู้ใช้เลือกแล้ว — ฐานข้อมูลย้ายมาลงที่นี่ แอปหลักไม่เห็น
+// ตาราง clear ยังไม่มี (ยังไม่รัน SQL) = ข้ามเงียบ ๆ ดึงแค่ทางเดิม
+const INBOX_TABLES = ['inbox_items', 'inbox_items_clear'];
+let clearInboxMissing = false;
 async function pullInboxOnce() {
   if (!lineReady()) return 0;
+  let added = 0;
+  for (const tbl of INBOX_TABLES) {
+    if (tbl === 'inbox_items_clear' && clearInboxMissing) continue;
+    added += await pullInboxTable(tbl);
+  }
+  return added;
+}
+
+async function pullInboxTable(tbl) {
   // 16 ต.ค. 69 · กรองตัวเชื่อมที่ปิดไว้ตั้งแต่ใน query — เดิมดึง 50 แถวเก่าสุดแล้วค่อยข้ามข้างล่าง
   // แถวที่ข้ามไม่เคยถูกมาร์ค consumed (ตั้งใจ ดูหมายเหตุในลูป) จึงค้างเป็น 50 แถวเก่าสุดตลอดไป
   // ปิด Classroom ไว้แล้วมีงานค้างครบ 50 ใบเมื่อไหร่ ข้อความ LINE ใหม่ทุกข้อความหลังจากนั้นไม่เคยถูกอ่านอีกเลย
   // (source เป็น not null ในตาราง — not in ไม่ต้องกันกรณีค่าว่าง)
   const off = inboxOffSources();
-  let q = sb.from('inbox_items')
+  let q = sb.from(tbl)
     .select('id, source, raw, meta, created_at')
     .eq('consumed', false);
   if (off.length) q = q.not('source', 'in', `(${off.join(',')})`);
   const { data, error } = await q
     .order('created_at', { ascending: true })
     .limit(50);
+  if (error && tbl === 'inbox_items_clear' && (error.code === 'PGRST205' || error.code === '42P01')) clearInboxMissing = true;
   if (error || !data || !data.length) return 0;
 
   const tally = { added: 0, updated: 0, cancelled: 0, turnedIn: 0 };
@@ -197,7 +215,7 @@ async function pullInboxOnce() {
     else if (r.status === 'turnedIn') tally.turnedIn++;
     done.push(row.id);
   }
-  if (done.length) await sb.from('inbox_items').update({ consumed: true }).in('id', done);
+  if (done.length) await sb.from(tbl).update({ consumed: true }).in('id', done);
 
   const total = tally.added + tally.updated + tally.cancelled + tally.turnedIn;
   if (total) {

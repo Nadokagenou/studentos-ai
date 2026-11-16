@@ -296,3 +296,73 @@ function clearPhotoAutoSave(parsed) {
   });
   return true;
 }
+
+// ============================================================
+// เป้า 30 วินาที รอบ 3: จดโดยไม่ต้องเปิดแอป (16 พ.ย. 69)
+// ------------------------------------------------------------
+// LINE · แตะหลังเครื่อง (quick-add) · Classroom/ปฏิทิน มีอยู่แล้วทั้งหมด แต่ลง inbox_items ตัวเดียวกับแอปหลัก
+// → แอปไหนเปิดก่อนได้ไป · สวิตช์นี้ให้ผู้ใช้เลือกเองว่า "ของที่ไหลเข้า" ไปที่ Clear (ตาราง inbox_route)
+// ฐานข้อมูลย้ายให้เองตอนเขียน (supabase/migrations/20261116130000_clear_inbox_route.sql) — แอปหลักไม่ต้องแก้
+// การ์ดอยู่บนสุดของจอตัวเชื่อม (scr-sources) · ทางเข้า: แท็บฉัน › จดงานโดยไม่ต้องเปิดแอป
+// ============================================================
+let clearRoute = { app: null, missing: false, busy: false, uid: null };
+
+async function clearRouteLoad() {
+  if (typeof sb === 'undefined' || !sb || typeof currentUser === 'undefined' || !currentUser) return;
+  if (clearRoute.uid === currentUser.id && clearRoute.app) return;
+  const uid = currentUser.id;
+  const { data, error } = await sb.from('inbox_route').select('app').eq('user_id', uid).maybeSingle();
+  if (!currentUser || currentUser.id !== uid) return;
+  if (error) { if (error.code === 'PGRST205' || error.code === '42P01') clearRoute.missing = true; return; }
+  clearRoute = { app: (data && data.app) || 'main', missing: false, busy: false, uid };
+  clearRoutePaint();
+}
+
+async function clearRouteSet(app) {
+  if (clearRoute.busy || typeof currentUser === 'undefined' || !currentUser) return;
+  clearRoute.busy = true; clearRoutePaint();
+  const uid = currentUser.id;
+  const { error } = await sb.from('inbox_route').upsert({ user_id: uid, app, updated_at: new Date().toISOString() });
+  clearRoute.busy = false;
+  if (error) {
+    if (error.code === 'PGRST205' || error.code === '42P01') clearRoute.missing = true;
+    showToast({ title: 'เปลี่ยนไม่สำเร็จ', body: clearRoute.missing ? 'ฐานข้อมูลยังไม่พร้อม' : 'ลองใหม่อีกครั้ง' });
+  } else {
+    clearRoute.app = app; clearRoute.uid = uid;
+    showToast({ title: app === 'clear' ? 'งานที่ส่งเข้ามาจะมาที่ Clear แล้ว' : 'งานที่ส่งเข้ามาจะไปที่แอปหลัก', body: '' });
+    if (app === 'clear' && typeof pullInbox === 'function') pullInbox();
+  }
+  clearRoutePaint();
+}
+
+function clearRouteHTML() {
+  const logged = typeof currentUser !== 'undefined' && !!currentUser;
+  const on = clearRoute.app === 'clear';
+  let sub, btn = '';
+  if (!logged) sub = 'เข้าสู่ระบบก่อน — งานจาก LINE และปุ่มลัดผูกกับบัญชี';
+  else if (clearRoute.missing) sub = 'ยังเปิดไม่ได้ · ฐานข้อมูลยังไม่พร้อม';
+  else if (!clearRoute.app) sub = 'กำลังดู…';
+  else {
+    sub = on ? 'เปิดอยู่ · LINE แตะหลังเครื่อง และ Classroom เข้าแอปนี้ แอปหลักไม่ได้รับ'
+      : 'ปิดอยู่ · ตอนนี้ของที่ส่งเข้ามาไปแอปไหนก็ได้ที่เปิดก่อน';
+    btn = `<button class="clr-rt-b${on ? ' on' : ''}" ${clearRoute.busy ? 'disabled' : ''}
+      onclick="clearRouteSet('${on ? 'main' : 'clear'}')">${on ? 'ปิด' : 'เปิด'}</button>`;
+  }
+  return `<div class="clr-rt" id="clrRoute"><div><b>ส่งงานที่ส่งเข้ามา มาที่ Clear</b><small>${esc(sub)}</small></div>${btn}</div>`;
+}
+
+function clearRoutePaint() {
+  const el = document.getElementById('clrRoute');
+  if (el) el.outerHTML = clearRouteHTML();
+}
+
+if (typeof renderSources === 'function') {
+  const baseRenderSources = renderSources;
+  // eslint-disable-next-line no-global-assign
+  renderSources = function () {
+    baseRenderSources.apply(this, arguments);
+    const body = document.getElementById('srcBody');
+    if (body && !document.getElementById('clrRoute')) body.insertAdjacentHTML('afterbegin', clearRouteHTML());
+    clearRouteLoad();
+  };
+}
