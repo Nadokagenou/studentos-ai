@@ -12,9 +12,6 @@
 /* แผ่นเพิ่มงาน: ถอด "ถามน้องฮูก" */
 .as-hero.wide[onclick*="scr-ai"] { display: none !important; }
 
-/* หน้าแรก: ช่องถาม AI (เฟส 2 เปลี่ยนเป็นช่องจดงาน) */
-.td-ask { display: none !important; }
-
 /* หน้าแรก: ไฟต่อเนื่อง/โทเคน · ไทล์ข้อความ/เพื่อน/ของสะสม/ร้านค้า */
 .td-top .tt-streak,
 .td-top .tt-tok,
@@ -36,3 +33,61 @@
 .pf-entry [onclick^="openBoard"],
 .pf-entry [onclick="go('scr-news')"],
 .pf-entry [onclick^="location.href='feedback.html'"] { display: none !important; }
+
+/* ============================================================
+   เฟส 2 · หน้าแรกใหม่ (clear-home.js) — ม็อกอัป A/B/C
+   ============================================================ */
+
+/* แถบล่าง 3 แท็บ (วันนี้ · งาน · ฉัน) — เพิ่มงานอยู่ที่ช่องจดงานบนหน้าแรกแล้ว */
+.tab.scan { display: none !important; }
+
+.clr-home { padding-top: 6px; }
+.clr-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 4px 2px 0; }
+.clr-head h1 { font-size: 28px; font-weight: 700; line-height: 1.15; color: var(--ink); margin: 0; }
+.clr-head p { margin: 2px 0 0; font-size: 14px; color: var(--muted); }
+.clr-ic { flex: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+  background: var(--card); color: var(--muted); display: grid; place-items: center; }
+.clr-ic svg { width: 20px; height: 20px; }
+
+.clr-in { margin-top: 14px; display: flex; align-items: center; gap: 6px; padding: 6px 6px 6px 14px;
+  background: var(--card); border: 1.5px solid var(--blue); border-radius: 16px; }
+.clr-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink);
+  font: inherit; font-size: 16px; padding: 8px 0; }
+.clr-in input::placeholder { color: var(--faint); }
+.clr-in input:focus, .clr-in input:focus-visible { outline: none; box-shadow: none; }
+.clr-in:focus-within { box-shadow: 0 0 0 3px var(--blue-soft); }
+.clr-b { flex: none; width: 38px; height: 38px; border-radius: 11px; border: 0; display: grid; place-items: center;
+  background: var(--card2); color: var(--muted); }
+.clr-b svg { width: 19px; height: 19px; }
+.clr-go { display: none; background: var(--blue); color: var(--on-accent, #fff); }
+/* มีตัวหนังสือในช่อง = ปุ่มบันทึกแทนที่กล้อง/ไมค์ (ม็อกอัป B)
+   ผูกกับ "มีข้อความ" ไม่ใช่ :focus-within — แตะปุ่มแล้วช่องหลุดโฟกัสก่อน click ปุ่มจะหายใต้นิ้ว */
+.clr-in.typed .clr-cam,
+.clr-in.typed .clr-mic { display: none; }
+.clr-in.typed .clr-go { display: grid; }
+
+.clr-pv { margin-top: 8px; padding: 10px 14px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+.clr-pvh { font-size: 12px; color: var(--muted); }
+.clr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.clr-chips span { background: var(--blue-soft); color: var(--blue); border-radius: 999px; padding: 4px 10px; font-size: 13px; font-weight: 600; }
+.clr-pvd { display: block; margin-top: 8px; font-size: 15px; color: var(--ink); }
+
+.clr-lb { margin: 18px 2px 8px; font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: .2px; }
+.clr-list { display: flex; flex-direction: column; gap: 8px; }
+.clr-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 14px; }
+.clr-ck { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--faint); background: transparent; padding: 0; }
+.clr-ck:active { background: var(--blue-soft); border-color: var(--blue); }
+.clr-tx { flex: 1; min-width: 0; text-align: left; border: 0; background: transparent; padding: 0; color: var(--ink); font: inherit; }
+.clr-tx b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clr-tx small { display: block; font-size: 13px; color: var(--muted); }
+.clr-row em { flex: none; font-style: normal; font-size: 13px; color: var(--muted); }
+.clr-row em.hot { color: var(--alert); font-weight: 700; }
+.clr-more { display: block; margin: 10px auto 0; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 14px; font-weight: 600; padding: 6px 10px; }
+.clr-empty { margin: 22px 8px 0; text-align: center; font-size: 14px; color: var(--muted); }
+
+/* การ์ด "ทำอันนี้ก่อน" มีระยะบนของหน้าแรกเดิม — หัวข้อเล็กอยู่ติดการ์ดแล้ว */
+#menuBody.clr-home > .td-now { margin-top: 0 !important; }
+.clr-setup { display: flex; align-items: center; gap: 8px; margin: 10px auto 0; border: 0; background: transparent;
+  color: var(--muted); font: inherit; font-size: 13px; padding: 6px 8px; }
+.clr-setup svg { width: 16px; height: 16px; }

@@ -3962,7 +3962,8 @@ function renderMenu() {
   // สิ่งที่พิมพ์ค้างไว้ในช่องถามน้องไซต้องรอดจากการวาดใหม่
   // renderMenu ถูกเรียกทุกนาที (minuteTick) และทุกครั้งที่ข้อมูลเปลี่ยน (ติ๊กเสร็จ · ซิงก์ cloud)
   // ถ้าไม่คืนค่ากลับ ประโยคที่พิมพ์ค้างจะหายไปกลางคันโดยที่ผู้ใช้ไม่ได้แตะอะไรเลย
-  const askBox = document.getElementById('hmAsk');
+  // Clear · ช่องจดงาน (clrIn) ต้องรอดจากการวาดใหม่ทุกนาทีเหมือนช่องถามเดิม
+  const askBox = document.getElementById(typeof clearHomeHTML === 'function' ? 'clrIn' : 'hmAsk');
   const askKeep = askBox ? askBox.value : '';
   const askFocus = !!askBox && document.activeElement === askBox;
 
@@ -3993,9 +3994,10 @@ function renderMenu() {
   // คำแนะนำ AI) อยู่บนจอแล้วทั้งคู่ — การ์ดฟ้าคือคำแนะนำ ส่วนรางคืองานถัดไป
   // 24 ต.ค. 69 · หน้าแรกแบบใหม่ (แถบบนสุดเปิด) — ราง ช่องถาม และไทล์จัดใหม่ตาม home-v2 · ปิดแถบ = หน้าตาเดิมทั้งหมด
   body.classList.toggle('home-v2', homeBlockOn('todayTop'));
-  body.innerHTML = renderHomeBlocks({
-    sp, now, split, outOfTime, hasReminders: split.reminders.length > 0,
-  });
+  const homeCtx = { sp, now, split, outOfTime, hasReminders: split.reminders.length > 0 };
+  // Clear · หน้าแรกของตัวเอง (clear-home.js) — ถ้าไฟล์โหลดไม่ขึ้น ถอยไปหน้าแรกเดิม แอปไม่ว่างเปล่า
+  body.classList.toggle('clr-home', typeof clearHomeHTML === 'function');
+  body.innerHTML = typeof clearHomeHTML === 'function' ? clearHomeHTML(homeCtx) : renderHomeBlocks(homeCtx);
   deckMount();
 
   // เวทีน้องไซเพิ่งถูกวาดใหม่ทั้งก้อน — ลูปที่เคยเดินอยู่หยุดตัวเองไปแล้วตอนหาเวทีไม่เจอ
@@ -4003,10 +4005,10 @@ function renderMenu() {
   if (typeof saiStart === 'function') saiStart();
 
   if (askKeep || askFocus) {
-    const b2 = document.getElementById('hmAsk');
+    const b2 = document.getElementById(typeof clearHomeHTML === 'function' ? 'clrIn' : 'hmAsk');
     if (b2) {
       b2.value = askKeep;
-      if (askFocus) { b2.focus(); b2.setSelectionRange(askKeep.length, askKeep.length); }
+      if (askFocus) { b2.focus(); b2.setSelectionRange(askKeep.length, askKeep.length); }      if (typeof clearPreview === 'function') clearPreview();
     }
   }
 
