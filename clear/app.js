@@ -11,8 +11,8 @@
 // ชื่อคีย์เป็นเรื่องภายใน ผู้ใช้ไม่เคยเห็น — ไม่คุ้มที่จะแลกกับข้อมูลของคนที่ใช้อยู่
 // ============================================================
 
-const APP_VERSION = '1C62';                 // สายเลขของแอป
-const APP_CODENAME = '';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
+const APP_VERSION = '0A0';                 // สายเลขของแอป
+const APP_CODENAME = 'Flimsy';               // ชื่อรุ่นของอัปเดตนี้ · ว่างได้ถ้าเจ้าของไม่ตั้ง
 // รับการแจ้งเตือนจากแอปหลักที่เดียว ไม่แก้ค่าตั้งร่วมที่ซิงก์ไปแอปหลัก
 // The main entry remains the owner of system notifications.
 const ALT_SYSTEM_NOTIFICATIONS = true;
@@ -8940,7 +8940,7 @@ function renderProfile() {
     pfb.innerHTML = paid ? icon('check') + '<span>ส่งแล้ว</span>' : coin(16) + '<span>+' + FB_REWARD + '</span>';
   }
   const ver = document.getElementById('appVer');
-  if (ver) ver.textContent = 'StudentOS Version ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
+  if (ver) ver.textContent = 'Student OS Clear ' + APP_VERSION + (APP_CODENAME ? ' “' + APP_CODENAME + '”' : '');
   const pn = document.getElementById('pName'); if (pn) pn.value = state.settings.name || '';
   const pf = document.getElementById('pFree'); if (pf) pf.value = state.settings.freeHours || 2;
 

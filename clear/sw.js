@@ -5,7 +5,7 @@
 // ⚠️ ทุกชื่อในลิสต์นี้ต้องมีไฟล์อยู่จริง — addAll จะล้มทั้งก้อนถ้ามีตัวใดตัวหนึ่ง 404
 //    แล้วแอปจะไม่มีแคชเลย (เปิดออฟไลน์ไม่ได้) โดยไม่มี error โผล่ให้เห็นที่หน้าจอ
 //    เคยพลาดมาแล้วตอนคัดลอกไฟล์จาก alt/ ขึ้นมา: ลิสต์ยังมี icon-alt-* ซึ่ง root ไม่มี
-const CACHE = 'studentos-clear-1c62-20261116'; // เวอร์ชัน clear (แยกจากแอปหลัก 16 พ.ย. 69) · คำนำหน้า studentos-clear- ห้ามซ้ำกับ studentos-main- ไม่งั้นสองตัวลบแคชกันเอง
+const CACHE = 'studentos-clear-0a0-flimsy'; // เวอร์ชัน clear (แยกจากแอปหลัก 16 พ.ย. 69) · คำนำหน้า studentos-clear- ห้ามซ้ำกับ studentos-main- ไม่งั้นสองตัวลบแคชกันเอง
 // These filenames carry an immutable art version, so reuse them across app updates.
 const EVENT_ART_CACHE = 'studentos-event-art-v1', eventArtLoads = new Map();
 async function eventArt(request, key) {

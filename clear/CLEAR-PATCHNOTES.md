@@ -2,7 +2,9 @@
 
 ลิงก์: https://nadokagenou.github.io/studentos-ai/clear/
 
-## 16 พฤศจิกายน 2569 · เริ่มเวอร์ชัน clear (โค้ดจากแอปหลัก 1C62)
+## 16 พฤศจิกายน 2569 · Student OS Clear 0A0 “Flimsy” · เริ่มเวอร์ชัน clear (โค้ดจากแอปหลัก 1C62)
+
+- ตั้งเลขรุ่น `0A0` ชื่อรุ่น “Flimsy” (`APP_VERSION` · `APP_CODENAME` ใน app.js · `CACHE` ใน sw.js) · ป้ายรุ่นในแอปขึ้นว่า "Student OS Clear 0A0 “Flimsy”"
 
 - คัดลอกแอปหลักทั้งชุดจาก main (`aaf6d9d` · รวม PR #102) มาไว้ที่ `clear/`
 - **ข้อมูลในเครื่องแยกจากแอปหลัก**: คีย์ `studentos.alt.*` → `studentos.clear.*` (รวม legacy/shortcutDraft/desktop sidebar) · เปิดครั้งแรก = แอปเปล่า งานในแอปหลักไม่ถูกแตะ
