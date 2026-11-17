@@ -32,7 +32,7 @@ function clearHomeHTML(ctx) {
     </header>
     ${clearCaptureHTML(empty)}
     <div id="clrPreview" class="clr-pv" hidden></div>
-    ${shown ? `<p class="clr-lb">ทำอันนี้ก่อน</p>${nowCard(sp, now)}` : ''}
+    ${shown ? `<p class="clr-lb">ทำอันนี้ก่อน</p>${clearNowCard(sp, now)}` : ''}
     ${next.length ? `<p class="clr-lb">ต่อจากนั้น</p>
       <div class="clr-list">${next.slice(0, CLEAR_LIST_MAX).map(clearRowHTML).join('')}</div>` : ''}
     ${total > (shown ? 1 : 0) + Math.min(next.length, CLEAR_LIST_MAX)
@@ -63,15 +63,14 @@ function clearCaptureHTML(empty) {
 
 function clearRowHTML(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
-  const dueTxt = t.due ? fmtDue(t.due, new Date(), t) : 'ไม่มีกำหนด';
-  const late = t.due && new Date(t.due) - Date.now() < 24 * 3.6e6;
+  const du = clearDue(t, new Date());
   return `<div class="clr-row">
     <button class="clr-ck" onclick="toggleDone('${esc(t.id)}', this)" aria-label="ทำเสร็จแล้ว"></button>
     <button class="clr-tx" onclick="openForm('${esc(t.id)}')">
       <b>${esc(t.detail || t.title || subj || 'งาน')}</b>
       <small>${esc([subj, (t.estMin || 30) + ' นาที'].filter(Boolean).join(' · '))}</small>
     </button>
-    <em class="${late ? 'hot' : ''}">${esc(dueTxt)}</em>
+    <em class="clr-due ${du.tone}">${du.tone !== 'calm' ? '<i></i>' : ''}${esc(du.word)}</em>
   </div>`;
 }
 
@@ -365,4 +364,66 @@ if (typeof renderSources === 'function') {
     if (body && !document.getElementById('clrRoute')) body.insertAdjacentHTML('afterbegin', clearRouteHTML());
     clearRouteLoad();
   };
+}
+
+// ============================================================
+// R2 · การ์ด "ทำอันนี้ก่อน" แบบคริสตัล (17 พ.ย. 69)
+// ------------------------------------------------------------
+// ข้อมูลเดียวกับ nowCard() ทุกอย่าง (focusPlan → sp.now) · ต่างแค่หน้าตาและป้ายปุ่ม:
+//   ปุ่มหลักปุ่มเดียว "เริ่มทำ" · "เสร็จแล้ว" กับ "เลื่อนไปทีหลัง" เป็นปุ่มรองที่มีชื่อ (เดิมเป็นไอคอน ✓ กับนาฬิกาให้เดา)
+//   ความด่วน = คำ + จุดสี (เลยกำหนด · วันนี้ · พรุ่งนี้) แทนดาว ★★★★★ ที่อ่านเป็นคะแนนรีวิว
+//   เส้นปริซึมบนขอบการ์ด = เอกลักษณ์ของ Clear · มีบนการ์ดใบนี้ใบเดียว
+// บรรทัดเหตุผลแตะได้ = กาง "ทำไมอันนี้ก่อน" (แผงเดิม toggleNowWhy · nowWhyHTML จึงคลาสต้องเป็น tn-why-go / tn-why-pane ตามเดิม)
+// ============================================================
+const CLEAR_DAY_MS = 864e5;
+function clearDue(t, now) {
+  if (!t.due) return { tone: 'calm', word: 'ไม่มีกำหนด' };
+  const d = new Date(t.due);
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(now)) / CLEAR_DAY_MS);
+  const hhmm = d.getHours() === 23 && d.getMinutes() === 59 ? '' : ' ' + fmtClock(d);
+  if (d < now) return { tone: 'late', word: diff === 0 ? 'เลยเวลาแล้ว' : diff === -1 ? 'เลยกำหนด เมื่อวาน' : 'เลยกำหนด' };
+  if (diff === 0) return { tone: 'late', word: 'วันนี้' + hhmm };
+  if (diff === 1) return { tone: 'soon', word: 'พรุ่งนี้' + hhmm };
+  const TH_D = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+  return { tone: 'calm', word: diff < 7 ? TH_D[d.getDay()] + ' ' + d.getDate() : d.getDate() + '/' + (d.getMonth() + 1) };
+}
+
+function clearNowCard(sp, now) {
+  const n = sp.now;
+  if (!n) return '';
+  const t = n.task, info = n.info, slot = n.slot;
+  const run = typeof runningWork === 'function' ? runningWork() : null;
+  const running = run && run.taskId === t.id;
+  const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : 'งาน';
+  const du = clearDue(t, now);
+  const late = t.due && new Date(t.due) < now;
+  const why = !t.due ? 'ยังไม่รู้กำหนดส่ง เลือกให้จากงานที่ค้างนานที่สุด'
+    : late ? 'เลยกำหนดมา ' + overdueFor(now - new Date(t.due))
+    : topReason(info);
+  const whyBits = [why];
+  if (t.scorePct != null && !String(why).includes('คะแนน')) whyBits.push('เก็บคะแนน ' + t.scorePct + '%');
+  const mins = t.estMin || 30;
+  const when = slot ? fmtClock(slot.start) + ' – ' + fmtClock(slot.end || new Date(+slot.start + mins * 6e4)) + ' · ' : '';
+  const firstMin = n.step ? (slot && slot.min ? Math.min(n.step.min, slot.min) : n.step.min) : 0;
+  const goTx = running ? 'กลับเข้าโหมดโฟกัส' : n.step ? 'เริ่ม ' + firstMin + ' นาทีแรก' : 'เริ่มทำ';
+  const prog = Math.max(0, Math.min(100, t.progress || 0));
+  const whyOpen = typeof NOW_WHY_OPEN !== 'undefined' && NOW_WHY_OPEN;
+  return `<section class="cn${running ? ' running' : ''}">
+    <div class="cn-meta"><span class="cn-subj"><i class="cn-dot ${du.tone}"></i>${esc(subj)}</span>
+      <span class="clr-due ${du.tone}">${esc(du.tone === 'calm' && t.due ? 'ส่ง ' + du.word : du.word)}</span></div>
+    <h2 class="cn-title">${esc(t.detail || 'งานนี้')}</h2>
+    <p class="cn-when">${esc(when + 'ประมาณ ' + mins + ' นาที')}</p>
+    ${prog > 0 && prog < 100 ? `<div class="cn-bar"><i style="width:${prog}%"></i></div>` : ''}
+    ${typeof nowWhyHTML === 'function'
+      ? `<button class="tn-why-go cn-why${whyOpen ? ' open' : ''}" aria-expanded="${whyOpen}" onclick="toggleNowWhy(this)"><span>${esc(whyBits.filter(Boolean).join(' · '))}</span>${icon('chevron')}</button>
+      <div class="tn-why-pane${whyOpen ? ' open' : ''}" aria-hidden="${!whyOpen}"${whyOpen ? '' : ' inert'}><div class="tn-why-in">${nowWhyHTML(t, now)}</div></div>`
+      : `<p class="cn-why">${esc(whyBits.filter(Boolean).join(' · '))}</p>`}
+    <button class="cn-go" onclick="startFocus('${esc(t.id)}')">${icon(running ? 'clock' : 'play')}${esc(goTx)}</button>
+    <div class="cn-sec">
+      <button onclick="toggleDone('${esc(t.id)}', this)">${icon('check')}เสร็จแล้ว</button>
+      <button onclick="notNow('${esc(t.id)}')">${icon('clock')}เลื่อนไปทีหลัง</button>
+    </div>
+    ${!t.due ? `<button class="cn-ask" onclick="openForm('${esc(t.id)}')">${icon('calendar')}ครูสั่งส่งวันไหน — ใส่แล้วแผนแม่นขึ้น</button>` : ''}
+  </section>`;
 }

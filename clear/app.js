@@ -2980,7 +2980,7 @@ function nowWhyHTML(t, now) {
 
 function toggleNowWhy(btn) {
   NOW_WHY_OPEN = !NOW_WHY_OPEN;
-  const card = btn.closest('.td-now');
+  const card = btn.closest('.td-now, .cn');   // .cn = การ์ดคริสตัลของ Clear (clear-home.js)
   if (!card) return;
   btn.classList.toggle('open', NOW_WHY_OPEN);
   btn.setAttribute('aria-expanded', NOW_WHY_OPEN);

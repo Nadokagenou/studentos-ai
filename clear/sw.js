@@ -142,6 +142,8 @@ const SHELL = [
   "clear.css",
   "clear.js",
   "clear-home.js",
+  "crystal-light.svg",
+  "crystal-dark.svg",
   "vendor/supabase-2.118.0.js",
   "classrooms.js",
   "halloween/death-quests.js",
