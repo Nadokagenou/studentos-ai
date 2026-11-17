@@ -303,3 +303,53 @@ html .phone .clr-srch input:focus, html .phone .clr-srch input:focus-visible { o
 /* สรุปงานที่ทำ: ถอดส่วน "ความสำเร็จ" (เหรียญตรา = ระบบเกมที่ตัดไปแล้ว) */
 #scr-stats .an-grp:has(> button[onclick="go('scr-badges')"]),
 #scr-stats .an-badges { display: none !important; }
+
+/* ============================================================
+   R5 · ฟอร์มงาน · กล่องเข้า · ตัวเชื่อม · ตั้งค่า — ปุ่มชุดเดียวกันทั้งแอป
+   ============================================================ */
+/* ปุ่มหลัก: สีเน้นเรียบ ไม่ไล่สี ไม่เรืองแสง (alt.css วาดด้วยไล่สีหลายชั้น + !important จึงต้องเจาะจงกว่า) */
+html:root body .phone .fm-save,
+html:root body .phone .ib-go,
+html:root body .phone .btn.primary,
+html:root body .phone .cx2-scan,
+html:root body .phone .dc-yes {
+  background: var(--blue) !important;
+  background-image: none !important;
+  color: var(--on-fill, #fff) !important;
+  border: 0 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22) !important;
+  text-shadow: none !important;
+}
+/* ปุ่มรองและปุ่มกลับ: ชั้นโปร่ง + เส้นบาง */
+html:root body .phone .sh-btn,
+html:root body .phone .fs-alt,
+html:root body .phone .btn.secondary,
+html:root body .phone .ctx-add {
+  background: var(--card) !important;
+  background-image: none !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: inset 0 1px 0 var(--clr-edge) !important;
+  color: var(--ink) !important;
+}
+
+/* ฟอร์มงาน: ตัวเลือกเป็นชิปเรียงแถว แทนแถวเต็มความกว้างทีละอัน (ฟอร์มเดิมสูง 2,180px) */
+#typePick, #duePick, #subjRows { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 8px !important; }
+#typePick > .tp, #duePick > .pk, #subjRows > .pk {
+  flex: 0 0 auto !important; width: auto !important; min-height: 0 !important; height: 40px !important; margin: 0 !important;
+  padding: 0 14px !important; border-radius: 10px !important; gap: 6px !important;
+  background: var(--card) !important; background-image: none !important; border: 1px solid var(--line) !important;
+  box-shadow: none !important; color: var(--ink) !important; font-size: 14px !important; }
+#typePick > .tp svg { width: 16px; height: 16px; color: var(--muted); }
+#typePick .pk-dot, #duePick .pk-dot, #subjRows .pk-dot { display: none !important; }
+#duePick .pk-s { margin-left: 4px; font-size: 12px; color: var(--muted); }
+#typePick > .tp.active, #duePick > .pk.on, #subjRows > .pk.on {
+  background: var(--blue-soft) !important; border-color: var(--blue) !important; color: var(--blue) !important; }
+#typePick > .tp.active svg, #duePick > .pk.on .pk-s { color: var(--blue); }
+
+/* ตัวเลือกที่ใช้ไม่บ่อย: พับไว้ เหลือ เตือนให้ทำตอน · คะแนนเก็บ · ใช้เวลา */
+.fm-sec:not(.clr-open) :is(#fTeacherWrap, #fStarWrap, #fLateWrap, #fBlockWrap, #fSubsWrap, #fRepeatWrap, #fProgressWrap, #fGotWrap) { display: none !important; }
+.clr-more-opts { display: block; width: 100%; margin-top: 8px; height: 40px; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 14px; }
+.clr-more-opts .clr-mo-b, .fm-sec.clr-open .clr-more-opts .clr-mo-a { display: none; }
+.fm-sec.clr-open .clr-more-opts .clr-mo-b { display: inline; }
+/* "ความสำคัญ" (ดาว) ไม่ใช้ใน Clear แล้ว — ความด่วนบอกเป็นคำ · ซ่อนแม้กางตัวเลือกเพิ่มเติม */
+#fStarWrap { display: none !important; }
