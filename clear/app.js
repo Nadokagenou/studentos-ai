@@ -8792,6 +8792,7 @@ function renderPlan() {
 }
 
 function renderProfile() {
+  if (typeof clearProfilePaint === 'function') clearProfilePaint();   // Clear · R4
   const now = new Date();
   const pending = pendingTasks();
   const done = liveTasks().filter(t => t.done).length;

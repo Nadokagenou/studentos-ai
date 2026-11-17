@@ -504,3 +504,60 @@ function clearTasksPaint() {
   const box = document.getElementById('clrTaskGroups');
   if (box) box.innerHTML = clearTaskGroupsHTML();
 }
+
+// ============================================================
+// R4 · แท็บฉัน = บัญชี + ตั้งค่าที่ใช้จริง 5 หมวด (17 พ.ย. 69)
+// ------------------------------------------------------------
+// เดิม: ห้อง/เหรียญตรา/ต่อเนื่อง · เช็คอินรับโทเคน · กราฟ · ร้านค้า · เพื่อน · อันดับ · ข่าว · Pro (ส่วนใหญ่ถูกตัดไปแล้ว)
+// ตอนนี้: การ์ดบัญชี → จดงาน → เวลา → แจ้งเตือน → หน้าตา → อื่น ๆ · ทุกแถวบอกค่าปัจจุบัน แตะแล้วไปที่ที่แก้ได้
+// ของเดิมใน .pf-body ยังอยู่ (ซ่อนด้วย clear.css) เพราะ renderProfile ยังเขียนลงช่องพวกนั้น
+// "วิชาของฉัน" ไม่มีในนี้: ตัวแก้วิชาอยู่ในจอโปรไฟล์โซเชียล (scr-people) ที่ตัดไปแล้ว — เพิ่มวิชายังทำได้ในฟอร์มงาน
+// ============================================================
+function clearProfileHTML() {
+  const logged = typeof currentUser !== 'undefined' && !!currentUser && !currentUser.is_anonymous;
+  const name = (typeof who === 'function' && who()) || (typeof accountName === 'function' && accountName()) || '';
+  const mail = logged && currentUser.email ? currentUser.email : '';
+  const face = typeof headFace === 'function' ? headFace() : '';
+  const notifOk = ('Notification' in window) && Notification.permission === 'granted' && (typeof notifOn !== 'function' || notifOn());
+  const themeVal = typeof THEME_NAME === 'object' && typeof themePref === 'function' ? THEME_NAME[themePref()] : '';
+  const fontVal = typeof FONT_NAME === 'object' && typeof fontPref === 'function' ? FONT_NAME[fontPref()] : '';
+  const hours = state.settings && state.settings.freeHours != null ? state.settings.freeHours + ' ชม.' : '';
+  const ctxEmpty = typeof ctxIsEmpty === 'function' && ctxIsEmpty();
+  const row = (ic, label, val, go, cls = '') => `<button class="clr-pr ${cls}" onclick="${go}">
+      <span class="clr-pr-ic">${icon(ic)}</span><span class="clr-pr-lb">${esc(label)}</span>
+      ${val ? `<span class="clr-pr-v">${esc(val)}</span>` : ''}${icon('chevron')}</button>`;
+  const grp = (title, rows) => `<p class="clr-grp"><span>${esc(title)}</span></p><div class="clr-prg">${rows.join('')}</div>`;
+  return `
+    <header class="clr-head"><div><h1>ฉัน</h1></div></header>
+    <div class="clr-acc">
+      <span class="clr-av">${face ? `<img src="${esc(face)}" alt="">` : esc((name || 'ฉ').slice(0, 1))}</span>
+      <div class="clr-acc-tx"><b>${esc(name || 'ยังไม่ได้ตั้งชื่อ')}</b>
+        <small>${esc(logged ? (mail || 'เข้าสู่ระบบแล้ว') : 'ยังไม่ได้เข้าสู่ระบบ')}</small></div>
+      ${logged ? `<button class="clr-acc-b ghost" onclick="go('scr-settings')">บัญชี</button>`
+        : `<button class="clr-acc-b" onclick="go('scr-login')">เข้าสู่ระบบ</button>`}
+    </div>
+    ${grp('จดงาน', [
+      row('zap', 'จดงานโดยไม่ต้องเปิดแอป', '', "go('scr-sources')"),
+    ])}
+    ${grp('เวลา', [
+      row('calendar', 'ตารางเรียน · เวลาว่าง', ctxEmpty ? 'ยังไม่ได้ตั้ง' : 'ตั้งแล้ว', "go('scr-context')", ctxEmpty ? 'todo' : ''),
+      row('clock', 'เวลาทำงานต่อวัน', hours, "go('scr-settings')"),
+    ])}
+    ${grp('แจ้งเตือน', [
+      row('bell', 'การแจ้งเตือน', notifOk ? 'เปิดอยู่' : 'ปิดอยู่', "go('scr-settings')", notifOk ? '' : 'todo'),
+    ])}
+    ${grp('หน้าตา', [
+      row('contrast', 'ธีม', themeVal, "openSetOpt('theme')"),
+      row('type', 'ขนาดตัวอักษร', fontVal, "openSetOpt('font')"),
+    ])}
+    ${grp('อื่น ๆ', [
+      row('chart', 'สรุปงานที่ทำ', '', "go('scr-stats')"),
+      row('flag', 'รายงานปัญหาแอป', '', 'openBugReports()'),
+      row('cog', 'ตั้งค่าทั้งหมด', '', "go('scr-settings')"),
+    ])}
+    <p class="clr-ver">${esc(typeof APP_VERSION === 'string' ? 'Student OS Clear ' + APP_VERSION + (typeof APP_CODENAME === 'string' && APP_CODENAME ? ' “' + APP_CODENAME + '”' : '') : '')}</p>`;
+}
+function clearProfilePaint() {
+  const box = document.getElementById('clrProf');
+  if (box) box.innerHTML = clearProfileHTML();
+}
