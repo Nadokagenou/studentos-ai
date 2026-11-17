@@ -7376,6 +7376,13 @@ function renderTasks() {
   // งานที่เสร็จแล้วกับงานที่ลบไปเป็น "ของที่เก็บไว้ดูย้อนหลัง" เหมือนกัน
   // ทั้งคู่จึงอยู่หลังปุ่มท้ายหน้า ไม่ใช่แท็บบนหัวจอที่ยืนแข่งกับรายการงานจริง
   // รายการหลักเหลืองานค้างอย่างเดียว — จอนี้มีหน้าที่บอกว่า "ยังเหลืออะไร" ไม่ใช่ "เคยทำอะไรไปบ้าง"
+  // Clear · R3 รายการเดียวแบ่งตามเวลา (clear-home.js) · ถังขยะ/เสร็จแล้วทั้งหมด ยังใช้มุมมองเดิมข้างล่าง
+  if (typeof clearTasksHTML === 'function' && taskFilter !== 'bin' && taskFilter !== 'done') {
+    const qBox = document.getElementById('clrTq'), keep = qBox && document.activeElement === qBox;
+    el.innerHTML = clearTasksHTML();
+    if (keep) { const b = document.getElementById('clrTq'); if (b) { b.focus(); b.setSelectionRange(b.value.length, b.value.length); } }
+    return;
+  }
   if (taskFilter === 'bin') { el.innerHTML = binView(bin); return; }
   if (taskFilter === 'done') { el.innerHTML = doneView(done); return; }
   // 1B48 · จอ "เลยกำหนดทั้งหมด" — ปลายทางของปุ่ม "ดูอีก N งาน" ในมุมมองสัปดาห์
@@ -8153,6 +8160,8 @@ function tlModeTabs() { return ''; }
 function goTasksTab() {
   taskDay = null; taskFilter = 'pending'; taskView = 'today'; taskQ = '';
   go('scr-tasks');
+  // Clear · แตะแท็บงานซ้ำตอนอยู่ในถังขยะ/เสร็จแล้วทั้งหมด = กลับรายการหลัก (go ไปจอเดิมไม่วาดใหม่)
+  if (typeof clearTasksHTML === 'function') renderTasks();
 }
 
 function goTlMode(m) {

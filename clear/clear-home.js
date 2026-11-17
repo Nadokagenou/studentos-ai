@@ -63,6 +63,16 @@ function clearCaptureHTML(empty) {
 
 function clearRowHTML(t) {
   const subj = t.subject && t.subject !== 'อื่น ๆ' ? t.subject : '';
+  if (t.done) {
+    const at = t.doneAt ? new Date(t.doneAt) : null;
+    return `<div class="clr-row done">
+    <button class="clr-ck" onclick="toggleDone('${esc(t.id)}', this)" aria-label="ยังไม่เสร็จ (ยกเลิกติ๊ก)">${icon('check')}</button>
+    <button class="clr-tx" onclick="openForm('${esc(t.id)}')">
+      <b>${esc(t.detail || t.title || subj || 'งาน')}</b>
+      <small>${esc([subj, at ? 'เสร็จ ' + fmtClock(at) : 'เสร็จแล้ว'].filter(Boolean).join(' · '))}</small>
+    </button>
+  </div>`;
+  }
   const du = clearDue(t, new Date());
   return `<div class="clr-row">
     <button class="clr-ck" onclick="toggleDone('${esc(t.id)}', this)" aria-label="ทำเสร็จแล้ว"></button>
@@ -426,4 +436,71 @@ function clearNowCard(sp, now) {
     </div>
     ${!t.due ? `<button class="cn-ask" onclick="openForm('${esc(t.id)}')">${icon('calendar')}ครูสั่งส่งวันไหน — ใส่แล้วแผนแม่นขึ้น</button>` : ''}
   </section>`;
+}
+
+// ============================================================
+// R3 · แท็บงาน = รายการเดียว แบ่งตามเวลา (17 พ.ย. 69)
+// ------------------------------------------------------------
+// หน้าแรกบอก "ทำอะไร" · แท็บนี้บอก "มีอะไรบ้าง" — ไม่ซ้ำกัน
+// ตัดออก: ตัวเลือกมุมมอง วันนี้/สัปดาห์/รายการ · การ์ด "ควรทำก่อน" (ซ้ำหน้าแรก) · ตัวเลข 3 ช่อง · ดาว
+// เหลือ: หัวจอ · ค้นหา · กลุ่ม เลยกำหนด → วันนี้ → พรุ่งนี้ → 7 วันนี้ → หลังจากนั้น → ไม่มีกำหนด → เสร็จวันนี้
+// ในกลุ่มเรียงตามกำหนดส่ง (ไม่ใช่คะแนนความสำคัญ — "ทำอะไรก่อน" เป็นงานของหน้าแรก)
+// ถังขยะ/ทั้งหมดที่เสร็จ ยังเป็นมุมมองเดิมของ renderTasks (taskFilter = 'bin' · 'done')
+// ============================================================
+let clearTaskQ = '';
+function clearTasksHTML() {
+  const live = liveTasks();
+  const pend = live.filter(t => !t.done);
+  const now = new Date();
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const today = day(now);
+  const doneToday = live.filter(t => t.done && t.doneAt && day(new Date(t.doneAt)) === today);
+  return `<div class="clr-tasks">
+    <header class="clr-head"><div><h1>งานทั้งหมด</h1>
+      <p>ค้าง ${pend.length}${doneToday.length ? ' · เสร็จวันนี้ ' + doneToday.length : ''}</p></div></header>
+    <div class="clr-srch">${icon('search')}<input id="clrTq" type="search" placeholder="ค้นหา" aria-label="ค้นหางาน"
+      value="${esc(clearTaskQ)}" oninput="clearTaskQ=this.value;clearTasksPaint()"></div>
+    <div id="clrTaskGroups">${clearTaskGroupsHTML()}</div>
+    <div class="clr-foot">
+      <button onclick="taskFilter='done';renderTasks()">งานที่เสร็จแล้วทั้งหมด</button>
+      <button onclick="taskFilter='bin';renderTasks()">ถังขยะ</button>
+    </div>
+  </div>`;
+}
+
+function clearTaskGroupsHTML() {
+  const now = new Date();
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const today = day(now);
+  const q = clearTaskQ.trim();
+  const live = liveTasks().filter(t => !q || (typeof matchTask === 'function' ? matchTask(t, q) : true));
+  const byDue = (a, b) => new Date(a.due) - new Date(b.due);
+  const G = [
+    { k: 'late', label: 'เลยกำหนด', tone: 'late', rows: [] },
+    { k: 'today', label: 'วันนี้', rows: [] },
+    { k: 'tmr', label: 'พรุ่งนี้', rows: [] },
+    { k: 'week', label: '7 วันนี้', rows: [] },
+    { k: 'later', label: 'หลังจากนั้น', rows: [] },
+    { k: 'none', label: 'ไม่มีกำหนดส่ง', rows: [] },
+  ];
+  for (const t of live) {
+    if (t.done) continue;
+    if (!t.due) { G[5].rows.push(t); continue; }
+    const d = new Date(t.due), diff = Math.round((day(d) - today) / CLEAR_DAY_MS);
+    G[d < now ? 0 : diff <= 0 ? 1 : diff === 1 ? 2 : diff <= 7 ? 3 : 4].rows.push(t);
+  }
+  G.forEach(g => { if (g.k !== 'none') g.rows.sort(byDue); });
+  const done = live.filter(t => t.done && t.doneAt && day(new Date(t.doneAt)) === today)
+    .sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
+  G.push({ k: 'done', label: 'เสร็จวันนี้', tone: 'done', rows: done });
+  const html = G.filter(g => g.rows.length).map(g => `
+    <div class="clr-grp ${g.tone || ''}"><span>${esc(g.label)}</span><span>${g.rows.length}</span></div>
+    <div class="clr-list">${g.rows.map(clearRowHTML).join('')}</div>`).join('');
+  return html || `<p class="clr-empty">${q ? 'ไม่เจองานที่ตรงกับ "' + esc(q) + '"' : 'ไม่มีงานค้าง · จดงานใหม่ได้ที่หน้าแรก'}</p>`;
+}
+
+// พิมพ์ค้นหา = วาดใหม่แค่ส่วนรายการ — ช่องค้นหาไม่ถูกวาดทับ คีย์บอร์ดไม่หุบ
+function clearTasksPaint() {
+  const box = document.getElementById('clrTaskGroups');
+  if (box) box.innerHTML = clearTaskGroupsHTML();
 }

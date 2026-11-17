@@ -236,3 +236,26 @@ html:root[data-theme="dark"] .cn::after { opacity: .12; }
 .clr-due.late { color: var(--alert); }
 .clr-due.soon { color: #b5700f; }
 html:root[data-theme="dark"] .clr-due.soon { color: #f0b45a; }
+
+/* ============================================================
+   R3 · แท็บงาน — รายการเดียว แบ่งกลุ่มตามเวลา
+   ============================================================ */
+.clr-tasks { padding: 4px 0 24px; }
+.clr-srch { margin-top: 14px; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--clr-edge); color: var(--muted); }
+.clr-srch svg { width: 18px; height: 18px; flex: none; }
+.clr-srch input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: var(--ink); }
+html .phone .clr-srch input:focus, html .phone .clr-srch input:focus-visible { outline: none !important; }
+.clr-srch:focus-within { border-color: var(--blue); }
+.clr-grp { display: flex; justify-content: space-between; margin: 20px 4px 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.clr-grp.late { color: var(--alert); }
+.clr-foot { display: flex; justify-content: center; gap: 16px; margin-top: 20px; }
+.clr-foot button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 6px 4px; }
+
+/* งานเสร็จ = ทอง (สีทองใช้กับของที่สำเร็จจริงเท่านั้น) + เส้นขีดฆ่าแบบปากกา */
+.clr-row.done .clr-ck { border-color: var(--gold); background: var(--gold); display: grid; place-items: center; }
+.clr-row.done .clr-ck svg { width: 14px; height: 14px; color: #fff; stroke-width: 2.6; }
+.clr-row.done .clr-tx b { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--gold); text-decoration-thickness: 2px; }
+
+/* R3 · ปุ่มเพื่อนมุมขวาบน (โซเชียลถูกตัดในเฟส 1 แต่ปุ่มยังโผล่บนแท็บงาน) */
+.top-friends { display: none !important; }
