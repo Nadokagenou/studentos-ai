@@ -54,7 +54,8 @@
 .clr-in input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ink);
   font: inherit; font-size: 16px; padding: 8px 0; }
 .clr-in input::placeholder { color: var(--faint); }
-.clr-in input:focus, .clr-in input:focus-visible { outline: none; box-shadow: none; }
+/* กรอบโฟกัสอยู่ที่กล่องทั้งใบแล้ว (:focus-within) — ช่องพิมพ์ข้างในไม่ต้องมีกรอบซ้อน */
+html .phone .clr-in input:focus, html .phone .clr-in input:focus-visible { outline: none !important; box-shadow: none !important; }
 .clr-in:focus-within { box-shadow: 0 0 0 3px var(--blue-soft); }
 .clr-b { flex: none; width: 38px; height: 38px; border-radius: 11px; border: 0; display: grid; place-items: center;
   background: var(--card2); color: var(--muted); }
@@ -81,8 +82,6 @@
 .clr-tx { flex: 1; min-width: 0; text-align: left; border: 0; background: transparent; padding: 0; color: var(--ink); font: inherit; }
 .clr-tx b { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .clr-tx small { display: block; font-size: 13px; color: var(--muted); }
-.clr-row em { flex: none; font-style: normal; font-size: 13px; color: var(--muted); }
-.clr-row em.hot { color: var(--alert); font-weight: 700; }
 .clr-more { display: block; margin: 10px auto 0; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 14px; font-weight: 600; padding: 6px 10px; }
 .clr-empty { margin: 22px 8px 0; text-align: center; font-size: 14px; color: var(--muted); }
 
@@ -114,3 +113,243 @@
   background: var(--blue); color: var(--on-accent, #fff); }
 .clr-rt-b.on { background: var(--card2); color: var(--ink); }
 .clr-rt-b:disabled { opacity: .6; }
+
+/* ============================================================
+   R1 · หน้าตาคริสตัลใส (17 พ.ย. 69 · เจ้าของ: "ใสกว่านี้นิด เห็นพื้นหลังเป็นลายคริสตัล")
+   ------------------------------------------------------------
+   พื้นหลัง = ลายเหลี่ยมคริสตัลนิ่ง (crystal-light/dark.svg · สร้างด้วย devtools/crystal-bg.py)
+   การ์ด/ช่อง = ชั้นขาวโปร่ง + ขอบรับแสงบาง ๆ → เห็นลายคริสตัลลอดผ่าน
+   ไม่ใช้ backdrop-filter เด็ดขาด — เบลอคือตัวที่ทำให้มือถือหน่วง (แถบล่างเดิมใช้ blur 30px)
+   สีเน้นสีเดียว (น้ำเงินใส) · เงาเรืองแสงและพื้นไล่สีหลายจุดถูกถอด
+   ============================================================ */
+html:root[data-theme="light"] {
+  --scr: #e9f0f8;
+  --card: rgba(255, 255, 255, .64);
+  --card2: rgba(255, 255, 255, .46);
+  --surface: rgba(255, 255, 255, .5);
+  --ink: #0f1a2b;
+  --muted: #526079;
+  --faint: #66728a;
+  --line: rgba(15, 26, 43, .09);
+  --blue: #1f5fe0;
+  --fill: #1f5fe0;
+  --blue-soft: rgba(31, 95, 224, .10);
+  --alert: #c8322b;
+  --shadow: 0 1px 2px rgba(15, 26, 43, .05);
+  --clr-edge: rgba(255, 255, 255, .9);
+  --clr-bar: rgba(244, 248, 252, .92);
+  --clr-bg: url("crystal-light.svg");
+}
+html:root[data-theme="dark"] {
+  --scr: #0c1424;
+  --card: rgba(255, 255, 255, .06);
+  --card2: rgba(255, 255, 255, .04);
+  --surface: rgba(255, 255, 255, .05);
+  --ink: #eaf0fa;
+  --muted: #a7b2c6;
+  --faint: #8590a6;
+  --line: rgba(234, 240, 250, .09);
+  --blue: #6ea0ff;
+  --fill: #6ea0ff;
+  --on-fill: #0b1220;
+  --blue-soft: rgba(110, 160, 255, .14);
+  --alert: #ff6b6b;
+  --shadow: none;
+  --clr-edge: rgba(255, 255, 255, .12);
+  --clr-bar: rgba(12, 20, 36, .94);
+  --clr-bg: url("crystal-dark.svg");
+}
+
+/* พื้นหลัง: ลายคริสตัลแทนวงแสงไล่สี */
+.phone { background: var(--scr) var(--clr-bg) center top / cover no-repeat !important; }
+
+/* แถบล่าง: นิ่ง ทึบเกือบเต็ม ไม่เบลอ ไม่เรืองแสง · แท็บที่เลือกบอกด้วยสีอย่างเดียว */
+.tabbar {
+  background: var(--clr-bar) !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  box-shadow: inset 0 1px 0 var(--line) !important;
+  border: 0 !important;
+}
+/* alt.css วาดแท็บที่เลือกเป็นก้อนสี (:root:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) + !important) — ต้องเจาะจงกว่า */
+html:root:not([data-nav="side"]) .phone .tabbar .tab.active:not(.scan) {
+  background-color: transparent !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  color: var(--blue) !important;
+}
+html:root .phone .tabbar .tab.active svg { color: var(--blue) !important; }
+
+/* การ์ดและแถวทุกใบ: ขอบรับแสงบางบนสุดแทนเงาฟุ้ง */
+.clr-in, .clr-row, .clr-pv, .clr-rt, .clr-ic { box-shadow: inset 0 1px 0 var(--clr-edge) !important; }
+
+/* ตัวหนังสือ: หัวข้อไม่หนาเกิน · ความต่างมาจากขนาดกับสี */
+.phone h1, .phone h2, .phone h3 { font-weight: 500 !important; letter-spacing: -.01em; }
+
+/* ============================================================
+   R2 · การ์ด "ทำอันนี้ก่อน" แบบแผ่นคริสตัล — สิ่งเดียวบนจอที่มีแสงเงาเต็ม
+   ============================================================ */
+.cn { position: relative; overflow: hidden; padding: 20px; border-radius: 20px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, .86), rgba(255, 255, 255, .58));
+  border: 1px solid rgba(255, 255, 255, .95);
+  box-shadow: inset 0 1px 0 #fff, 0 0 0 1px rgba(31, 95, 224, .08), 0 12px 28px rgba(31, 95, 224, .10), 0 2px 6px rgba(15, 26, 43, .05); }
+html:root[data-theme="dark"] .cn { background: linear-gradient(160deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .04));
+  border-color: rgba(255, 255, 255, .14); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .18), 0 12px 28px rgba(0, 0, 0, .35); }
+/* เส้นปริซึม = เอกลักษณ์ของ Clear · มีที่นี่ที่เดียว */
+.cn::before { content: ""; position: absolute; left: 20px; right: 20px; top: 0; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #7fb2ff 22%, #9ee6ff 42%, #ffe7a8 60%, #ffb8d4 74%, transparent); }
+/* ประกายเฉียงบนแผ่นคริสตัล (นิ่ง ไม่เคลื่อน) */
+.cn::after { content: ""; position: absolute; right: -60px; top: -80px; width: 200px; height: 200px; transform: rotate(32deg);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .55), rgba(255, 255, 255, 0)); pointer-events: none; }
+html:root[data-theme="dark"] .cn::after { opacity: .12; }
+.cn > * { position: relative; z-index: 1; }
+
+.cn-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.cn-subj { display: flex; align-items: center; gap: 8px; }
+.cn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); }
+.cn-dot.late { background: var(--alert); } .cn-dot.soon { background: #d98a1c; } .cn-dot.calm { background: var(--blue); }
+.cn-title { margin: 8px 0 4px; font-size: 22px; line-height: 1.3; font-weight: 500 !important; color: var(--ink); }
+.cn-when { margin: 0; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cn-why { margin: 12px 0 0; padding: 0 0 0 12px; border: 0; border-left: 2px solid var(--blue-soft); background: transparent;
+  display: flex; align-items: center; gap: 4px; width: 100%; text-align: left; font: inherit; font-size: 13px; line-height: 1.5; color: var(--muted); }
+.cn-why span { flex: 1; }
+.cn-why svg { flex: none; width: 14px; height: 14px; transition: transform .16s cubic-bezier(.22, 1, .36, 1); }
+.cn-why.open svg { transform: rotate(90deg); }
+.cn-bar { margin-top: 12px; height: 4px; border-radius: 4px; background: var(--blue-soft); overflow: hidden; }
+.cn-bar i { display: block; height: 100%; background: var(--blue); }
+.cn-go { margin-top: 14px; width: 100%; height: 48px; border: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--blue); color: var(--on-fill, #fff); font: inherit; font-size: 16px; font-weight: 500; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25); }
+.cn-go svg { width: 18px; height: 18px; }
+.cn-go:active { transform: scale(.98); }
+.cn-sec { display: flex; gap: 8px; margin-top: 8px; }
+.cn-sec button { flex: 1; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2); color: var(--ink);
+  display: flex; align-items: center; justify-content: center; gap: 6px; font: inherit; font-size: 14px; }
+.cn-sec svg { width: 16px; height: 16px; color: var(--muted); }
+.cn-ask { margin-top: 8px; width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 13px; padding: 4px 0; }
+.cn-ask svg { width: 16px; height: 16px; }
+.cn .tn-why-pane { display: none; }
+.cn .tn-why-pane.open { display: block; margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+/* ความด่วน = คำ + จุด (หน้าแรก · การ์ด · รายการ) */
+.clr-due { flex: none; display: inline-flex; align-items: center; gap: 6px; font-style: normal; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.clr-due i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.clr-due.late { color: var(--alert); }
+.clr-due.soon { color: #b5700f; }
+html:root[data-theme="dark"] .clr-due.soon { color: #f0b45a; }
+
+/* ============================================================
+   R3 · แท็บงาน — รายการเดียว แบ่งกลุ่มตามเวลา
+   ============================================================ */
+.clr-tasks { padding: 4px 0 24px; }
+.clr-srch { margin-top: 14px; height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-radius: 12px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--clr-edge); color: var(--muted); }
+.clr-srch svg { width: 18px; height: 18px; flex: none; }
+.clr-srch input { flex: 1; min-width: 0; border: 0; background: transparent; font: inherit; font-size: 15px; color: var(--ink); }
+html .phone .clr-srch input:focus, html .phone .clr-srch input:focus-visible { outline: none !important; }
+.clr-srch:focus-within { border-color: var(--blue); }
+.clr-grp { display: flex; justify-content: space-between; margin: 20px 4px 8px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.clr-grp.late { color: var(--alert); }
+.clr-foot { display: flex; justify-content: center; gap: 16px; margin-top: 20px; }
+.clr-foot button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; padding: 6px 4px; }
+
+/* งานเสร็จ = ทอง (สีทองใช้กับของที่สำเร็จจริงเท่านั้น) + เส้นขีดฆ่าแบบปากกา */
+.clr-row.done .clr-ck { border-color: var(--gold); background: var(--gold); display: grid; place-items: center; }
+.clr-row.done .clr-ck svg { width: 14px; height: 14px; color: #fff; stroke-width: 2.6; }
+.clr-row.done .clr-tx b { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--gold); text-decoration-thickness: 2px; }
+
+/* R3 · ปุ่มเพื่อนมุมขวาบน (โซเชียลถูกตัดในเฟส 1 แต่ปุ่มยังโผล่บนแท็บงาน) */
+.top-friends { display: none !important; }
+
+/* ============================================================
+   R4 · แท็บฉัน + ตั้งค่า
+   ============================================================ */
+/* ของเดิมในแท็บฉันซ่อนทั้งหมด เหลือ #clrProf (renderProfile ยังเขียนลงได้ ไม่พัง) */
+#scr-profile .pf-body > :not(.clr-prof) { display: none !important; }
+.clr-prof { padding: 4px 0 24px; }
+.clr-acc { margin-top: 16px; display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px;
+  background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--clr-edge); }
+.clr-av { flex: none; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; overflow: hidden;
+  background: var(--blue-soft); color: var(--blue); font-size: 20px; font-weight: 500; }
+.clr-av img { width: 100%; height: 100%; object-fit: cover; }
+.clr-acc-tx { flex: 1; min-width: 0; }
+.clr-acc-tx b { display: block; font-size: 16px; font-weight: 500; color: var(--ink); }
+.clr-acc-tx small { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+.clr-acc-b { flex: none; height: 36px; padding: 0 14px; border-radius: 10px; border: 0; background: var(--blue); color: var(--on-fill, #fff);
+  font: inherit; font-size: 14px; font-weight: 500; }
+.clr-acc-b.ghost { background: var(--card2); color: var(--ink); border: 1px solid var(--line); }
+.clr-prg { border-radius: 16px; overflow: hidden; background: var(--card); border: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--clr-edge); }
+.clr-pr { width: 100%; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 16px; border: 0; background: transparent;
+  font: inherit; color: var(--ink); text-align: left; }
+.clr-pr + .clr-pr { box-shadow: inset 0 1px 0 var(--line); }
+.clr-pr-ic { flex: none; width: 20px; display: grid; place-items: center; color: var(--muted); }
+.clr-pr svg { width: 18px; height: 18px; }
+.clr-pr-lb { flex: 1; min-width: 0; font-size: 15px; }
+.clr-pr-v { flex: none; max-width: 45%; font-size: 13px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.clr-pr.todo .clr-pr-v { color: var(--blue); }
+.clr-pr > svg:last-child { flex: none; width: 16px; height: 16px; color: var(--faint); }
+.clr-ver { margin: 20px 0 0; text-align: center; font-size: 12px; color: var(--faint); }
+
+/* จุดแดงบนแท็บฉันไม่บอกว่าเรื่องอะไร (ส่วนใหญ่มาจากข่าว/ร้านค้าที่ตัดไปแล้ว) */
+.tabbar .tab-dot { display: none !important; }
+
+/* ตั้งค่า: ถอดทางเข้าฟีเจอร์ที่ตัดไปแล้ว */
+#scr-settings .set-quick,
+#aiPrefRow,
+#setRowFx,
+#relockBtn,
+#scr-settings [onclick="openSetOpt('bg')"],
+#scr-settings [onclick="openSetOpt('widget')"],
+#scr-settings [onclick="openSetOpt('nav')"] { display: none !important; }
+/* สรุปงานที่ทำ: ถอดส่วน "ความสำเร็จ" (เหรียญตรา = ระบบเกมที่ตัดไปแล้ว) */
+#scr-stats .an-grp:has(> button[onclick="go('scr-badges')"]),
+#scr-stats .an-badges { display: none !important; }
+
+/* ============================================================
+   R5 · ฟอร์มงาน · กล่องเข้า · ตัวเชื่อม · ตั้งค่า — ปุ่มชุดเดียวกันทั้งแอป
+   ============================================================ */
+/* ปุ่มหลัก: สีเน้นเรียบ ไม่ไล่สี ไม่เรืองแสง (alt.css วาดด้วยไล่สีหลายชั้น + !important จึงต้องเจาะจงกว่า) */
+html:root body .phone .fm-save,
+html:root body .phone .ib-go,
+html:root body .phone .btn.primary,
+html:root body .phone .cx2-scan,
+html:root body .phone .dc-yes {
+  background: var(--blue) !important;
+  background-image: none !important;
+  color: var(--on-fill, #fff) !important;
+  border: 0 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .22) !important;
+  text-shadow: none !important;
+}
+/* ปุ่มรองและปุ่มกลับ: ชั้นโปร่ง + เส้นบาง */
+html:root body .phone .sh-btn,
+html:root body .phone .fs-alt,
+html:root body .phone .btn.secondary,
+html:root body .phone .ctx-add {
+  background: var(--card) !important;
+  background-image: none !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: inset 0 1px 0 var(--clr-edge) !important;
+  color: var(--ink) !important;
+}
+
+/* ฟอร์มงาน: ตัวเลือกเป็นชิปเรียงแถว แทนแถวเต็มความกว้างทีละอัน (ฟอร์มเดิมสูง 2,180px) */
+#typePick, #duePick, #subjRows { display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; gap: 8px !important; }
+#typePick > .tp, #duePick > .pk, #subjRows > .pk {
+  flex: 0 0 auto !important; width: auto !important; min-height: 0 !important; height: 40px !important; margin: 0 !important;
+  padding: 0 14px !important; border-radius: 10px !important; gap: 6px !important;
+  background: var(--card) !important; background-image: none !important; border: 1px solid var(--line) !important;
+  box-shadow: none !important; color: var(--ink) !important; font-size: 14px !important; }
+#typePick > .tp svg { width: 16px; height: 16px; color: var(--muted); }
+#typePick .pk-dot, #duePick .pk-dot, #subjRows .pk-dot { display: none !important; }
+#duePick .pk-s { margin-left: 4px; font-size: 12px; color: var(--muted); }
+#typePick > .tp.active, #duePick > .pk.on, #subjRows > .pk.on {
+  background: var(--blue-soft) !important; border-color: var(--blue) !important; color: var(--blue) !important; }
+#typePick > .tp.active svg, #duePick > .pk.on .pk-s { color: var(--blue); }
+
+/* ตัวเลือกที่ใช้ไม่บ่อย: พับไว้ เหลือ เตือนให้ทำตอน · คะแนนเก็บ · ใช้เวลา */
+.fm-sec:not(.clr-open) :is(#fTeacherWrap, #fStarWrap, #fLateWrap, #fBlockWrap, #fSubsWrap, #fRepeatWrap, #fProgressWrap, #fGotWrap) { display: none !important; }
+.clr-more-opts { display: block; width: 100%; margin-top: 8px; height: 40px; border: 0; background: transparent; color: var(--blue); font: inherit; font-size: 14px; }
+.clr-more-opts .clr-mo-b, .fm-sec.clr-open .clr-more-opts .clr-mo-a { display: none; }
+.fm-sec.clr-open .clr-more-opts .clr-mo-b { display: inline; }
+/* "ความสำคัญ" (ดาว) ไม่ใช้ใน Clear แล้ว — ความด่วนบอกเป็นคำ · ซ่อนแม้กางตัวเลือกเพิ่มเติม */
+#fStarWrap { display: none !important; }

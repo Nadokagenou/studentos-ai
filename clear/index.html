@@ -1287,6 +1287,8 @@
                 </div>
               </div>
             </details>
+            <!-- Clear · R5 ตัวเลือกที่ใช้ไม่บ่อยพับไว้หลังปุ่มเดียว (clear.css · .clr-open) -->
+            <button type="button" class="clr-more-opts" onclick="this.closest('.fm-sec').classList.toggle('clr-open');this.setAttribute('aria-expanded',this.closest('.fm-sec').classList.contains('clr-open'))" aria-expanded="false"><span class="clr-mo-a">ตัวเลือกเพิ่มเติม</span><span class="clr-mo-b">ซ่อนตัวเลือกเพิ่มเติม</span></button>
           </section>
 
           <!-- โชว์เฉพาะตอนแก้งานที่มีอยู่แล้ว — ลบแล้วไปนอนในถังขยะ กู้คืนได้ -->
@@ -1517,6 +1519,8 @@
       <!-- ============ SCREEN: PROFILE ============ -->
       <div class="screen flush" id="scr-profile">
         <div class="scr-body pf-body">
+          <!-- Clear · R4 แท็บฉัน (clear-home.js · clearProfilePaint) — ของเดิมข้างล่างถูกซ่อนด้วย clear.css แต่ยังอยู่ ให้ renderProfile เขียนลงได้ไม่พัง -->
+          <div class="clr-prof" id="clrProf"></div>
           <!-- ============================================================
                1B70 · หัวแท็บ "ฉัน" = หัวเดียวกับหน้าที่เพื่อนเปิดดู
                ============================================================
